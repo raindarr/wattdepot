@@ -1,0 +1,92 @@
+<project name="jar" default="publish" xmlns:ivy="antlib:org.apache.ivy.ant">
+  <description>
+  Provides the targets for building jar files. 
+  </description>
+
+  <import file="build.xml" />
+  <property name="tmp.dir" location="${basedir}/tmp" />
+  <property name="tmp.lib.dir" location="${basedir}/tmp-lib" />
+  <property name="build.jar.dir" location="${build.dir}/jar" />
+  <delete dir="${build.jar.dir}" quiet="true" />
+
+  <target name="jar" depends="jar-example01, jar-example02, jar-example03" />
+
+  <target name="jar-example01" depends="compile" description="Create example01.jar">
+    <!-- Define the directories and distribution name -->
+    <mkdir dir="${tmp.dir}" />
+    <mkdir dir="${build.jar.dir}" />
+    <copy todir="${tmp.dir}">
+      <fileset dir="${basedir}/build/classes" />
+    </copy>
+    <unjar src="${lib.dir}/hackystat/sensorbase/sensorbaseclient.jar" dest="${tmp.dir}" />
+    <jar destfile="${build.jar.dir}/example01.jar" basedir="${tmp.dir}">
+      <manifest>
+        <attribute name="Main-Class" value="org.hackystat.developer.example.example01.Example01" />
+        <attribute name="Implementation-Title" value="Hackystat Developer Examples" />
+        <attribute name="Implementation-Version" value="${version}" />
+        <attribute name="Implementation-Vendor" value="Collaborative Software Development Laboratory, University of Hawaii" />
+      </manifest>
+    </jar>
+    <delete dir="${tmp.dir}" />
+  </target>
+
+  <target name="jar-example02" depends="compile" description="Create example02.jar">
+    <!-- Define the directories and distribution name -->
+    <mkdir dir="${tmp.dir}" />
+    <mkdir dir="${build.jar.dir}" />
+    <copy todir="${tmp.dir}">
+      <fileset dir="${basedir}/build/classes" />
+    </copy>
+    <unjar src="${lib.dir}/hackystat/sensorbase/sensorbaseclient.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/hackystat/sensorshell/sensorshell.jar" dest="${tmp.dir}" />
+    <jar destfile="${build.jar.dir}/example02.jar" basedir="${tmp.dir}">
+      <manifest>
+        <attribute name="Main-Class" value="org.hackystat.developer.example.example02.Example02" />
+        <attribute name="Implementation-Title" value="Hackystat Developer Examples" />
+        <attribute name="Implementation-Version" value="${version}" />
+        <attribute name="Implementation-Vendor" value="Collaborative Software Development Laboratory, University of Hawaii" />
+      </manifest>
+    </jar>
+    <delete dir="${tmp.dir}" />
+  </target>
+
+  <target name="jar-example03" depends="compile" description="Create example03.jar">
+    <!-- Define the directories and distribution name -->
+    <mkdir dir="${tmp.dir}" />
+    <mkdir dir="${build.jar.dir}" />
+    <copy todir="${tmp.dir}">
+      <fileset dir="${basedir}/build/classes" />
+    </copy>
+    <unjar src="${lib.dir}/hackystat/dailyprojectdata/dailyprojectdata.jar" dest="${tmp.dir}" />
+    <jar destfile="${build.jar.dir}/example03.jar" basedir="${tmp.dir}">
+      <manifest>
+        <attribute name="Main-Class" value="org.hackystat.developer.example.example03.Example03" />
+        <attribute name="Implementation-Title" value="Hackystat Developer Examples" />
+        <attribute name="Implementation-Version" value="${version}" />
+        <attribute name="Implementation-Vendor" value="Collaborative Software Development Laboratory, University of Hawaii" />
+      </manifest>
+    </jar>
+    <delete dir="${tmp.dir}" />
+  </target>
+
+  <!--
+     Ivy publication targets.
+   -->
+  <import file="javadoc.build.xml" />
+  <target name="publish" depends="jar, javadoc.zip" description="Publish this project in the local ivy repository">
+    <ivy:resolve />
+    <tstamp>
+      <format property="publication-revision" pattern="yyyy.MM.dd.HH.mm.ss" />
+    </tstamp>
+    <ivy:publish artifactspattern="${build.jar.dir}/[artifact].[ext]" resolver="local-repository" pubrevision="${publication-revision}" update="true" />
+  </target>
+
+  <target name="publish-all" description="Publish all dependent projects, then this one.">
+    <!-- 
+       Here is what a dependent target might look like, although we don't actually have any in this system.
+       <ant antfile="../hackystat-sensorbase-uh/jar.build.xml" target="publish-all" inheritAll="false"/>
+     -->
+    <antcall target="publish" />
+  </target>
+</project>
+
