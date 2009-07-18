@@ -10,11 +10,13 @@
 
   <!-- Initializations for Ivy-based download of JavaNCSS -->
   <property name="javancss.install.dir" location="${lib.dir}/javancss" />
-  <ivy:retrieve module="javancss" organisation="de.kclee" revision="${javancss.version}" pattern="${lib.dir}/javancss/[artifact].[ext]" sync="true" inline="true" log="download-only" type="jar,report" />
-
+  <target name="install-javancss" depends="install-ivy">
+    <ivy:retrieve module="javancss" organisation="de.kclee" revision="${javancss.version}" pattern="${lib.dir}/javancss/[artifact].[ext]" sync="true" inline="true" log="download-only" type="jar,report" />
+  </target>
+    
   <target name="javancss" depends="javancss.tool, javancss.report, javancss.sensor" description="Runs the Javancss tool, report, and sensor." />
 
-  <target name="javancss.tool" depends="compile" description="Runs Javancss over the byte code to check for problems.">
+  <target name="javancss.tool" depends="compile, install-javancss" description="Runs Javancss over the byte code to check for problems.">
     <taskdef name="javancss" classname="javancss.JavancssAntTask">
       <classpath>
         <fileset dir="${javancss.install.dir}" includes="*.jar" />
@@ -30,7 +32,7 @@
     <xslt in="${javancss.dir}/javancss.xml" style="${javancss.install.dir}/javancss2html.xsl" out="${javancss.dir}/javancss-default.html" />
   </target>
 
-  <target name="javancss.sensor" depends="install-sensors" description="Sends FileMetric complexity data to Hackystat using the JavaNCSS sensor.">
+  <target name="javancss.sensor" depends="define-sensors" if="hackystat.enabled" description="Sends FileMetric complexity data to Hackystat using the JavaNCSS sensor.">
     <hacky-javancss verbose="${hackystat.verbose.mode}" failOnError="true">
       <sourcefiles>
         <fileset dir="${src.dir}" includes="**/*.java" />

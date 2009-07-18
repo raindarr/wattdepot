@@ -3,13 +3,10 @@
     Targets for Hudson continuous integration.
   </description>
 
-  <!-- Ensure that Ivy and library.versions.properties are installed. -->
-  <ant antfile="ivy.build.xml" />
-
   <!-- First, override the default settings of these properties. -->
   <property name="javadoc.failonerror" value="true" />
-  <property name="pmd.failonerror" value="false" />
   <!-- Note PMD failures are intentional. -->
+  <property name="pmd.failonerror" value="false" />
   <property name="findbugs.failOnError" value="true" />
   <property name="checkstyle.failOnViolation" value="true" />
   <property name="junit.haltonfailure" value="true" />
@@ -26,9 +23,7 @@
   <import file="sclc.build.xml" />
   <import file="dist.build.xml" />
 
-
-  <target name="hudson.basic" depends="clean, compile, checkstyle.tool,  junit.tool, findbugs.tool, pmd.tool" description="Fast build for production purposes. No sensors.">
-  </target>
+  <target name="hudson.basic" depends="clean, compile, checkstyle.tool,  junit.tool, findbugs.tool, pmd.tool" description="Fast build for production purposes. No sensors."/>
 
   <target name="hudson.daily.build" depends="clean, compile, checkstyle.tool, junit.tool, findbugs.tool, pmd.tool, publish" description="Builds and runs all QA stuff in preparation for sending sensor data.">
     <fail message="FindBugs reported warnings." if="findbugs.warningsfound" />

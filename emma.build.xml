@@ -10,13 +10,13 @@
   <property name="emma.dir" location="${build.dir}/emma" />
   <property name="junit.dir" location="${build.dir}/junit" />
   
-  <!-- Make sure Emma is installed (using Ivy). -->
-  <ivy:retrieve module="emma" organisation="com.vladium" revision="${emma.version}" pattern="${lib.dir}/emma/[artifact].[ext]" sync="true" inline="true" log="download-only" transitive="false" type="jar"/>
- 
+  <target name="install-emma" depends="install-ivy">
+    <ivy:retrieve module="emma" organisation="com.vladium" revision="${emma.version}" pattern="${lib.dir}/emma/[artifact].[ext]" sync="true" inline="true" log="download-only" transitive="false" type="jar"/>
+  </target> 
 
   <target name="emma" depends="emma.tool, emma.echo, emma.sensor" description="Runs Emma." />
 
-  <target name="emma.tool" depends="clean, compile" description="Cleans, compiles, instruments byte codes, runs unit tests, generates Emma report.">
+  <target name="emma.tool" depends="clean, compile, install-emma" description="Cleans, compiles, instruments byte codes, runs unit tests, generates Emma report.">
     <path id="emma.lib.dir">
       <pathelement location="${emma.install.dir}/emma.jar" />
       <pathelement location="${emma.install.dir}/emma_ant.jar" />
@@ -78,7 +78,7 @@
           dest="${emma.echo.file}" usetimestamp="true"/>
    </target>
   
-  <target name="emma.sensor" depends="install-sensors" description="Sends Emma coverage data to Hackystat using the Emma sensor.">
+  <target name="emma.sensor" depends="define-sensors" if="hackystat.enabled"  description="Sends Emma coverage data to Hackystat using the Emma sensor.">
     <hacky-emma verbose="${hackystat.verbose.mode}" failOnError="true">
        <datafiles>
          <fileset file="${emma.dir}/coverage.xml"/>
