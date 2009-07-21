@@ -36,5 +36,6 @@ public class PingMain {
       // Something is wrong.
       e.printStackTrace();
     }
+//    PingClient.pingHost("http://127.0.0.1:8182/");
   }
 }

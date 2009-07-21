@@ -23,7 +23,8 @@ public class PingApplication extends Application {
     Router router = new Router(getContext());
 
     // Defines only one route
-    router.attachDefault(PingResource.class);
+    router.attach("/ping", PingResource.class);
+//    router.attachDefault(PingResource.class);
 
     return router;
   }

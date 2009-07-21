@@ -21,6 +21,11 @@ import org.restlet.resource.Variant;
 public class PingResource extends Resource {
 
   /**
+   * String to send as a response to the ping. 
+   */
+  public static final String HELLO_WORLD_TEXT = "Hello World!";
+  
+  /**
    * Creates a new PingResource object with the provided parameters, and only a text/plain
    * representation.
    * 
@@ -44,7 +49,7 @@ public class PingResource extends Resource {
    */
   @Override
   public Representation represent(Variant variant) throws ResourceException {
-    return new StringRepresentation("Hello World!", MediaType.TEXT_PLAIN);
+    return new StringRepresentation(HELLO_WORLD_TEXT, MediaType.TEXT_PLAIN);
   }
 
 }
