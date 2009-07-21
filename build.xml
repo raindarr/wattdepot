@@ -61,7 +61,7 @@
   </target>
 
   <target name="run" depends="compile" description="Compiles the WattDepot and starts it up.">
-    <java classname="org.wattdepot.wattdepot.tinker.PingMain" fork="yes">
+    <java classname="org.wattdepot.tinker.PingMain" fork="yes">
       <classpath>
         <pathelement location="${build.dir}/classes" />
         <path refid="compile.classpath" />

@@ -12,11 +12,22 @@ import org.restlet.resource.Variant;
 
 /**
  * It's the machine that goes ping! http://www.youtube.com/watch?v=NcHdF1eHhgc&feature=channel_page
+ * Based on the code from the Restlet first steps tutorial:
+ * 
+ * http://www.restlet.org/documentation/1.1/firstSteps
  * 
  * @author Robert Brewer
  */
 public class PingResource extends Resource {
 
+  /**
+   * Creates a new PingResource object with the provided parameters, and only a text/plain
+   * representation.
+   * 
+   * @param context Restlet context for the resource
+   * @param request Restlet request
+   * @param response Restlet response
+   */
   public PingResource(Context context, Request request, Response response) {
     super(context, request, response);
 
@@ -26,11 +37,14 @@ public class PingResource extends Resource {
 
   /**
    * Returns a full representation for a given variant.
+   * 
+   * @param variant the requested variant of this representation
+   * @return the representation of this resource, which is always "Hello World!" in plain text.
+   * @throws ResourceException when the requested resource cannot be represented as requested.
    */
   @Override
   public Representation represent(Variant variant) throws ResourceException {
-    Representation representation = new StringRepresentation("Hello World!", MediaType.TEXT_PLAIN);
-    return representation;
+    return new StringRepresentation("Hello World!", MediaType.TEXT_PLAIN);
   }
 
 }

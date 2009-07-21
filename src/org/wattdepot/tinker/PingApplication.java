@@ -13,6 +13,8 @@ public class PingApplication extends Application {
 
   /**
    * Creates a root Restlet that will receive all incoming calls.
+   * 
+   * @return the newly created Restlet object
    */
   @Override
   public synchronized Restlet createRoot() {
