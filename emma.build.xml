@@ -32,9 +32,10 @@
     <!-- Run JUnit with the instrumented class files. -->
     <mkdir dir="${junit.dir}" />
     <junit printsummary="withOutAndErr" fork="yes">
-      <classpath path="${build.dir}/classes;${java.class.path}">
-        <path refid="emma.lib.dir" />
-        <path refid="compile.classpath" />
+      <classpath>
+        <pathelement location="${build.dir}/classes" />
+        <path refid="compile.classpath"/>
+        <path refid="emma.lib.dir"/>
       </classpath>
       <sysproperty key="emma.coverage.out.file" value="${build.dir}/emma/coverage.emma" />
       <sysproperty key="emma.coverage.out.merge" value="true" />
