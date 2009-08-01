@@ -16,14 +16,12 @@
   <!-- Primitive elements and attributes -->
   <xs:element name="Timestamp" type="xs:dateTime"/>
   <xs:element name="Tool" type="xs:string"/>
-  <xs:element name="SensorDataType" type="xs:anyURI"/>
   <xs:element name="Source" type="xs:anyURI"/>
   <xs:element name="Key" type="xs:string"/>
   <xs:element name="Value" type="xs:string"/>
-  <xs:attribute name="Owner" type="xs:string"/>
-  <xs:attribute name="SensorDataType" type="xs:string"/>
-  <xs:attribute name="Tool" type="xs:string"/>
   <xs:attribute name="Timestamp" type="xs:dateTime"/>
+  <xs:attribute name="Tool" type="xs:string"/>
+  <xs:attribute name="Source" type="xs:anyURI"/>
   <xs:attribute name="Href" type="xs:anyURI"/>
 
 
@@ -50,7 +48,6 @@
       <xs:sequence>
         <xs:element ref="Timestamp"/>
         <xs:element ref="Tool"/>
-        <xs:element ref="SensorDataType"/>
         <xs:element ref="Source"/>
         <xs:element ref="Properties"/>
       </xs:sequence>
@@ -67,10 +64,9 @@
 
   <xs:element name="SensorDataRef">
     <xs:complexType>
-      <xs:attribute ref="Source" use="required"/>
-      <xs:attribute ref="SensorDataType" use="required"/>
       <xs:attribute ref="Timestamp" use="required"/>
       <xs:attribute ref="Tool" use="required"/>
+      <xs:attribute ref="Source" use="required"/>
       <xs:attribute ref="Href" use="required"/>
     </xs:complexType>
   </xs:element>
