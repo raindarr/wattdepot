@@ -46,10 +46,10 @@
   <xs:element name="SensorData">
     <xs:complexType>
       <xs:sequence>
-        <xs:element ref="Timestamp"/>
-        <xs:element ref="Tool"/>
-        <xs:element ref="Source"/>
-        <xs:element ref="Properties"/>
+        <xs:element ref="Timestamp" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="Tool" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="Source" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="Properties" minOccurs="0" maxOccurs="1"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>

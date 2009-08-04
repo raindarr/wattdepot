@@ -50,12 +50,12 @@
   <xs:element name="Source">
     <xs:complexType>
       <xs:sequence>
-        <xs:element ref="Name"/>
-        <xs:element ref="Public"/>
-        <xs:element ref="Coordinates"/>
-        <xs:element ref="Location"/>
-        <xs:element ref="Description"/>
-        <xs:element ref="Properties"/>
+        <xs:element ref="Name" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="Public" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="Coordinates" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="Location" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="Description" minOccurs="1" maxOccurs="1"/>
+        <xs:element ref="Properties" minOccurs="0" maxOccurs="1"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
