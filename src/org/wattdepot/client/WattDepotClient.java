@@ -21,15 +21,14 @@ public class WattDepotClient {
   /**
    * Initializes a new WattDepotClient.
    * 
-   * @param host The host, such as 'http://localhost:9876/wattdepot'.
+   * @param host The host, such as 'http://localhost:9876/wattdepot/'. Must end in "/"
    */
   public WattDepotClient(String host) {
     Client client;
 
     validateArg(host);
-    if (host.endsWith("/")) {
-      this.wattDepotHost = host.substring(0, host.length() - 1);
-    }
+    this.wattDepotHost = host;
+    
     client = new Client(Protocol.HTTP);
     client.setConnectTimeout(2000);
   }
@@ -52,10 +51,10 @@ public class WattDepotClient {
    */
   public boolean isHealthy() {
     // URI is host with health resource URL appended
-    String registerUri = this.wattDepotHost + Server.URI_ROOT + Server.HEALTH_URI;
+    String healthUri = this.wattDepotHost + Server.HEALTH_URI;
 
     Request request = new Request();
-    request.setResourceRef(registerUri);
+    request.setResourceRef(healthUri);
     request.setMethod(Method.GET);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
@@ -70,10 +69,10 @@ public class WattDepotClient {
    */
   public String getHealthString() {
     // URI is host with health resource URL appended
-    String registerUri = this.wattDepotHost + Server.URI_ROOT + Server.HEALTH_URI;
+    String healthUri = this.wattDepotHost + Server.HEALTH_URI;
 
     Request request = new Request();
-    request.setResourceRef(registerUri);
+    request.setResourceRef(healthUri);
     request.setMethod(Method.GET);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);

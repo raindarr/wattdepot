@@ -64,5 +64,5 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/derby/javadoc.zip!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="output" path="build/bin"/>
+	<classpathentry kind="output" path="bin"/>
 </classpath>

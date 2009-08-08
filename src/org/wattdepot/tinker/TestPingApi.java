@@ -20,7 +20,7 @@ public class TestPingApi {
    */
   @Test
   public void testPing() throws Exception {
-    assertTrue("Checking ping", PingClient.pingHost("http://127.0.0.1:8183/"));
+    assertTrue("Checking ping", PingClient.pingHost("http://127.0.0.1:8181/"));
   }
   
   /**
@@ -31,8 +31,8 @@ public class TestPingApi {
     // Create a new Component.
     Component component = new Component();
 
-    // Add a new HTTP server listening on port 8182.
-    component.getServers().add(Protocol.HTTP, 8183);
+    // Add a new HTTP server listening on port 8181.
+    component.getServers().add(Protocol.HTTP, 8181);
 
     // Attach the sample application.
     component.getDefaultHost().attach(new PingApplication());
