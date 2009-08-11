@@ -37,7 +37,8 @@
     <mkdir dir="${checkstyle.dir}"/>
     <checkstyle config="${checkstyle.config.file.path}"
                 failOnViolation="${checkstyle.failOnViolation}" 
-                classpathref="checkstyle.classpath">
+                classpathref="checkstyle.classpath"
+                failureProperty="checkstyle.failed">
       <fileset dir="${src.dir}" includes="**/*.java" />
       <formatter type="plain"/>
       <formatter type="xml" tofile="${checkstyle.dir}/checkstyle.xml" />

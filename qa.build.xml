@@ -9,10 +9,46 @@
   <import file="pmd.build.xml" />
   <import file="junit.build.xml" />
 
-  <target name="qa" depends="compile, junit, checkstyle, pmd, findbugs" description="Verifies system.">
+  <target name="qa" depends="compile, junit, checkstyle, pmd, findbugs, display-junit,
+    display-checkstyle, display-pmd, display-findbugs, display-no-errors" description="Verifies system.">
   </target>
 
-    <!-- Would be even better if checkstyle, etc set a property on failure. Then we check that and
-    open up the HTML output in a browser when it fails -->
-  
+  <target name="display-junit" if="junit.failed">
+    <exec executable="open" os="Mac OS X">
+      <arg file="${junit.build.dir}/index.html" />
+    </exec>
+  </target>
+
+  <target name="display-checkstyle" if="checkstyle.failed">
+    <exec executable="open" os="Mac OS X">
+      <arg file="${checkstyle.dir}/index.html" />
+    </exec>
+  </target>
+
+  <target name="display-pmd" if="pmd.failed">
+    <exec executable="open" os="Mac OS X">
+      <arg file="${pmd.dir}/pmd-report-per-class.html" />
+    </exec>
+  </target>
+
+  <target name="display-findbugs" if="findbugs.warningsfound">
+    <exec executable="open" os="Mac OS X">
+      <arg file="${findbugs.dir}/findbugs-default.html" />
+    </exec>
+  </target>
+
+  <target name="display-no-errors" depends="check-for-failures" unless="qa.failures">
+    <echo message="No QA failures found!" />
+  </target>
+
+  <target name="check-for-failures">
+    <condition property="qa.failures">
+      <or>
+        <isset property="junit.failed" />
+        <isset property="checkstyle.failed" />
+        <isset property="pmd.failed" />
+        <isset property="findbugs.warningsfound" />
+      </or>
+    </condition>
+  </target>
 </project>

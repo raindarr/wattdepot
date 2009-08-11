@@ -47,6 +47,12 @@
       <formatter type="xml" toFile="${pmd.dir}/pmd.xml" />
       <fileset dir="${src.dir}" includes="**/*.java" />
     </pmd>
+    <!-- If failures found, set pmd.failed property. Need separate property because -->
+    <!-- pmd.failure.count is set to 0 when there are no failures, so cannot be used to tell if -->
+    <!-- there was a failure. -->
+    <condition property="pmd.failed">
+      <isset property="pmd.failure.count"/>
+    </condition>
     <!-- Provide a value for this property if it hasn't gotten one by the pmd task already. -->
     <property name="pmd.failure.count" value="0"/>
     <echo message="PMD found ${pmd.failure.count} problem(s)." />
