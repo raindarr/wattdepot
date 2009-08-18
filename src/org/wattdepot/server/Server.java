@@ -2,12 +2,16 @@ package org.wattdepot.server;
 
 import static org.wattdepot.server.ServerProperties.CONTEXT_ROOT_KEY;
 import static org.wattdepot.server.ServerProperties.PORT_KEY;
+import java.util.Map;
 import org.restlet.Application;
 import org.restlet.Component;
+import org.restlet.Guard;
 import org.restlet.Restlet;
 import org.restlet.Router;
 import org.restlet.data.Protocol;
 import org.wattdepot.resource.health.HealthResource;
+import org.wattdepot.resource.user.UserResource;
+import org.wattdepot.resource.user.UsersResource;
 
 /**
  * Sets up HTTP server and routes requests to appropriate resources. Portions of this code are
@@ -32,6 +36,9 @@ public class Server extends Application {
 
   /** The URI used for the health resource. */
   public static final String HEALTH_URI = "health";
+  
+  /** The URI used for the users resource. */
+  public static final String USERS_URI = "users";
   
   /**
    * Creates a new instance of a WattDepot HTTP server, listening on the port defined either by the
@@ -85,6 +92,18 @@ public class Server extends Application {
 //    server.logger.warning("Host: " + server.hostName);
 //    server.logger.info(server.serverProperties.echoProperties());
 
+    
+    Map<String, Object> attributes = 
+      server.getContext().getAttributes();
+//    DbManager dbManager = new DbManager(server);  // we need this later in this method.
+//    attributes.put("DbManager", dbManager);
+//    attributes.put("SdtManager", new SdtManager(server));
+//    attributes.put("UserManager", new UserManager(server));
+//    attributes.put("ProjectManager", new ProjectManager(server));
+//    attributes.put("SensorDataManager", new SensorDataManager(server));
+    attributes.put("WattDepotServer", server);
+    attributes.put("ServerProperties", server.serverProperties);
+
     // Now let's open for business. 
 //    server.logger.info("Maximum Java heap size (MB): " + 
 //        (Runtime.getRuntime().maxMemory() / 1000000.0));
@@ -111,10 +130,19 @@ public class Server extends Application {
    */
   @Override
   public synchronized Restlet createRoot() {
+    // This Router is used to control access to the User resource 
+    Router userRouter = new Router(getContext());
+
+    userRouter.attach("/" + USERS_URI, UsersResource.class);
+    userRouter.attach("/" + USERS_URI + "/{user}", UserResource.class);
+    Guard userGuard = new AdminAuthenticator(getContext());
+    userGuard.setNext(userRouter);
+
     Router router = new Router(getContext());
 
     // Defines only one route
     router.attach("/" + HEALTH_URI, HealthResource.class);
+    router.attachDefault(userGuard);
 
     return router;
   }
