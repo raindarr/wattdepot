@@ -82,7 +82,7 @@ public class ServerProperties {
     String propFile = serverHome + "/wattdepot-server.properties";
     String defaultAdmin = "admin@example.com";
     this.properties = new Properties();
-    // Set defaults for 'standard' operation. These will override any previously
+    // Set defaults for 'standard' operation.
     properties.setProperty(ADMIN_EMAIL_KEY, defaultAdmin);
     properties.setProperty(ADMIN_PASSWORD_KEY, defaultAdmin);
     properties.setProperty(CONTEXT_ROOT_KEY, "wattdepot");

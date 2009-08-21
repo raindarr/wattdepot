@@ -85,6 +85,9 @@ public class Server extends Application {
     server.component.getDefaultHost().attach("/" +
         server.serverProperties.get(CONTEXT_ROOT_KEY), server);
 
+    // Move this to logger once logging is working
+    System.out.println("Host: " + server.hostName);
+
     // Set up logging.
 //    RestletLoggerUtil.useFileHandler("sensorbase");
 //   HackystatLogger.setLoggingLevel(server.logger, server.serverProperties.get(LOGGING_LEVEL_KEY));
@@ -176,6 +179,15 @@ public class Server extends Application {
    */
   public ServerProperties getServerProperties() {
     return this.serverProperties;
+  }
+  
+  /**
+   * Shuts down the WattDepot server, so it will stop listening for connections.
+   * 
+   * @throws Exception if something goes wrong during the shutdown.
+   */
+  public void shutdown() throws Exception {
+    this.component.stop();
   }
   
 //  /**

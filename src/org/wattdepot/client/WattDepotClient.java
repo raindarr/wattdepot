@@ -2,10 +2,16 @@ package org.wattdepot.client;
 
 import java.io.IOException;
 import org.restlet.Client;
+import org.restlet.data.ChallengeResponse;
+import org.restlet.data.ChallengeScheme;
+import org.restlet.data.MediaType;
 import org.restlet.data.Method;
+import org.restlet.data.Preference;
 import org.restlet.data.Protocol;
+import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
+import org.restlet.resource.Representation;
 import org.wattdepot.server.Server;
 
 /**
@@ -16,32 +22,85 @@ import org.wattdepot.server.Server;
  */
 public class WattDepotClient {
 
-  private String wattDepotHost;
-  
+  /** The representation type for XML. */
+  // private Preference<MediaType> XML_MEDIA = new Preference<MediaType>(MediaType.TEXT_XML);
+
+  /** The representation type for plain text. */
+  private Preference<MediaType> TEXT_MEDIA = new Preference<MediaType>(MediaType.TEXT_PLAIN);
+
+  /** The HTTP authentication approach. */
+  private ChallengeScheme scheme = ChallengeScheme.HTTP_BASIC;
+
+  private String wattDepotUri;
+  private String username;
+  private String password;
+  /** The Restlet Client instance used to communicate with the server. */
+  private Client client;
+
   /**
    * Initializes a new WattDepotClient.
    * 
-   * @param host The host, such as 'http://localhost:9876/wattdepot/'. Must end in "/"
+   * @param hostUri The URI of the WattDepot server, such as 'http://localhost:9876/wattdepot/'.
+   * Must end in "/"
+   * @param username The username that we will use for authentication. Can be null if no
+   * authentication is to be attempted.
+   * @param password The password we will use for authentication. Can be null if no authentication
+   * is to be attempted.
    */
-  public WattDepotClient(String host) {
-    Client client;
+  public WattDepotClient(String hostUri, String username, String password) {
+    if ((hostUri == null) || ("".equals(hostUri))) {
+      throw new IllegalArgumentException("hostname cannot be null or the empty string.");
+    }
+    // We allow null usernames and passwords, but if they are empty string, throw exception
+    if ("".equals(username)) {
+      throw new IllegalArgumentException("username cannot be the empty string.");
+    }
+    if ("".equals(password)) {
+      throw new IllegalArgumentException("password cannot be the empty string.");
+    }
 
-    validateArg(host);
-    this.wattDepotHost = host;
-    
-    client = new Client(Protocol.HTTP);
-    client.setConnectTimeout(2000);
+    this.wattDepotUri = hostUri;
+    this.username = username;
+    this.password = password;
+
+    this.client = new Client(Protocol.HTTP);
+    this.client.setConnectTimeout(2000);
   }
 
   /**
-   * Throws an unchecked illegal argument exception if the arg is null or empty.
+   * Determines whether this client has been configured for anonymous access or not. If no
+   * credentials (or partially missing credentials) were provided to the constructor, then it is
+   * assumed that the client will only attempt API calls at the Access Control Level of "None".
    * 
-   * @param arg The String that must be non-null and non-empty.
+   * @return true if client is configured for anonymous access, false otherwise.
    */
-  private void validateArg(String arg) {
-    if ((arg == null) || ("".equals(arg))) {
-      throw new IllegalArgumentException(arg + " cannot be null or the empty string.");
+  private boolean isAnonymous() {
+    return (this.username == null) || (this.password == null);
+  }
+
+  /**
+   * Does the housekeeping for making HTTP requests to WattDepot by a test or admin user, including
+   * authentication if requested.
+   * 
+   * @param method the HTTP method requested.
+   * @param requestString A string, such as "users". No preceding slash.
+   * @param mediaPref Indication of what type of media the client prefers from the server. See
+   * XML_MEDIA and TEXT_MEDIA constants.
+   * @param entity The representation to be sent with the request, or null if not needed.
+   * @return The Response instance returned from the server.
+   */
+  private Response makeRequest(Method method, String requestString,
+      Preference<MediaType> mediaPref, Representation entity) {
+    Reference reference = new Reference(this.wattDepotUri + requestString);
+    Request request = (entity == null) ? new Request(method, reference) : new Request(method,
+        reference, entity);
+    request.getClientInfo().getAcceptedMediaTypes().add(mediaPref);
+    if (!isAnonymous()) {
+      ChallengeResponse authentication = new ChallengeResponse(scheme, this.username,
+          this.password);
+      request.setChallengeResponse(authentication);
     }
+    return this.client.handle(request);
   }
 
   /**
@@ -50,14 +109,9 @@ public class WattDepotClient {
    * @return true if the server is healthy, false if not healthy
    */
   public boolean isHealthy() {
-    // URI is host with health resource URL appended
-    String healthUri = this.wattDepotHost + Server.HEALTH_URI;
+    // Make HEAD request, since we only care about status code
+    Response response = makeRequest(Method.HEAD, Server.HEALTH_URI, TEXT_MEDIA, null);
 
-    Request request = new Request();
-    request.setResourceRef(healthUri);
-    request.setMethod(Method.GET);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
     // If we get a success status code, then server is healthy
     return response.getStatus().isSuccess();
   }
@@ -68,14 +122,10 @@ public class WattDepotClient {
    * @return the health message from server, or null if unable to retrieve any message
    */
   public String getHealthString() {
-    // URI is host with health resource URL appended
-    String healthUri = this.wattDepotHost + Server.HEALTH_URI;
+    // Make the request
+    Response response = makeRequest(Method.GET, Server.HEALTH_URI, TEXT_MEDIA, null);
 
-    Request request = new Request();
-    request.setResourceRef(healthUri);
-    request.setMethod(Method.GET);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    // Try to extract the response text and return it
     try {
       return response.getEntity().getText();
     }
@@ -83,4 +133,57 @@ public class WattDepotClient {
       return null;
     }
   }
+
+  /**
+   * Determines whether or not the credentials provided in the constructor are valid by attempting
+   * to retrieve the User resource that corresponds to the username from the constructor.
+   * 
+   * @return true if the constructor credentials are valid, and false if they are invalid or object
+   * was called with null credentials.
+   */
+  public boolean isAuthenticated() {
+    // URI is host with user resource URL appended, followed by the configured username
+    String usersUri = Server.USERS_URI + "/" + this.username;
+
+    if (isAnonymous()) {
+      return false;
+    }
+    else {
+      Response response = makeRequest(Method.HEAD, usersUri, TEXT_MEDIA, null);
+      return response.getStatus().isSuccess();
+    }
+  }
+
+  /**
+   * Returns the stub string from User resource.
+   * 
+   * @return a String that is just a placeholding stub for the User resource.
+   */
+  public String getUsersString() {
+    Response response = makeRequest(Method.GET, Server.USERS_URI, TEXT_MEDIA, null);
+    try {
+      return response.getEntity().getText();
+    }
+    catch (IOException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Returns the stub string from User resource.
+   * 
+   * @param username The username of the User resource to be retrieved.
+   * @return a String that is just a placeholding stub for the User resource.
+   */
+  public String getUserString(String username) {
+    Response response = makeRequest(Method.GET, Server.USERS_URI + "/" + username, TEXT_MEDIA,
+        null);
+    try {
+      return response.getEntity().getText();
+    }
+    catch (IOException e) {
+      return null;
+    }
+  }
+
 }

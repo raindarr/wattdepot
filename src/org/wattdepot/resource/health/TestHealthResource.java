@@ -13,13 +13,13 @@ import org.wattdepot.test.ServerTestHelper;
 public class TestHealthResource extends ServerTestHelper {
 
   /**
-   * Test that GET {host}/ping returns the hello world text.
+   * Test whether the Health resource is working, both with proper status code, and health text.
    * 
    * @throws Exception If problems occur.
    */
   @Test
   public void testResource() throws Exception {
-    WattDepotClient client = new WattDepotClient(getHostName());
+    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
     assertTrue("Server is unhealthy", client.isHealthy());
     assertTrue("Unexpected server message",
         client.getHealthString().equals(HealthResource.HEALTH_MESSAGE_TEXT));
