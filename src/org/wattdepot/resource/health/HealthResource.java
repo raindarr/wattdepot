@@ -21,7 +21,7 @@ public class HealthResource extends Resource {
   /**
    * String to send as a response to the health request. 
    */
-  public static final String HEALTH_MESSAGE_TEXT = "WattDepot is alive.";
+  protected static final String HEALTH_MESSAGE_TEXT = "WattDepot is alive.";
   
   /**
    * Creates a new HealthResource object with the provided parameters, and only a text/plain

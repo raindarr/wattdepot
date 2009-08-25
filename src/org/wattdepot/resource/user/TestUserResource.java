@@ -41,7 +41,6 @@ public class TestUserResource extends ServerTestHelper {
   @Test
   public void testUserResource() throws Exception {
     // Currently authenticating as admin user
-//    System.out.println("admin email: " + adminEmail + ", admin password: " + adminPassword);
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     assertTrue("User resource returned incorrect string", client.getUserString("foo").equals(
         "User resource"));

@@ -38,11 +38,11 @@ public class AdminAuthenticator extends Guard {
     String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
     String adminPassword = serverProps.get(ServerProperties.ADMIN_PASSWORD_KEY);
 
-    System.out.println("request username: " + identifier + ", request password: "
-        + new String(secret) + ", admin username: " + adminUsername + ", admin password: "
-        + adminPassword);
+    Server server = (Server) getContext().getAttributes().get("WattDepotServer");
+    server.getLogger().fine(
+        "request username: " + identifier + ", request password: " + new String(secret)
+            + ", admin username: " + adminUsername + ", admin password: " + adminPassword);
     // For now, only accept requests from the admin user
     return identifier.equals(adminUsername) && new String(secret).equals(adminPassword);
   }
-
 }

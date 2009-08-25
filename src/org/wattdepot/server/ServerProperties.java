@@ -170,9 +170,9 @@ public class ServerProperties {
     }
     trimProperties(properties);
     // update the system properties object to reflect these new values. 
-//    Properties systemProperties = System.getProperties();
-//    systemProperties.putAll(properties);
-//    System.setProperties(systemProperties);    
+    Properties systemProperties = System.getProperties();
+    systemProperties.putAll(properties);
+    System.setProperties(systemProperties);    
   }
 
   /**

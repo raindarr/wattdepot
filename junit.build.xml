@@ -13,7 +13,7 @@
   <target name="junit.tool" depends="compile" description="Run JUnit tests.">
     <mkdir dir="${junit.build.dir}" />
     <!-- Run the tests, which are all classes whose name starts with 'Test'. -->
-    <junit printsummary="withOutAndErr" haltonfailure="${junit.haltonfailure}" failureproperty="junit.failed">
+    <junit printsummary="withOutAndErr" haltonfailure="${junit.haltonfailure}" failureproperty="junit.failed" fork="yes">
       <classpath>
         <pathelement location="${build.dir}/classes" />
         <path refid="compile.classpath"/>
