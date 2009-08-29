@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
-           xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
-           jaxb:extensionBindingPrefixes="xjc"
-           jaxb:version="2.0">
+	xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+	jaxb:extensionBindingPrefixes="xjc" jaxb:version="2.0">
 
 	<xs:annotation>
 		<xs:appinfo>
@@ -15,6 +13,7 @@
 
 	<!-- Primitive elements and attributes -->
 	<xs:element name="Name" type="xs:string" />
+	<xs:element name="Owner" type="xs:anyURI" />
 	<xs:element name="Public" type="xs:boolean" />
 	<xs:element name="Virtual" type="xs:boolean" />
 	<xs:element name="Coordinates" type="xs:string" />
@@ -24,6 +23,7 @@
 	<xs:element name="Key" type="xs:string" />
 	<xs:element name="Value" type="xs:string" />
 	<xs:attribute name="Name" type="xs:string" />
+	<xs:attribute name="Owner" type="xs:anyURI" />
 	<xs:attribute name="Public" type="xs:boolean" />
 	<xs:attribute name="Virtual" type="xs:boolean" />
 	<xs:attribute name="Coordinates" type="xs:string" />
@@ -62,8 +62,9 @@
 		<xs:complexType>
 			<xs:sequence>
 				<xs:element ref="Name" minOccurs="1" maxOccurs="1" />
+				<xs:element ref="Owner" minOccurs="1" maxOccurs="1" />
 				<xs:element ref="Public" minOccurs="1" maxOccurs="1" />
-        <xs:element ref="Virtual" minOccurs="1" maxOccurs="1" />
+				<xs:element ref="Virtual" minOccurs="1" maxOccurs="1" />
 				<xs:element ref="Coordinates" minOccurs="1" maxOccurs="1" />
 				<xs:element ref="Location" minOccurs="1" maxOccurs="1" />
 				<xs:element ref="Description" minOccurs="1" maxOccurs="1" />
@@ -84,6 +85,7 @@
 	<xs:element name="SourceRef">
 		<xs:complexType>
 			<xs:attribute ref="Name" use="required" />
+			<xs:attribute ref="Owner" use="required" />
 			<xs:attribute ref="Public" use="required" />
 			<xs:attribute ref="Virtual" use="required" />
 			<xs:attribute ref="Coordinates" use="required" />
@@ -99,6 +101,6 @@
 				<xs:element ref="SourceRef" minOccurs="0" maxOccurs="unbounded" />
 			</xs:sequence>
 		</xs:complexType>
-	</xs:element> 
+	</xs:element>
 
 </xs:schema>

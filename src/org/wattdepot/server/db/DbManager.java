@@ -5,11 +5,11 @@ import java.lang.reflect.Constructor;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.hackystat.utilities.stacktrace.StackTrace;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
+import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
-import org.wattdepot.resource.source.jaxb.Sources;
+import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.user.jaxb.User;
-import org.wattdepot.resource.user.jaxb.Users;
+import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 
 /**
@@ -70,10 +70,10 @@ public class DbManager {
   /**
    * Returns a list of all Sources in the system.
    * 
-   * @return a Sources object containing a List of all Source objects.
+   * @return a SourceIndex object containing a List of SourceRefs to all Source objects.
    */
-  public Sources getSources() {
-    return this.dbImpl.getSources();
+  public SourceIndex getSources() {
+    return this.dbImpl.getSourceIndex();
   }
 
   /**
@@ -109,49 +109,50 @@ public class DbManager {
   }
 
   /**
-   * Returns the SensorDatas including all sensor data for this Source.
+   * Returns the SensorDataIndex listing all sensor data for the named Source.
    * 
-   * @param source The Source whose sensor data is to be returned.
-   * @return a SensorDatas object containing a List of all relevant sensor data resources.
+   * @param sourceName The name of the Source whose sensor data is to be returned.
+   * @return a SensorDataIndex object containing all relevant sensor data resources.
    */
-  public SensorDatas getSensorDatas(Source source) {
-    return this.dbImpl.getSensorDatas(source);
+  public SensorDataIndex getSensorDataIndex(String sourceName) {
+    return this.dbImpl.getSensorDataIndex(sourceName);
   }
 
   /**
-   * Returns the SensorDatas representing the SensorData for the given Source between the given
-   * start and end times.
+   * Returns the SensorDataIndex representing all the SensorData resources for the named Source
+   * between the given start and end times.
    * 
-   * @param source The Source whose sensor data is to be returned.
+   * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param startTime The earliest Sensor Data to be returned.
    * @param endTime The latest SensorData to be returned.
-   * @return a SensorDatas object containing a List of all relevant sensor data resources.
+   * @return a SensorDataIndex object containing all relevant sensor data resources.
    */
-  public SensorDatas getSensorDatas(Source source, XMLGregorianCalendar startTime,
+  public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) {
-    return this.dbImpl.getSensorDatas(source, startTime, endTime);
+    return this.dbImpl.getSensorDataIndex(sourceName, startTime, endTime);
   }
 
   /**
-   * Returns the SensorData instance for a particular Source and timestamp, or null if not found.
+   * Returns the SensorData instance for a particular named Source and timestamp, or null if not
+   * found.
    * 
-   * @param source The Source whose sensor data is to be returned.
+   * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param timestamp The timestamp associated with this sensor data.
    * @return The SensorData resource, or null.
    */
-  public SensorData getSensorData(Source source, XMLGregorianCalendar timestamp) {
-    return this.dbImpl.getSensorData(source, timestamp);
+  public SensorData getSensorData(String sourceName, XMLGregorianCalendar timestamp) {
+    return this.dbImpl.getSensorData(sourceName, timestamp);
   }
 
   /**
-   * Returns true if the passed [Source, timestamp] has sensor data defined for it.
+   * Returns true if the passed [Source name, timestamp] has sensor data defined for it.
    * 
-   * @param source The Source being examined.
+   * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param timestamp The timestamp
-   * @return True if there is any sensor data for this [key, sdtName, timestamp].
+   * @return True if there is any sensor data for this timestamp.
    */
-  public boolean hasSensorData(Source source, XMLGregorianCalendar timestamp) {
-    return this.dbImpl.hasSensorData(source, timestamp);
+  public boolean hasSensorData(String sourceName, XMLGregorianCalendar timestamp) {
+    return this.dbImpl.hasSensorData(sourceName, timestamp);
   }
 
   /**
@@ -166,35 +167,35 @@ public class DbManager {
   }
 
   /**
-   * Ensures that sensor data with the given Source and timestamp is no longer present in this
+   * Ensures that sensor data with the named Source and timestamp is no longer present in this
    * manager.
    * 
-   * @param source The Source being deleted.
+   * @param sourceName The name of the Source whose sensor data is to be deleted.
    * @param timestamp The timestamp associated with this sensor data.
    * @return True if the sensor data was deleted, or false if it was not deleted or the requested
    * sensor data does not exist.
    */
-  public boolean deleteSensorData(Source source, XMLGregorianCalendar timestamp) {
-    return this.dbImpl.deleteSensorData(source, timestamp);
+  public boolean deleteSensorData(String sourceName, XMLGregorianCalendar timestamp) {
+    return this.dbImpl.deleteSensorData(sourceName, timestamp);
   }
 
   /**
-   * Ensures that all sensor data from the given Source is no longer present in storage.
+   * Ensures that all sensor data from the named Source is no longer present in storage.
    * 
-   * @param source The Source being deleted.
+   * @param sourceName The name of the Source whose sensor data is to be deleted.
    * @return True if all the sensor data was deleted, or false if it was not deleted or the
    * requested Source does not exist.
    */
-  public boolean deleteSensorData(Source source) {
-    return this.dbImpl.deleteSensorData(source);
+  public boolean deleteSensorData(String sourceName) {
+    return this.dbImpl.deleteSensorData(sourceName);
   }
 
   /**
-   * Returns a list of all Users in the system.
+   * Returns a UserIndex of all Users in the system.
    * 
-   * @return a Users object containing a List of all User objects.
+   * @return a UserIndex object containing a List of UserRef objects for all User resources.
    */
-  public Users getUsers() {
+  public UserIndex getUsers() {
     return this.dbImpl.getUsers();
   }
 
@@ -252,6 +253,4 @@ public class DbManager {
   public boolean indexTables() {
     return this.dbImpl.indexTables();
   }
-
-
 }

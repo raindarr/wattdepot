@@ -3,11 +3,11 @@ package org.wattdepot.server.db;
 import java.util.logging.Logger;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
+import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
-import org.wattdepot.resource.source.jaxb.Sources;
+import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.user.jaxb.User;
-import org.wattdepot.resource.user.jaxb.Users;
+import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 
 /**
@@ -20,6 +20,22 @@ import org.wattdepot.server.Server;
  */
 
 public abstract class DbImplementation {
+
+  /** Keeps a pointer to this Server for use in accessing the managers. */
+  protected Server server;
+
+  /** Keep a pointer to the Logger. */
+  protected Logger logger;
+
+  /**
+   * Constructs a new DbImplementation.
+   * 
+   * @param server The server.
+   */
+  public DbImplementation(Server server) {
+    this.server = server;
+    this.logger = server.getLogger();
+  }
 
   /**
    * To be called as part of the startup process for a storage system. This method should:
@@ -37,12 +53,15 @@ public abstract class DbImplementation {
    */
   public abstract boolean isFreshlyCreated();
 
+  // Start of methods based on REST API
+
   /**
-   * Returns a list of all Sources in the system.
+   * Returns a list of all Sources in the system. An empty index will be returned if there are no
+   * Sources in the system.
    * 
-   * @return a Sources object containing a List of all Source objects.
+   * @return a SourceIndex object containing a List of SourceRefs to all Source objects.
    */
-  public abstract Sources getSources();
+  public abstract SourceIndex getSourceIndex();
 
   /**
    * Returns the named Source instance, or null if not found.
@@ -62,7 +81,8 @@ public abstract class DbImplementation {
   public abstract boolean storeSource(Source source);
 
   /**
-   * Ensures that the Source with the given name is no longer present in storage.
+   * Ensures that the Source with the given name is no longer present in storage. All sensor data
+   * associated with this Source will also be deleted.
    * 
    * @param sourceName The name of the Source.
    * @return True if the Source was deleted, or false if it was not deleted or the requested Source
@@ -71,42 +91,45 @@ public abstract class DbImplementation {
   public abstract boolean deleteSource(String sourceName);
 
   /**
-   * Returns the SensorDatas including all sensor data for this Source.
+   * Returns the SensorDataIndex listing all sensor data for the named Source. If the Source has no
+   * SensorData resources, the index will be empty.
    * 
-   * @param source The Source whose sensor data is to be returned.
-   * @return a SensorDatas object containing a List of all relevant sensor data resources.
+   * @param sourceName The name of the Source whose sensor data is to be returned.
+   * @return a SensorDataIndex object containing all relevant sensor data resources.
    */
-  public abstract SensorDatas getSensorDatas(Source source);
+  public abstract SensorDataIndex getSensorDataIndex(String sourceName);
 
   /**
-   * Returns the SensorDatas representing the SensorData for the given Source between the given
-   * start and end times.
+   * Returns the SensorDataIndex representing all the SensorData resources for the named Source
+   * between the given start and end times. If the Source has no appropriate SensorData resources,
+   * the index will be empty.
    * 
-   * @param source The Source whose sensor data is to be returned.
+   * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param startTime The earliest Sensor Data to be returned.
    * @param endTime The latest SensorData to be returned.
-   * @return a SensorDatas object containing a List of all relevant sensor data resources.
+   * @return a SensorDataIndex object containing all relevant sensor data resources.
    */
-  public abstract SensorDatas getSensorDatas(Source source, XMLGregorianCalendar startTime,
-      XMLGregorianCalendar endTime);
+  public abstract SensorDataIndex getSensorDataIndex(String sourceName,
+      XMLGregorianCalendar startTime, XMLGregorianCalendar endTime);
 
   /**
-   * Returns the SensorData instance for a particular Source and timestamp, or null if not found.
+   * Returns the SensorData instance for a particular named Source and timestamp, or null if not
+   * found.
    * 
-   * @param source The Source whose sensor data is to be returned.
+   * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param timestamp The timestamp associated with this sensor data.
    * @return The SensorData resource, or null.
    */
-  public abstract SensorData getSensorData(Source source, XMLGregorianCalendar timestamp);
+  public abstract SensorData getSensorData(String sourceName, XMLGregorianCalendar timestamp);
 
   /**
-   * Returns true if the passed [Source, timestamp] has sensor data defined for it.
+   * Returns true if the passed [Source name, timestamp] has sensor data defined for it.
    * 
-   * @param source The Source being examined.
+   * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param timestamp The timestamp
-   * @return True if there is any sensor data for this [key, sdtName, timestamp].
+   * @return True if there is any sensor data for this timestamp.
    */
-  public abstract boolean hasSensorData(Source source, XMLGregorianCalendar timestamp);
+  public abstract boolean hasSensorData(String sourceName, XMLGregorianCalendar timestamp);
 
   /**
    * Persists a SensorData instance. If SensorData with this [Source, timestamp] already exists in
@@ -118,31 +141,31 @@ public abstract class DbImplementation {
   public abstract boolean storeSensorData(SensorData data);
 
   /**
-   * Ensures that sensor data with the given Source and timestamp is no longer present in this
+   * Ensures that sensor data with the named Source and timestamp is no longer present in this
    * manager.
    * 
-   * @param source The Source being deleted.
+   * @param sourceName The name of the Source whose sensor data is to be deleted.
    * @param timestamp The timestamp associated with this sensor data.
    * @return True if the sensor data was deleted, or false if it was not deleted or the requested
-   * sensor data does not exist.
+   * sensor data or Source does not exist.
    */
-  public abstract boolean deleteSensorData(Source source, XMLGregorianCalendar timestamp);
+  public abstract boolean deleteSensorData(String sourceName, XMLGregorianCalendar timestamp);
 
   /**
-   * Ensures that all sensor data from the given Source is no longer present in storage.
+   * Ensures that all sensor data from the named Source is no longer present in storage.
    * 
-   * @param source The Source being deleted.
+   * @param sourceName The name of the Source whose sensor data is to be deleted.
    * @return True if all the sensor data was deleted, or false if it was not deleted or the
    * requested Source does not exist.
    */
-  public abstract boolean deleteSensorData(Source source);
+  public abstract boolean deleteSensorData(String sourceName);
 
   /**
-   * Returns a list of all Users in the system.
+   * Returns a UserIndex of all Users in the system.
    * 
-   * @return a Users object containing a List of all User objects.
+   * @return a UserIndex object containing a List of UserRef objects for all User resources.
    */
-  public abstract Users getUsers();
+  public abstract UserIndex getUsers();
 
   /**
    * Returns the User instance for a particular username, or null if not found.
@@ -162,7 +185,8 @@ public abstract class DbImplementation {
   public abstract boolean storeUser(User user);
 
   /**
-   * Ensures that the User with the given username is no longer present in storage.
+   * Ensures that the User with the given username is no longer present in storage. All Sources
+   * owned by the given User and their associated Sensor Data will be deleted as well. 
    * 
    * @param username The user's username.
    * @return True if the User was deleted, or false if it was not deleted or the requested User does
@@ -170,21 +194,7 @@ public abstract class DbImplementation {
    */
   public abstract boolean deleteUser(String username);
 
-  /** Keeps a pointer to this Server for use in accessing the managers. */
-  protected Server server;
-
-  /** Keep a pointer to the Logger. */
-  protected Logger logger;
-
-  /**
-   * Constructs a new DbImplementation.
-   * 
-   * @param server The server.
-   */
-  public DbImplementation(Server server) {
-    this.server = server;
-    this.logger = server.getLogger();
-  }
+  // End of methods based on REST API
 
   /**
    * Some databases require periodic maintenance (ex. Derby requires an explicit compress command to
@@ -221,5 +231,4 @@ public abstract class DbImplementation {
   // * @return A set of table names.
   // */
   // public abstract Set<String> getTableNames();
-
 }

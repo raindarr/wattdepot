@@ -45,7 +45,7 @@
          failonerror="${pmd.failonerror}"
          failOnRuleViolation="${pmd.failonerror}">
       <formatter type="xml" toFile="${pmd.dir}/pmd.xml" />
-      <fileset dir="${src.dir}" includes="**/*.java" excludes="**/jaxb/**" />
+      <fileset dir="${src.dir}" includes="**/*.java" excludes="**/jaxb/**, **/tinker/**" />
     </pmd>
     <!-- If failures found, set pmd.failed property. Need separate property because -->
     <!-- pmd.failure.count is set to 0 when there are no failures, so cannot be used to tell if -->

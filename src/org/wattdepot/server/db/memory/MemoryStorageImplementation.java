@@ -1,0 +1,273 @@
+package org.wattdepot.server.db.memory;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import javax.xml.datatype.DatatypeConstants;
+import javax.xml.datatype.XMLGregorianCalendar;
+import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
+import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.user.jaxb.User;
+import org.wattdepot.resource.user.jaxb.UserIndex;
+import org.wattdepot.server.Server;
+import org.wattdepot.server.db.DbImplementation;
+
+/**
+ * An in-memory storage implementation for WattDepot. <b>Note:</b> this class persists data
+ * <em>in memory only!</em> It does not save any of the data to long-term storage. Therefore it
+ * should only be used in special circumstances, such as during system development or performance
+ * testing. <b>It is NOT for production use!</b>
+ * 
+ * @author Robert Brewer
+ */
+public class MemoryStorageImplementation extends DbImplementation {
+
+  /** Holds the mapping from Source name to Source object. */
+  private ConcurrentMap<String, Source> name2SourceHash;
+  /** Holds the mapping from Source name to a map of timestamp to SensorData. */
+  private ConcurrentMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>
+    source2SensorDatasHash;
+  /** Holds the mapping from username to a User object. */
+  private ConcurrentMap<String, User> name2UserHash;
+
+  /**
+   * Constructs a new DbImplementation using ConcurrentHashMaps for storage, with no long-term
+   * persistence.
+   * 
+   * @param server The server this DbImplementation is associated with.
+   */
+  public MemoryStorageImplementation(Server server) {
+    super(server);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void initialize() {
+    // Create the hash maps
+    this.name2SourceHash = new ConcurrentHashMap<String, Source>();
+    this.source2SensorDatasHash = 
+      new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>();
+    this.name2UserHash = new ConcurrentHashMap<String, User>();
+    // Since nothing is stored on disk, there is no data to be read into the hash maps
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean isFreshlyCreated() {
+    // Since this implementation provides no long-term storage, it is always freshly created.
+    return true;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SourceIndex getSourceIndex() {
+    SourceIndex index = new SourceIndex();
+    // Loop over all Sources in hash
+    for (Source source : this.name2SourceHash.values()) {
+      // Convert each Source to SourceRef, add to index
+      index.getSourceRef().add(MemoryStorageUtil.makeSourceRef(source, this.server));
+    }
+    return index;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Source getSource(String sourceName) {
+    return this.name2SourceHash.get(sourceName);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean storeSource(Source source) {
+    Source storedValue = this.name2SourceHash.putIfAbsent(source.getName(), source);
+    // putIfAbsent returns the value that ended up in the hash. So if the Source wasn't in the
+    // map yet, then we get back the source we tried to store. If there was already a Source
+    // stored under that name, we get whatever was previously stored (so our store should fail).
+    return (storedValue.equals(source));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean deleteSource(String sourceName) {
+    // First delete the hash of sensor data for this Source. We ignore the return value since
+    // we only need to ensure that there is no sensor data leftover.
+    deleteSensorData(sourceName);
+    // remove() returns the value for the key, or null if there was no value in the hash. So
+    // return true unless we got a null.
+    return (this.name2SourceHash.remove(sourceName) != null);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SensorDataIndex getSensorDataIndex(String sourceName) {
+    SensorDataIndex index = new SensorDataIndex();
+    // Retrieve this Source's map of timestamps to SensorData
+    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+        .get(sourceName);
+    // If there is any sensor data for this Source
+    if (sensorDataMap != null) {
+      // Loop over all SensorData in hash
+      for (SensorData data : sensorDataMap.values()) {
+        // Convert each SensorData to SensorDataRef, add to index
+        index.getSensorDataRef().add(MemoryStorageUtil.makeSensorDataRef(data, this.server));
+      }
+    }
+    return index;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime) {
+    SensorDataIndex index = new SensorDataIndex();
+    // Retrieve this Source's map of timestamps to SensorData
+    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+        .get(sourceName);
+    // If there is any sensor data for this Source
+    if (sensorDataMap != null) {
+      // Loop over all SensorData in hash
+      for (SensorData data : sensorDataMap.values()) {
+        // Only interested in SensorData that is after startTime and before endTime
+        if ((data.getTimestamp().compare(startTime) == DatatypeConstants.GREATER)
+            && (data.getTimestamp().compare(endTime) == DatatypeConstants.LESSER)) {
+          // convert each matching SensorData to SensorDataRef, add to index
+          index.getSensorDataRef().add(MemoryStorageUtil.makeSensorDataRef(data, this.server));
+        }
+      }
+    }
+    return index;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SensorData getSensorData(String sourceName, XMLGregorianCalendar timestamp) {
+    // Retrieve this Source's map of timestamps to SensorData
+    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+        .get(sourceName);
+    // If there is any sensor data for this Source
+    if (sensorDataMap == null) {
+      return null;
+    }
+    else {
+      return sensorDataMap.get(timestamp);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean hasSensorData(String sourceName, XMLGregorianCalendar timestamp) {
+    return (getSensorData(sourceName, timestamp) != null);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean storeSensorData(SensorData data) {
+    // SensorData resources contain the URI of their Source, so the source name can be found by
+    // taking everything after the last "/" in the URI.
+    String sourceName = data.getSource().substring(data.getSource().lastIndexOf('/'));
+    // Retrieve this Source's map of timestamps to SensorData
+    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+        .get(sourceName);
+    // If there is no sensor data for this Source yet
+    if (sensorDataMap == null) {
+      // Create the sensorDataMap in threadsafe manner (in case someone beats us to it)
+      sensorDataMap = this.source2SensorDatasHash.putIfAbsent(sourceName,
+          new ConcurrentHashMap<XMLGregorianCalendar, SensorData>());
+      // Don't need to check result, since we only care that there is a hash we can store to,
+      // not whether or not the one we created actually got stored.
+    }
+    // Try putting the new SensorData into the hash for the appropriate source
+    SensorData storedValue = sensorDataMap.putIfAbsent(data.getTimestamp(), data);
+    // putIfAbsent returns the value that ended up in the hash. So if the SensorData wasn't in the
+    // map yet, then we get back the source we tried to store. If there was already a SensorData
+    // stored under that name, we get whatever was previously stored (so our store should fail).
+    return (storedValue.equals(data));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean deleteSensorData(String sourceName, XMLGregorianCalendar timestamp) {
+    // Retrieve this Source's map of timestamps to SensorData
+    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+        .get(sourceName);
+    // If there is any sensor data for this Source
+    if (sensorDataMap == null) {
+      return false;
+    }
+    else {
+      // remove() returns the value for the key, or null if there was no value in the hash. So
+      // return true unless we got a null.
+      return (sensorDataMap.remove(timestamp) != null);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean deleteSensorData(String sourceName) {
+    // Delete the hash of sensor data for this Source. If the source doesn't exist or there is no
+    // sensor data, we'll get a null.
+    return (this.source2SensorDatasHash.remove(sourceName) != null);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public UserIndex getUsers() {
+    UserIndex index = new UserIndex();
+    // Loop over all Users in hash
+    for (User user : this.name2UserHash.values()) {
+      // Convert each Source to SourceRef, add to index
+      index.getUserRef().add(MemoryStorageUtil.makeUserRef(user, this.server));
+    }
+    return index;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public User getUser(String username) {
+    return this.name2UserHash.get(username);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean storeUser(User user) {
+    User storedValue = this.name2UserHash.putIfAbsent(user.getEmail(), user);
+    // putIfAbsent returns the value that ended up in the hash. So if the User wasn't in the
+    // map yet, we get back the source we tried to store. If there was already a User
+    // stored under that name, we get whatever was previously stored (so our store should report
+    // failure).
+    return (storedValue.equals(user));
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean deleteUser(String username) {
+    // Loop over all Sources in hash, looking for ones owned by username
+    for (Source source : this.name2SourceHash.values()) {
+      // Source resources contain the URI of their owner, so the owner username can be found by
+      // taking everything after the last "/" in the URI.
+      String ownerName = source.getOwner().substring(source.getOwner().lastIndexOf('/'));
+      // If this User owns the Source, delete the Source
+      if (ownerName.equals(username)) {
+        deleteSource(source.getName());
+      }
+    }
+    // remove() returns the value for the key, or null if there was no value in the hash. So
+    // return true unless we got a null.
+    return (this.name2UserHash.remove(username) != null);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean performMaintenance() {
+    // ConcurrentHashMaps don't need maintenance, so just return true.
+    return true;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public boolean indexTables() {
+    // ConcurrentHashMaps don't need indexes, so just return true.
+    return true;
+  }
+}

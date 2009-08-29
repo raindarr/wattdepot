@@ -41,6 +41,12 @@ public class Server extends Application {
   /** The URI used for the health resource. */
   public static final String HEALTH_URI = "health";
 
+  /** The URI used for the sources resource. */
+  public static final String SOURCES_URI = "sources";
+
+  /** The URI used for the sensordata resource. */
+  public static final String SENSORDATA_URI = "sensordata";
+
   /** The URI used for the users resource. */
   public static final String USERS_URI = "users";
 

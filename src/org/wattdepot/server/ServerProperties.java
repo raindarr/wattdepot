@@ -87,8 +87,9 @@ public class ServerProperties {
     properties.setProperty(ADMIN_PASSWORD_KEY, defaultAdmin);
     properties.setProperty(CONTEXT_ROOT_KEY, "wattdepot");
     properties.setProperty(DB_DIR_KEY, serverHome + "/db");
+    // TODO Replace with actual class name of real storage implementation
     properties.setProperty(DB_IMPL_KEY,
-        "org.wattdepot.server.db.memory.MemoryStorageImplementation");
+        "org.wattdepot.server.db.couchdb.CouchDbImplementation");
     properties.setProperty(HOSTNAME_KEY, "localhost");
     properties.setProperty(LOGGING_LEVEL_KEY, "INFO");
     properties.setProperty(RESTLET_LOGGING_KEY, FALSE);
