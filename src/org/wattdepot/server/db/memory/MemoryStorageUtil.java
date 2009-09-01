@@ -4,8 +4,6 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceRef;
-import org.wattdepot.resource.user.jaxb.User;
-import org.wattdepot.resource.user.jaxb.UserRef;
 import org.wattdepot.server.Server;
 
 /**
@@ -51,21 +49,6 @@ public class MemoryStorageUtil {
     ref.setSource(data.getSource());
     ref.setHref(server.getHostName() + Server.SOURCES_URI + "/" + Server.SENSORDATA_URI + "/"
         + data.getTimestamp().toString());
-    return ref;
-  }
-
-  /**
-   * Creates a UserRef object from a User object. The Server argument is required to build the URI
-   * in the UserRef pointing to the full User resource.
-   * 
-   * @param user The User to build the UserRef from.
-   * @param server The Server where the User is located.
-   * @return The new UserRef object.
-   */
-  public static UserRef makeUserRef(User user, Server server) {
-    UserRef ref = new UserRef();
-    ref.setEmail(user.getEmail());
-    ref.setHref(server.getHostName() + Server.USERS_URI + "/" + user.getEmail());
     return ref;
   }
 }

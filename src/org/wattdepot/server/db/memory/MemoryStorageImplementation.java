@@ -8,6 +8,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
@@ -46,7 +47,7 @@ public class MemoryStorageImplementation extends DbImplementation {
   public void initialize() {
     // Create the hash maps
     this.name2SourceHash = new ConcurrentHashMap<String, Source>();
-    this.source2SensorDatasHash = 
+    this.source2SensorDatasHash =
       new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>();
     this.name2UserHash = new ConcurrentHashMap<String, User>();
     // Since nothing is stored on disk, there is no data to be read into the hash maps
@@ -80,11 +81,11 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public boolean storeSource(Source source) {
-    Source storedValue = this.name2SourceHash.putIfAbsent(source.getName(), source);
-    // putIfAbsent returns the value that ended up in the hash. So if the Source wasn't in the
-    // map yet, then we get back the source we tried to store. If there was already a Source
-    // stored under that name, we get whatever was previously stored (so our store should fail).
-    return (storedValue.equals(source));
+    Source previousValue = this.name2SourceHash.putIfAbsent(source.getName(), source);
+    // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
+    // no value was previously stored, so we succeeded. If we get anything else, then there was
+    // already a value in the hash for this username, so we failed.
+    return (previousValue == null);
   }
 
   /** {@inheritDoc} */
@@ -165,24 +166,24 @@ public class MemoryStorageImplementation extends DbImplementation {
   public boolean storeSensorData(SensorData data) {
     // SensorData resources contain the URI of their Source, so the source name can be found by
     // taking everything after the last "/" in the URI.
-    String sourceName = data.getSource().substring(data.getSource().lastIndexOf('/'));
+    String sourceName = data.getSource().substring(data.getSource().lastIndexOf('/') + 1);
     // Retrieve this Source's map of timestamps to SensorData
     ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
         .get(sourceName);
     // If there is no sensor data for this Source yet
     if (sensorDataMap == null) {
-      // Create the sensorDataMap in threadsafe manner (in case someone beats us to it)
+      // Create the sensorDataMap in thread-safe manner (in case someone beats us to it)
       sensorDataMap = this.source2SensorDatasHash.putIfAbsent(sourceName,
           new ConcurrentHashMap<XMLGregorianCalendar, SensorData>());
       // Don't need to check result, since we only care that there is a hash we can store to,
       // not whether or not the one we created actually got stored.
     }
     // Try putting the new SensorData into the hash for the appropriate source
-    SensorData storedValue = sensorDataMap.putIfAbsent(data.getTimestamp(), data);
-    // putIfAbsent returns the value that ended up in the hash. So if the SensorData wasn't in the
-    // map yet, then we get back the source we tried to store. If there was already a SensorData
-    // stored under that name, we get whatever was previously stored (so our store should fail).
-    return (storedValue.equals(data));
+    SensorData previousValue = sensorDataMap.putIfAbsent(data.getTimestamp(), data);
+    // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
+    // no value was previously stored, so we succeeded. If we get anything else, then there was
+    // already a value in the hash for this username, so we failed.
+    return (previousValue == null);
   }
 
   /** {@inheritDoc} */
@@ -217,7 +218,7 @@ public class MemoryStorageImplementation extends DbImplementation {
     // Loop over all Users in hash
     for (User user : this.name2UserHash.values()) {
       // Convert each Source to SourceRef, add to index
-      index.getUserRef().add(MemoryStorageUtil.makeUserRef(user, this.server));
+      index.getUserRef().add(UserUtils.makeUserRef(user, this.server));
     }
     return index;
   }
@@ -231,12 +232,11 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public boolean storeUser(User user) {
-    User storedValue = this.name2UserHash.putIfAbsent(user.getEmail(), user);
-    // putIfAbsent returns the value that ended up in the hash. So if the User wasn't in the
-    // map yet, we get back the source we tried to store. If there was already a User
-    // stored under that name, we get whatever was previously stored (so our store should report
-    // failure).
-    return (storedValue.equals(user));
+    User previousValue = this.name2UserHash.putIfAbsent(user.getEmail(), user);
+    // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
+    // no value was previously stored, so we succeeded. If we get anything else, then there was
+    // already a value in the hash for this username, so we failed.
+    return (previousValue == null);
   }
 
   /** {@inheritDoc} */
@@ -246,7 +246,7 @@ public class MemoryStorageImplementation extends DbImplementation {
     for (Source source : this.name2SourceHash.values()) {
       // Source resources contain the URI of their owner, so the owner username can be found by
       // taking everything after the last "/" in the URI.
-      String ownerName = source.getOwner().substring(source.getOwner().lastIndexOf('/'));
+      String ownerName = source.getOwner().substring(source.getOwner().lastIndexOf('/') + 1);
       // If this User owns the Source, delete the Source
       if (ownerName.equals(username)) {
         deleteSource(source.getName());

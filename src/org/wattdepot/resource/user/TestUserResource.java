@@ -34,7 +34,7 @@ public class TestUserResource extends ServerTestHelper {
   }
 
   /**
-   * Test that GET {host}/ping returns the hello world text.
+   * Test that after authentication, can get placeholder User string.
    * 
    * @throws Exception If problems occur.
    */
@@ -47,7 +47,7 @@ public class TestUserResource extends ServerTestHelper {
   }
 
   /**
-   * Test that GET {host}/ping returns the hello world text.
+   * Test that after authentication, can get placeholder Users string.
    * 
    * @throws Exception If problems occur.
    */

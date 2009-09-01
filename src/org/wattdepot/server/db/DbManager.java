@@ -25,13 +25,25 @@ public class DbManager {
   private DbImplementation dbImpl;
 
   /**
-   * Creates a new DbManager which manages access to the underlying persistency layer(s).
-   * Instantiates the underlying storage system for use.
+   * Creates a new DbManager which manages access to the underlying persistency layer(s). Choice of
+   * which implementation of persistency layer to use is based on the ServerProperties of the server
+   * provided. Instantiates the underlying storage system for use.
    * 
    * @param server The Restlet server instance.
    */
   public DbManager(Server server) {
-    String dbClassName = server.getServerProperties().get(DB_IMPL_KEY);
+    this(server, server.getServerProperties().get(DB_IMPL_KEY));
+  }
+
+  /**
+   * Creates a new DbManager which manages access to the underlying persistency layer(s), using the
+   * class name provided. This is useful for forcing a particular implementation, such as in
+   * testing. Instantiates the underlying storage system for use.
+   * 
+   * @param server The Restlet server instance.
+   * @param dbClassName The name of the DbImplementation class to instantiate.
+   */
+  public DbManager(Server server, String dbClassName) {
     Class<?> dbClass = null;
     // First, try to find the class specified in the properties file (or the default)
     try {
@@ -68,7 +80,8 @@ public class DbManager {
   }
 
   /**
-   * Returns a list of all Sources in the system.
+   * Returns a list of all Sources in the system. An empty index will be returned if there are no
+   * Sources in the system.
    * 
    * @return a SourceIndex object containing a List of SourceRefs to all Source objects.
    */
@@ -98,7 +111,8 @@ public class DbManager {
   }
 
   /**
-   * Ensures that the Source with the given name is no longer present in storage.
+   * Ensures that the Source with the given name is no longer present in storage. All sensor data
+   * associated with this Source will also be deleted.
    * 
    * @param sourceName The name of the Source.
    * @return True if the Source was deleted, or false if it was not deleted or the requested Source
@@ -109,7 +123,8 @@ public class DbManager {
   }
 
   /**
-   * Returns the SensorDataIndex listing all sensor data for the named Source.
+   * Returns the SensorDataIndex listing all sensor data for the named Source. If the Source has no
+   * SensorData resources, the index will be empty.
    * 
    * @param sourceName The name of the Source whose sensor data is to be returned.
    * @return a SensorDataIndex object containing all relevant sensor data resources.
@@ -120,7 +135,8 @@ public class DbManager {
 
   /**
    * Returns the SensorDataIndex representing all the SensorData resources for the named Source
-   * between the given start and end times.
+   * between the given start and end times. If the Source has no appropriate SensorData resources,
+   * the index will be empty.
    * 
    * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param startTime The earliest Sensor Data to be returned.
@@ -173,7 +189,7 @@ public class DbManager {
    * @param sourceName The name of the Source whose sensor data is to be deleted.
    * @param timestamp The timestamp associated with this sensor data.
    * @return True if the sensor data was deleted, or false if it was not deleted or the requested
-   * sensor data does not exist.
+   * sensor data or Source does not exist.
    */
   public boolean deleteSensorData(String sourceName, XMLGregorianCalendar timestamp) {
     return this.dbImpl.deleteSensorData(sourceName, timestamp);
@@ -221,7 +237,8 @@ public class DbManager {
   }
 
   /**
-   * Ensures that the User with the given username is no longer present in storage.
+   * Ensures that the User with the given username is no longer present in storage. All Sources
+   * owned by the given User and their associated Sensor Data will be deleted as well. 
    * 
    * @param username The user's username.
    * @return True if the User was deleted, or false if it was not deleted or the requested User does
