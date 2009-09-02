@@ -14,7 +14,8 @@ import org.wattdepot.server.Server;
 public class UserUtils {
 
   /**
-   * Returns a new User object with the provided parameters.
+   * Returns a new User object with the provided parameters. Needs to be kept up to date with any
+   * changes to the User schema, which is bogus.
    * 
    * @param username The username for the User.
    * @param password The password for the User.
@@ -47,7 +48,8 @@ public class UserUtils {
 
   /**
    * Creates a UserRef object from a User object. The Server argument is required to build the URI
-   * in the UserRef pointing to the full User resource.
+   * in the UserRef pointing to the full User resource. Needs to be kept up to date with any
+   * changes to the User or UserRef schemas, which is bogus.
    * 
    * @param user The User to build the UserRef from.
    * @param server The Server where the User is located.
@@ -75,5 +77,16 @@ public class UserUtils {
     String hrefUsername = ref.getHref().substring(ref.getHref().lastIndexOf('/') + 1);
 
     return (ref.getEmail().equals(user.getEmail()) && (user.getEmail().equals(hrefUsername)));
+  }
+  
+  /**
+   * Given a User object and the Server it belongs to, returns the URI to that User resource.
+   *  
+   * @param user The User object under consideration.
+   * @param server The Server user belongs to.
+   * @return The URI to the User resource corresponding to the given User.
+   */
+  public static String userToUri(User user, Server server) {
+    return server.getHostName() + Server.USERS_URI + "/" + user.getEmail();
   }
 }

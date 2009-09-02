@@ -6,8 +6,9 @@ import org.junit.BeforeClass;
 import org.wattdepot.server.Server;
 
 /**
- * Provides helpful utility methods to WattDepot test classes, which will normally want to extend
- * this class. Portions of this code are adapted from http://hackystat-sensorbase-uh.googlecode.com/
+ * Provides helpful utility methods to WattDepot resource test classes, which will normally want to
+ * extend this class. Portions of this code are adapted from
+ * http://hackystat-sensorbase-uh.googlecode.com/
  * 
  * @author Robert Brewer
  * @author Philip Johnson

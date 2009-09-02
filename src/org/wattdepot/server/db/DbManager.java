@@ -24,6 +24,9 @@ public class DbManager {
   /** The chosen Storage system. */
   private DbImplementation dbImpl;
 
+  /** The server using this DbManager. */
+  protected Server server;
+  
   /**
    * Creates a new DbManager which manages access to the underlying persistency layer(s). Choice of
    * which implementation of persistency layer to use is based on the ServerProperties of the server
@@ -32,7 +35,7 @@ public class DbManager {
    * @param server The Restlet server instance.
    */
   public DbManager(Server server) {
-    this(server, server.getServerProperties().get(DB_IMPL_KEY));
+    this(server, server.getServerProperties().get(DB_IMPL_KEY), false);
   }
 
   /**
@@ -42,8 +45,10 @@ public class DbManager {
    * 
    * @param server The Restlet server instance.
    * @param dbClassName The name of the DbImplementation class to instantiate.
+   * @param wipe If true, all stored data in the system should be discarded and reinitialized.
    */
-  public DbManager(Server server, String dbClassName) {
+  public DbManager(Server server, String dbClassName, boolean wipe) {
+    this.server = server;
     Class<?> dbClass = null;
     // First, try to find the class specified in the properties file (or the default)
     try {
@@ -76,7 +81,7 @@ public class DbManager {
       server.getLogger().warning(msg + "\n" + StackTrace.toString(e));
       throw new IllegalArgumentException(e);
     }
-    this.dbImpl.initialize();
+    this.dbImpl.initialize(wipe);
   }
 
   /**

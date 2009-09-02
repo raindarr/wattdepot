@@ -6,6 +6,7 @@ import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
+import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.user.UserUtils;
@@ -44,13 +45,14 @@ public class MemoryStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
-  public void initialize() {
+  public void initialize(boolean wipe) {
     // Create the hash maps
     this.name2SourceHash = new ConcurrentHashMap<String, Source>();
     this.source2SensorDatasHash =
       new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>();
     this.name2UserHash = new ConcurrentHashMap<String, User>();
     // Since nothing is stored on disk, there is no data to be read into the hash maps
+    // wipe parameter is also ignored, since the DB is always wiped on initialization
   }
 
   /** {@inheritDoc} */
@@ -67,7 +69,7 @@ public class MemoryStorageImplementation extends DbImplementation {
     // Loop over all Sources in hash
     for (Source source : this.name2SourceHash.values()) {
       // Convert each Source to SourceRef, add to index
-      index.getSourceRef().add(MemoryStorageUtil.makeSourceRef(source, this.server));
+      index.getSourceRef().add(SourceUtils.makeSourceRef(source, this.server));
     }
     return index;
   }
@@ -75,28 +77,43 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public Source getSource(String sourceName) {
-    return this.name2SourceHash.get(sourceName);
+    if (sourceName == null) {
+      return null;
+    }
+    else {
+      return this.name2SourceHash.get(sourceName);
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean storeSource(Source source) {
-    Source previousValue = this.name2SourceHash.putIfAbsent(source.getName(), source);
-    // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
-    // no value was previously stored, so we succeeded. If we get anything else, then there was
-    // already a value in the hash for this username, so we failed.
-    return (previousValue == null);
+    if (source == null) {
+      return false;
+    }
+    else {
+      Source previousValue = this.name2SourceHash.putIfAbsent(source.getName(), source);
+      // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
+      // no value was previously stored, so we succeeded. If we get anything else, then there was
+      // already a value in the hash for this username, so we failed.
+      return (previousValue == null);
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean deleteSource(String sourceName) {
-    // First delete the hash of sensor data for this Source. We ignore the return value since
-    // we only need to ensure that there is no sensor data leftover.
-    deleteSensorData(sourceName);
-    // remove() returns the value for the key, or null if there was no value in the hash. So
-    // return true unless we got a null.
-    return (this.name2SourceHash.remove(sourceName) != null);
+    if (sourceName == null) {
+      return false;
+    }
+    else {
+      // First delete the hash of sensor data for this Source. We ignore the return value since
+      // we only need to ensure that there is no sensor data leftover.
+      deleteSensorData(sourceName);
+      // remove() returns the value for the key, or null if there was no value in the hash. So
+      // return true unless we got a null.
+      return (this.name2SourceHash.remove(sourceName) != null);
+    }
   }
 
   /** {@inheritDoc} */
@@ -206,9 +223,14 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public boolean deleteSensorData(String sourceName) {
-    // Delete the hash of sensor data for this Source. If the source doesn't exist or there is no
-    // sensor data, we'll get a null.
-    return (this.source2SensorDatasHash.remove(sourceName) != null);
+    if (sourceName == null) {
+      return false;
+    }
+    else {
+      // Delete the hash of sensor data for this Source. If the source doesn't exist or there is no
+      // sensor data, we'll get a null.
+      return (this.source2SensorDatasHash.remove(sourceName) != null);
+    }
   }
 
   /** {@inheritDoc} */
@@ -226,35 +248,50 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public User getUser(String username) {
-    return this.name2UserHash.get(username);
+    if (username == null) {
+      return null;
+    }
+    else {
+      return this.name2UserHash.get(username);
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean storeUser(User user) {
-    User previousValue = this.name2UserHash.putIfAbsent(user.getEmail(), user);
-    // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
-    // no value was previously stored, so we succeeded. If we get anything else, then there was
-    // already a value in the hash for this username, so we failed.
-    return (previousValue == null);
+    if (user == null) {
+      return false;
+    }
+    else {
+      User previousValue = this.name2UserHash.putIfAbsent(user.getEmail(), user);
+      // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
+      // no value was previously stored, so we succeeded. If we get anything else, then there was
+      // already a value in the hash for this username, so we failed.
+      return (previousValue == null);
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean deleteUser(String username) {
-    // Loop over all Sources in hash, looking for ones owned by username
-    for (Source source : this.name2SourceHash.values()) {
-      // Source resources contain the URI of their owner, so the owner username can be found by
-      // taking everything after the last "/" in the URI.
-      String ownerName = source.getOwner().substring(source.getOwner().lastIndexOf('/') + 1);
-      // If this User owns the Source, delete the Source
-      if (ownerName.equals(username)) {
-        deleteSource(source.getName());
-      }
+    if (username == null) {
+      return false;
     }
-    // remove() returns the value for the key, or null if there was no value in the hash. So
-    // return true unless we got a null.
-    return (this.name2UserHash.remove(username) != null);
+    else {
+      // Loop over all Sources in hash, looking for ones owned by username
+      for (Source source : this.name2SourceHash.values()) {
+        // Source resources contain the URI of their owner, so the owner username can be found by
+        // taking everything after the last "/" in the URI.
+        String ownerName = source.getOwner().substring(source.getOwner().lastIndexOf('/') + 1);
+        // If this User owns the Source, delete the Source
+        if (ownerName.equals(username)) {
+          deleteSource(source.getName());
+        }
+      }
+      // remove() returns the value for the key, or null if there was no value in the hash. So
+      // return true unless we got a null.
+      return (this.name2UserHash.remove(username) != null);
+    }
   }
 
   /** {@inheritDoc} */

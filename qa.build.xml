@@ -32,7 +32,7 @@
     <os family="win9x" />
   </condition>
 
-  <target name="qa" depends="compile, junit, checkstyle, pmd, findbugs, maybe-display-junit,
+  <target name="qa" depends="clean, compile, junit, checkstyle, pmd, findbugs, maybe-display-junit,
     display-checkstyle, display-pmd, display-findbugs, display-no-errors" description="Verifies system.">
   </target>
 

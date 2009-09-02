@@ -12,7 +12,7 @@ import org.junit.Test;
  * @author Robert Brewer
  */
 
-public class TestHackystatLogger {
+public class TestWattDepotLogger {
 
   /**
    * Tests the logger. Instantiates the logger and writes a test message.

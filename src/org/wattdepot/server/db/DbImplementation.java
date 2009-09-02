@@ -43,8 +43,10 @@ public abstract class DbImplementation {
    * <li>Check to see if this storage system has already been created during a previous session.
    * <li>If no storage system exists, it should create one and initialize it appropriately.
    * </ul>
+   * 
+   * @param wipe If true, all stored data in the system should be discarded and reinitialized.
    */
-  public abstract void initialize();
+  public abstract void initialize(boolean wipe);
 
   /**
    * Returns true if the initialize() method did indeed create a fresh storage system.
