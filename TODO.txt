@@ -1,0 +1,9 @@
+List of things to do:
+
+- Write DbManager test to check if deleting User deletes Source and SensorData
+- Write DbManager test to check if deleting Source deletes SensorData
+- Use JAXB plugin to get real equals() and hashCode()
+- Resolve persistent errors in Eclipse wrt Ant build files
+  - Maybe need to run Eclipse under Java 1.6 (requires downloading 64bit Eclipse version?)
+  - Maybe need to install JAXB via Ivy (though it's a manual download, bletch)
+  - Maybe need to add JAXB as library in Eclipse

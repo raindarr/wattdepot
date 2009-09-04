@@ -26,7 +26,7 @@ public class DbManager {
 
   /** The server using this DbManager. */
   protected Server server;
-  
+
   /**
    * Creates a new DbManager which manages access to the underlying persistency layer(s). Choice of
    * which implementation of persistency layer to use is based on the ServerProperties of the server
@@ -132,7 +132,8 @@ public class DbManager {
    * SensorData resources, the index will be empty.
    * 
    * @param sourceName The name of the Source whose sensor data is to be returned.
-   * @return a SensorDataIndex object containing all relevant sensor data resources.
+   * @return a SensorDataIndex object containing all relevant sensor data resources, or null if
+   * sourceName is invalid.
    */
   public SensorDataIndex getSensorDataIndex(String sourceName) {
     return this.dbImpl.getSensorDataIndex(sourceName);
@@ -146,7 +147,8 @@ public class DbManager {
    * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param startTime The earliest Sensor Data to be returned.
    * @param endTime The latest SensorData to be returned.
-   * @return a SensorDataIndex object containing all relevant sensor data resources.
+   * @return a SensorDataIndex object containing all relevant sensor data resources, or null if
+   * sourceName, startTime, or endTime are invalid.
    */
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) {
@@ -243,7 +245,7 @@ public class DbManager {
 
   /**
    * Ensures that the User with the given username is no longer present in storage. All Sources
-   * owned by the given User and their associated Sensor Data will be deleted as well. 
+   * owned by the given User and their associated Sensor Data will be deleted as well.
    * 
    * @param username The user's username.
    * @return True if the User was deleted, or false if it was not deleted or the requested User does

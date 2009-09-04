@@ -13,7 +13,7 @@ import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserRef;
 
 /**
- * Instantiates a DbManager and tests the database methods.
+ * Instantiates a DbManager and tests the database methods related to User resources.
  * 
  * @author Robert Brewer
  */

@@ -14,7 +14,7 @@ import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.user.jaxb.User;
 
 /**
- * Instantiates a DbManager and tests the database methods.
+ * Instantiates a DbManager and tests the database methods related to Source resources.
  * 
  * @author Robert Brewer
  */
@@ -134,7 +134,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertNull("Able to retrieve ficticiously-named Source", manager.getSource(""));
 
     // case #6: retrieve null Source name
-    assertNull("Able to retrieve ficticiously-named Source", manager.getSource(null));
+    assertNull("Able to retrieve from null Source", manager.getSource(null));
   }
 
   /**
@@ -203,7 +203,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertFalse("Able to delete null Source name", manager.deleteSource(null));
 
     // case #7: no more Sources after all Sources have been deleted
-    assertTrue("After deleting all known users, users remain in DB", manager.getSources()
+    assertTrue("After deleting all known Sources, Sources remain in DB", manager.getSources()
         .getSourceRef().isEmpty());
 
     // TODO add case to check that sensor data for source is deleted when source is deleted

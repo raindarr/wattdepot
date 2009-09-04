@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
+import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.SourceUtils;
@@ -48,7 +49,7 @@ public class MemoryStorageImplementation extends DbImplementation {
   public void initialize(boolean wipe) {
     // Create the hash maps
     this.name2SourceHash = new ConcurrentHashMap<String, Source>();
-    this.source2SensorDatasHash =
+    this.source2SensorDatasHash = 
       new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>();
     this.name2UserHash = new ConcurrentHashMap<String, User>();
     // Since nothing is stored on disk, there is no data to be read into the hash maps
@@ -119,56 +120,83 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public SensorDataIndex getSensorDataIndex(String sourceName) {
-    SensorDataIndex index = new SensorDataIndex();
-    // Retrieve this Source's map of timestamps to SensorData
-    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-        .get(sourceName);
-    // If there is any sensor data for this Source
-    if (sensorDataMap != null) {
-      // Loop over all SensorData in hash
-      for (SensorData data : sensorDataMap.values()) {
-        // Convert each SensorData to SensorDataRef, add to index
-        index.getSensorDataRef().add(MemoryStorageUtil.makeSensorDataRef(data, this.server));
-      }
+    if (sourceName == null) {
+      return null;
     }
-    return index;
+    else if (this.name2SourceHash.get(sourceName) == null) {
+      // Unknown Source name, therefore no possibility of SensorData
+      return null;
+    }
+    else {
+      SensorDataIndex index = new SensorDataIndex();
+      // Retrieve this Source's map of timestamps to SensorData
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+          .get(sourceName);
+      // If there is any sensor data for this Source
+      if (sensorDataMap != null) {
+        // Loop over all SensorData in hash
+        for (SensorData data : sensorDataMap.values()) {
+          // Convert each SensorData to SensorDataRef, add to index
+          index.getSensorDataRef().add(SensorDataUtils.makeSensorDataRef(data, this.server));
+        }
+      }
+      return index;
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) {
-    SensorDataIndex index = new SensorDataIndex();
-    // Retrieve this Source's map of timestamps to SensorData
-    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-        .get(sourceName);
-    // If there is any sensor data for this Source
-    if (sensorDataMap != null) {
-      // Loop over all SensorData in hash
-      for (SensorData data : sensorDataMap.values()) {
-        // Only interested in SensorData that is after startTime and before endTime
-        if ((data.getTimestamp().compare(startTime) == DatatypeConstants.GREATER)
-            && (data.getTimestamp().compare(endTime) == DatatypeConstants.LESSER)) {
-          // convert each matching SensorData to SensorDataRef, add to index
-          index.getSensorDataRef().add(MemoryStorageUtil.makeSensorDataRef(data, this.server));
+    if ((sourceName == null) || (startTime == null) || (endTime == null)) {
+      return null;
+    }
+    else if (this.name2SourceHash.get(sourceName) == null) {
+      // Unknown Source name, therefore no possibility of SensorData
+      return null;
+    }
+    else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
+      // startTime > endTime, which is bogus
+      return null;
+    }
+    else {
+      SensorDataIndex index = new SensorDataIndex();
+      // Retrieve this Source's map of timestamps to SensorData
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+          .get(sourceName);
+      // If there is any sensor data for this Source
+      if (sensorDataMap != null) {
+        // Loop over all SensorData in hash
+        for (SensorData data : sensorDataMap.values()) {
+          // Only interested in SensorData that is after startTime and before endTime
+          if ((data.getTimestamp().compare(startTime) == DatatypeConstants.GREATER)
+              && (data.getTimestamp().compare(endTime) == DatatypeConstants.LESSER)) {
+            // convert each matching SensorData to SensorDataRef, add to index
+            index.getSensorDataRef().add(SensorDataUtils.makeSensorDataRef(data, this.server));
+          }
         }
       }
+      return index;
     }
-    return index;
   }
 
   /** {@inheritDoc} */
   @Override
   public SensorData getSensorData(String sourceName, XMLGregorianCalendar timestamp) {
-    // Retrieve this Source's map of timestamps to SensorData
-    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-        .get(sourceName);
-    // If there is any sensor data for this Source
-    if (sensorDataMap == null) {
+    if ((sourceName == null) || (timestamp == null)) {
       return null;
     }
     else {
-      return sensorDataMap.get(timestamp);
+      // Retrieve this Source's map of timestamps to SensorData
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+          .get(sourceName);
+      // If there is any sensor data for this Source
+      if (sensorDataMap == null) {
+        return null;
+      }
+      else {
+        return sensorDataMap.get(timestamp);
+      }
     }
   }
 
@@ -181,42 +209,53 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public boolean storeSensorData(SensorData data) {
-    // SensorData resources contain the URI of their Source, so the source name can be found by
-    // taking everything after the last "/" in the URI.
-    String sourceName = data.getSource().substring(data.getSource().lastIndexOf('/') + 1);
-    // Retrieve this Source's map of timestamps to SensorData
-    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-        .get(sourceName);
-    // If there is no sensor data for this Source yet
-    if (sensorDataMap == null) {
-      // Create the sensorDataMap in thread-safe manner (in case someone beats us to it)
-      sensorDataMap = this.source2SensorDatasHash.putIfAbsent(sourceName,
-          new ConcurrentHashMap<XMLGregorianCalendar, SensorData>());
-      // Don't need to check result, since we only care that there is a hash we can store to,
-      // not whether or not the one we created actually got stored.
+    if (data == null) {
+      return false;
     }
-    // Try putting the new SensorData into the hash for the appropriate source
-    SensorData previousValue = sensorDataMap.putIfAbsent(data.getTimestamp(), data);
-    // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
-    // no value was previously stored, so we succeeded. If we get anything else, then there was
-    // already a value in the hash for this username, so we failed.
-    return (previousValue == null);
+    else {
+      // SensorData resources contain the URI of their Source, so the source name can be found by
+      // taking everything after the last "/" in the URI.
+      String sourceName = data.getSource().substring(data.getSource().lastIndexOf('/') + 1);
+      // Retrieve this Source's map of timestamps to SensorData
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+          .get(sourceName);
+      // If there is no sensor data for this Source yet
+      if (sensorDataMap == null) {
+        // Create the sensorDataMap
+        sensorDataMap = new ConcurrentHashMap<XMLGregorianCalendar, SensorData>();
+        // add to SenorDataHash in thread-safe manner (in case someone beats us to it)
+        this.source2SensorDatasHash.putIfAbsent(sourceName, sensorDataMap);
+        // Don't need to check result, since we only care that there is a hash we can store to,
+        // not whether or not the one we created actually got stored.
+      }
+      // Try putting the new SensorData into the hash for the appropriate source
+      SensorData previousValue = sensorDataMap.putIfAbsent(data.getTimestamp(), data);
+      // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
+      // no value was previously stored, so we succeeded. If we get anything else, then there was
+      // already a value in the hash for this username, so we failed.
+      return (previousValue == null);
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean deleteSensorData(String sourceName, XMLGregorianCalendar timestamp) {
-    // Retrieve this Source's map of timestamps to SensorData
-    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-        .get(sourceName);
-    // If there is any sensor data for this Source
-    if (sensorDataMap == null) {
+    if ((sourceName == null) || (timestamp == null)) {
       return false;
     }
     else {
-      // remove() returns the value for the key, or null if there was no value in the hash. So
-      // return true unless we got a null.
-      return (sensorDataMap.remove(timestamp) != null);
+      // Retrieve this Source's map of timestamps to SensorData
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
+          .get(sourceName);
+      // If there is any sensor data for this Source
+      if (sensorDataMap == null) {
+        return false;
+      }
+      else {
+        // remove() returns the value for the key, or null if there was no value in the hash. So
+        // return true unless we got a null.
+        return (sensorDataMap.remove(timestamp) != null);
+      }
     }
   }
 

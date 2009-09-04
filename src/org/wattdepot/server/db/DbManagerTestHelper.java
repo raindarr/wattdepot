@@ -1,13 +1,17 @@
 package org.wattdepot.server.db;
 
+import static org.wattdepot.resource.sensordata.SensorDataUtils.makeSensorData;
+import static org.wattdepot.resource.sensordata.SensorDataUtils.makeSensorDataProperty;
 import static org.wattdepot.resource.source.SourceUtils.makeSource;
 import static org.wattdepot.resource.source.SourceUtils.makeSourceProperty;
 import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import static org.wattdepot.resource.user.UserUtils.makeUser;
 import static org.wattdepot.resource.user.UserUtils.makeUserProperty;
 import static org.wattdepot.resource.user.UserUtils.userToUri;
+import org.hackystat.utilities.tstamp.Tstamp;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.resource.user.jaxb.User;
@@ -120,5 +124,50 @@ public class DbManagerTestHelper {
     subSources.getHref().add(sourceToUri(makeTestSource2(), server));
     source3.setSubSources(subSources);
     return source3;
+  }
+
+  /**
+   * Creates a SensorData for use in testing, 1 in a series.
+   * 
+   * @return The freshly created SensorData object.
+   * @throws Exception If there are problems converting timestamp string to XMLGregorianCalendar
+   * (should never happen)
+   */
+  protected SensorData makeTestSensorData1() throws Exception {
+    org.wattdepot.resource.sensordata.jaxb.Properties props =
+      new org.wattdepot.resource.sensordata.jaxb.Properties();
+    props.getProperty().add(makeSensorDataProperty("powerConsumed", "10000"));
+    return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00"), "JUnit",
+        sourceToUri(makeTestSource1(), server), props);
+  }
+  
+  /**
+   * Creates a SensorData for use in testing, 2 in a series.
+   * 
+   * @return The freshly created SensorData object.
+   * @throws Exception If there are problems converting timestamp string to XMLGregorianCalendar
+   * (should never happen)
+   */
+  protected SensorData makeTestSensorData2() throws Exception {
+    org.wattdepot.resource.sensordata.jaxb.Properties props =
+      new org.wattdepot.resource.sensordata.jaxb.Properties();
+    props.getProperty().add(makeSensorDataProperty("powerConsumed", "11000"));
+    return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00"), "FooTool",
+        sourceToUri(makeTestSource1(), server), props);
+  }
+
+  /**
+   * Creates a SensorData for use in testing, 3 in a series.
+   * 
+   * @return The freshly created SensorData object.
+   * @throws Exception If there are problems converting timestamp string to XMLGregorianCalendar
+   * (should never happen)
+   */
+  protected SensorData makeTestSensorData3() throws Exception {
+    org.wattdepot.resource.sensordata.jaxb.Properties props =
+      new org.wattdepot.resource.sensordata.jaxb.Properties();
+    props.getProperty().add(makeSensorDataProperty("powerConsumed", "9500"));
+    return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00"), "JUnit",
+        sourceToUri(makeTestSource1(), server), props);
   }
 }

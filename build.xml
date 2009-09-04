@@ -13,8 +13,10 @@
     <ivy:retrieve organisation="org.junit" module="junit" revision="${junit.version}" pattern="${lib.dir}/junit/[artifact].[ext]" sync="true" inline="true" conf="default" log="download-only" transitive="false" type="jar" />
     <path id="junit.path" location="${lib.dir}/junit/junit.jar" />
 
+    <!--
     <ivy:retrieve organisation="javax" module="mail" revision="${javamail.version}" pattern="${lib.dir}/javamail/[artifact].[ext]" sync="true" inline="true" conf="default" log="download-only" transitive="false" type="jar" />
     <path id="javamail.path" location="${lib.dir}/javamail/mail.jar" />
+    -->
 
     <ivy:retrieve organisation="org.restlet" module="restlet" revision="${restlet.version}" pattern="${lib.dir}/restlet/[artifact].[ext]" sync="false" inline="true" conf="core,net,simple" log="download-only" transitive="false" type="jar, javadoc, source" />
     <path id="restlet.path">
@@ -23,13 +25,25 @@
       </fileset>
     </path>
 
+    <!-- Should put the revision into library.versions.properties when Hackystat starts using it -->
+    <!--
+    <ivy:retrieve organisation="javax.xml.bind" module="jaxb" revision="2.1.11" pattern="${lib.dir}/jaxb/[artifact].[ext]" sync="true" inline="true" conf="default" log="download-only" transitive="false" type="jar, javadoc, source" />
+    <path id="jaxb.path">
+      <fileset dir="${lib.dir}/jaxb">
+        <include name="*.jar" />
+      </fileset>
+    </path>
+    -->
+    
+    <!--
     <ivy:retrieve organisation="org.apache.derby" module="derby" revision="${derby.version}" pattern="${lib.dir}/derby/[artifact].[ext]" sync="true" inline="true" conf="default,locale" log="download-only" transitive="false" type="jar, javadoc, source" />
     <path id="derby.path">
       <fileset dir="${lib.dir}/derby">
         <include name="*.jar" />
       </fileset>
     </path>
-
+    -->
+    
     <ivy:retrieve module="hackystat" organisation="org.hackystat" revision="${hackystat.version}" pattern="${lib.dir}/hackystat/utilities/[artifact].[ext]" sync="true" inline="true" log="download-only" conf="utilities" transitive="false" type="jar, javadoc, source" />
     <path id="utilities.path">
       <fileset dir="${lib.dir}/hackystat/utilities/">
@@ -44,9 +58,9 @@
   <!-- The compile classpath is useful to many tools. -->
   <path id="compile.classpath">
     <path refid="junit.path" />
-    <path refid="javamail.path" />
+<!--    <path refid="javamail.path" /> -->
     <path refid="restlet.path" />
-    <path refid="derby.path" />
+<!--    <path refid="derby.path" /> -->
     <path refid="utilities.path" />
   </path>
 

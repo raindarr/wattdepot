@@ -14,7 +14,8 @@ import org.wattdepot.server.Server;
 public class SourceUtils {
 
   /**
-   * Returns a new Source object with the provided parameters.
+   * Returns a new Source object with the provided parameters. Needs to be kept up to date with any
+   * changes to the schema, which is bogus.
    * 
    * @param name The name for the Source.
    * @param owner The owner URI for the Source.
@@ -24,7 +25,7 @@ public class SourceUtils {
    * @param location The location for the Source.
    * @param description The description of the Source.
    * @param props The properties for the Source.
-   * @return The freshly created User object.
+   * @return The freshly created Source object.
    */
   public static Source makeSource(String name, String owner, boolean publicp, boolean virtualp,
       String coordinates, String location, String description, Properties props) {
@@ -69,7 +70,8 @@ public class SourceUtils {
 
   /**
    * Creates a SourceRef object from a Source object using the provided URI for the SourceRef
-   * pointing to the full Source resource.
+   * pointing to the full Source resource. Needs to be kept up to date with any changes to the
+   * schema, which is bogus.
    * 
    * @param source The Source to build the SourceRef from.
    * @param uri The URI where the Source is located.
@@ -89,11 +91,11 @@ public class SourceUtils {
   }
 
   /**
-   * Determines if the subset of user information in a SourceRef is equal to particular Source
-   * object. Note that only the final segment of the href field of the SourceRef is compared to the
-   * Source object, as the Source object does not contain its own URI. Thus if the SourceRef was
-   * from a different server than the Source object, this test would return true even though the
-   * SourceRef points to a different copy of this Source object.
+   * Determines if the subset of information in a SourceRef is equal to particular Source object.
+   * Note that only the final segment of the href field of the SourceRef is compared to the Source
+   * object, as the Source object does not contain its own URI. Thus if the SourceRef was from a
+   * different server than the Source object, this test would return true even though the SourceRef
+   * points to a different copy of this Source object.
    * 
    * @param ref The SourceRef to be compared.
    * @param source The Source to be compared.

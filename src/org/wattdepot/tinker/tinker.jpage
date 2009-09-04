@@ -6,4 +6,5 @@ System.getProperties().toString()
   
 DatatypeFactory factory = DatatypeFactory.newInstance();
 XMLGregorianCalendar xmlCal = factory.newXMLGregorianCalendar(new GregorianCalendar());
-xmlCal.toString()(java.lang.String) 2009-08-28T13:28:51.705-10:00
+xmlCal.toXMLFormat();
+(java.lang.String) 2009-09-02T20:29:38.366-10:00(java.lang.String) 2009-08-28T13:28:51.705-10:00
