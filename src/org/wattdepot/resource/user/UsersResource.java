@@ -5,10 +5,9 @@ import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.resource.Representation;
-import org.restlet.resource.Resource;
 import org.restlet.resource.ResourceException;
-import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
+import org.wattdepot.resource.WattDepotResource;
 
 /**
  * Represents a set of WattDepot users.
@@ -16,9 +15,9 @@ import org.restlet.resource.Variant;
  * @author Robert Brewer
  */
 
-public class UsersResource extends Resource {
+public class UsersResource extends WattDepotResource {
   /**
-   * Creates a new UsersResource object with the provided parameters, and only a text/plain
+   * Creates a new UsersResource object with the provided parameters, and only a text/xml
    * representation.
    * 
    * @param context Restlet context for the resource
@@ -29,7 +28,7 @@ public class UsersResource extends Resource {
     super(context, request, response);
 
     // This resource has only one type of representation.
-    getVariants().add(new Variant(MediaType.TEXT_PLAIN));
+    getVariants().add(new Variant(MediaType.TEXT_XML));
   }
 
   /**
@@ -41,7 +40,16 @@ public class UsersResource extends Resource {
    */
   @Override
   public Representation represent(Variant variant) throws ResourceException {
-    return new StringRepresentation("Users resource", MediaType.TEXT_PLAIN);
+    try {
+      if (variant.getMediaType().equals(MediaType.TEXT_XML)) {
+        String xmlString = super.getUserIndex();
+        server.getLogger().info("UserIndex in Resource: " + xmlString);
+        return super.getStringRepresentation(xmlString);
+      }
+    }
+    catch (Exception e) {
+      setStatusInternalError(e);
+    }
+    return null;
   }
-
 }

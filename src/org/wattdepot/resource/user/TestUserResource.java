@@ -4,6 +4,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.wattdepot.client.WattDepotClient;
+import org.wattdepot.client.WattDepotClientException;
 import org.wattdepot.test.ServerTestHelper;
 
 /**
@@ -22,7 +23,7 @@ public class TestUserResource extends ServerTestHelper {
   @Test
   public void testAuthentication() throws Exception {
     // Currently authenticating as admin user
-//    System.out.println("admin email: " + adminEmail + ", admin password: " + adminPassword);
+    // System.out.println("admin email: " + adminEmail + ", admin password: " + adminPassword);
 
     // Shouldn't authenticate with no username or password
     WattDepotClient client = new WattDepotClient(getHostName(), null, null);
@@ -47,7 +48,19 @@ public class TestUserResource extends ServerTestHelper {
   }
 
   /**
-   * Test that after authentication, can get placeholder Users string.
+   * Test that without authentication, cannot retrieve user list.
+   * 
+   * @throws WattDepotClientException If there are problems retrieving User list.
+   */
+  @Test(expected = WattDepotClientException.class)
+  public void testUsersResourceAnonymous() throws WattDepotClientException {
+    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    assertTrue("Able to retrieve users list anonymously", client.getUserIndex().getUserRef()
+        .isEmpty());
+  }
+
+  /**
+   * Test that after authentication, can retrieve user list.
    * 
    * @throws Exception If problems occur.
    */
@@ -55,7 +68,6 @@ public class TestUserResource extends ServerTestHelper {
   public void testUsersResource() throws Exception {
     // Currently authenticating as admin user
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-    assertTrue("Users resource returned incorrect string", client.getUsersString().equals(
-        "Users resource"));
+    assertTrue("Empty DB has Users", client.getUserIndex().getUserRef().isEmpty());
   }
 }

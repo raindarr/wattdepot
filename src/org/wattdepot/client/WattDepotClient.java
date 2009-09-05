@@ -1,6 +1,9 @@
 package org.wattdepot.client;
 
 import java.io.IOException;
+import java.io.StringReader;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Unmarshaller;
 import org.restlet.Client;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.ChallengeScheme;
@@ -12,6 +15,7 @@ import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.resource.Representation;
+import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 
 /**
@@ -23,7 +27,7 @@ import org.wattdepot.server.Server;
 public class WattDepotClient {
 
   /** The representation type for XML. */
-  // private Preference<MediaType> XML_MEDIA = new Preference<MediaType>(MediaType.TEXT_XML);
+  private Preference<MediaType> XML_MEDIA = new Preference<MediaType>(MediaType.TEXT_XML);
 
   /** The representation type for plain text. */
   private Preference<MediaType> TEXT_MEDIA = new Preference<MediaType>(MediaType.TEXT_PLAIN);
@@ -36,6 +40,27 @@ public class WattDepotClient {
   private String password;
   /** The Restlet Client instance used to communicate with the server. */
   private Client client;
+
+  /** Users JAXBContext. */
+  private static final JAXBContext userJAXB;
+//  /** SensorData JAXBContext. */
+//  private static final JAXBContext sensorDataJAXB;
+//  /** Source JAXBContext. */
+//  private static final JAXBContext sourceJAXB;
+
+  // JAXBContexts are thread safe, so we can share them across all instances and threads.
+  // https://jaxb.dev.java.net/guide/Performance_and_thread_safety.html
+  static {
+    try {
+      userJAXB = JAXBContext.newInstance(org.wattdepot.resource.user.jaxb.ObjectFactory.class);
+//      sensorDataJAXB = JAXBContext
+//          .newInstance(org.wattdepot.resource.sensordata.jaxb.ObjectFactory.class);
+//     sourceJAXB = JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
+    }
+    catch (Exception e) {
+      throw new RuntimeException("Couldn't create JAXB context instances.", e);
+    }
+  }
 
   /**
    * Initializes a new WattDepotClient.
@@ -155,17 +180,25 @@ public class WattDepotClient {
   }
 
   /**
-   * Returns the stub string from User resource.
+   * Returns the UserIndex containing all Users on the server.
    * 
-   * @return a String that is just a placeholding stub for the User resource.
+   * @return The UserIndex for the server.
+   * @throws WattDepotClientException If error is encountered retrieving the resource, or
+   * unmarshalling the XML
    */
-  public String getUsersString() {
-    Response response = makeRequest(Method.GET, Server.USERS_URI, TEXT_MEDIA, null);
-    try {
-      return response.getEntity().getText();
+  public UserIndex getUserIndex() throws WattDepotClientException {
+    Response response = makeRequest(Method.GET, Server.USERS_URI, XML_MEDIA, null);
+    if (!response.getStatus().isSuccess()) {
+      throw new WattDepotClientException(response.getStatus());
     }
-    catch (IOException e) {
-      return null;
+    try {
+      String xmlString = response.getEntity().getText();
+      System.err.println("UserIndex in client: " + xmlString); // DEBUG
+      Unmarshaller unmarshaller = userJAXB.createUnmarshaller();
+      return (UserIndex) unmarshaller.unmarshal(new StringReader(xmlString));
+    }
+    catch (Exception e) {
+      throw new WattDepotClientException(response.getStatus(), e);
     }
   }
 

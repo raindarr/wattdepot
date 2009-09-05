@@ -14,6 +14,7 @@ import org.restlet.data.Protocol;
 import org.wattdepot.resource.health.HealthResource;
 import org.wattdepot.resource.user.UserResource;
 import org.wattdepot.resource.user.UsersResource;
+import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.logger.RestletLoggerUtil;
 import org.wattdepot.util.logger.WattDepotLogger;
 
@@ -103,8 +104,8 @@ public class Server extends Application {
     server.logger.info(server.serverProperties.echoProperties());
 
     Map<String, Object> attributes = server.getContext().getAttributes();
-    // DbManager dbManager = new DbManager(server); // we need this later in this method.
-    // attributes.put("DbManager", dbManager);
+     DbManager dbManager = new DbManager(server); // we need this later in this method.
+     attributes.put("DbManager", dbManager);
     // attributes.put("SdtManager", new SdtManager(server));
     // attributes.put("UserManager", new UserManager(server));
     // attributes.put("ProjectManager", new ProjectManager(server));
