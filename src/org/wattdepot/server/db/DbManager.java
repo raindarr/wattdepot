@@ -66,8 +66,7 @@ public class DbManager {
       dbConstructor = dbClass.getConstructor(constructorParam);
     }
     catch (Exception e) {
-      String msg = "DB error instantiating " + dbClassName
-          + ". Could not find Constructor(server)";
+      String msg = "DB error instantiating " + dbClassName + ". Could not find Constructor(server)";
       server.getLogger().warning(msg + "\n" + StackTrace.toString(e));
       throw new IllegalArgumentException(e);
     }
@@ -147,11 +146,12 @@ public class DbManager {
    * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param startTime The earliest Sensor Data to be returned.
    * @param endTime The latest SensorData to be returned.
+   * @throws DbBadIntervalException if startTime is later than endTime.
    * @return a SensorDataIndex object containing all relevant sensor data resources, or null if
    * sourceName, startTime, or endTime are invalid.
    */
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
-      XMLGregorianCalendar endTime) {
+      XMLGregorianCalendar endTime) throws DbBadIntervalException {
     return this.dbImpl.getSensorDataIndex(sourceName, startTime, endTime);
   }
 

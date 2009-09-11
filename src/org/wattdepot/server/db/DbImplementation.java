@@ -110,11 +110,12 @@ public abstract class DbImplementation {
    * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param startTime The earliest Sensor Data to be returned.
    * @param endTime The latest SensorData to be returned.
+   * @throws DbBadIntervalException if startTime is later than endTime.
    * @return a SensorDataIndex object containing all relevant sensor data resources, or null if
    * sourceName, startTime, or endTime are invalid.
    */
   public abstract SensorDataIndex getSensorDataIndex(String sourceName,
-      XMLGregorianCalendar startTime, XMLGregorianCalendar endTime);
+      XMLGregorianCalendar startTime, XMLGregorianCalendar endTime) throws DbBadIntervalException;
 
   /**
    * Returns the SensorData instance for a particular named Source and timestamp, or null if not

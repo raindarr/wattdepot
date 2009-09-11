@@ -19,6 +19,7 @@ import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.ServerProperties;
+import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbImplementation;
 
 /**
@@ -187,7 +188,7 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
-      XMLGregorianCalendar endTime) {
+      XMLGregorianCalendar endTime) throws DbBadIntervalException {
     if ((sourceName == null) || (startTime == null) || (endTime == null)) {
       return null;
     }
@@ -197,7 +198,7 @@ public class MemoryStorageImplementation extends DbImplementation {
     }
     else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
       // startTime > endTime, which is bogus
-      return null;
+      throw new DbBadIntervalException(startTime, endTime);
     }
     else {
       SensorDataIndex index = new SensorDataIndex();

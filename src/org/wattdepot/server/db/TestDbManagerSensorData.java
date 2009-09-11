@@ -129,6 +129,29 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
    * 
    * @throws Exception if calendar conversion fails.
    */
+  @Test(expected = DbBadIntervalException.class)
+  public void testGetSensorDataIndexBadInterval() throws Exception {
+    // Set up test data
+    createTestData();
+
+    XMLGregorianCalendar start = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00"),
+    end = Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00");
+
+    // Add data to source
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data3));
+
+    // case #1: start time after end time
+    assertNull("SensorDataIndex generated for bogus start and end times", manager
+        .getSensorDataIndex(this.source1.getName(), end, start));
+  }
+  
+  /**
+   * Tests the getSensorDataIndex method with startTime and endTime.
+   * 
+   * @throws Exception if calendar conversion fails.
+   */
   @Test
   public void testGetSensorDataIndexStartEnd() throws Exception {
     // Set up test data
@@ -149,10 +172,6 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data3));
-
-    // case #1: start time after end time
-    assertNull("SensorDataIndex generated for bogus start and end times", manager
-        .getSensorDataIndex(this.source1.getName(), after3, before1));
 
     // case #2: valid range covering no data
     assertTrue("SensorDataIndex generated for period containing no SensorData", manager

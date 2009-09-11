@@ -1,7 +1,7 @@
 package org.wattdepot.resource.sensordata;
 
 import java.io.IOException;
-import javax.xml.datatype.DatatypeConstants;
+import javax.xml.bind.JAXBException;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.hackystat.utilities.tstamp.Tstamp;
 import org.restlet.Context;
@@ -16,6 +16,7 @@ import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.server.db.DbBadIntervalException;
 
 /**
  * Represents sensed data about the world. The primary purpose of WattDepot is to allow the storage
@@ -130,16 +131,15 @@ public class SensorDataResource extends WattDepotResource {
           setStatusBadTimestamp(this.endTime);
           return null;
         }
-        if (startObj.compare(endObj) == DatatypeConstants.GREATER) {
-          // startTime > endTime, which is bogus
-          setStatusBadInterval(startObj.toString(), endObj.toString());
-          return null;
-        }
         try {
           xmlString = getSensorDataIndex(startObj, endObj);
           return super.getStringRepresentation(xmlString);
         }
-        catch (Exception e) {
+        catch (DbBadIntervalException e) {
+          setStatusBadInterval(startObj.toString(), endObj.toString());
+          return null;
+        }
+        catch (JAXBException e) {
           setStatusInternalError(e);
           return null;
         }

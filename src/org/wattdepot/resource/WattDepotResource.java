@@ -3,6 +3,7 @@ package org.wattdepot.resource;
 import java.io.StringReader;
 import java.io.StringWriter;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -22,6 +23,7 @@ import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
+import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbManager;
 
 /**
@@ -203,10 +205,11 @@ public class WattDepotResource extends Resource {
    * @param endTime The end time requested.
    * @return The XML string representing the requested SensorDataIndex, or null if source name is
    * unknown.
-   * @throws Exception If there are problems mashalling the SensorDataIndex.
+   * @throws JAXBException If there are problems mashalling the SensorDataIndex.
+   * @throws DbBadIntervalException If the start time is later than the end time.
    */
   public String getSensorDataIndex(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime)
-      throws Exception {
+      throws JAXBException, DbBadIntervalException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorDataIndex index = this.dbManager.getSensorDataIndex(uriSource, startTime, endTime);
