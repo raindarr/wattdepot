@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.wattdepot.resource.source.SourceUtils.sourceRefEqualsSource;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceRef;
@@ -32,7 +33,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
 
   /** Make PMD happy. */
   private static final String SOURCE_DOES_NOT_MATCH =
-    "Retrieved Source does not match original stored Source";
+      "Retrieved Source does not match original stored Source";
 
   /**
    * Adds Users that own test Sources. Currently the DB level doesn't check that Owners for Sources
@@ -42,6 +43,16 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user1));
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user2));
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user3));
+  }
+
+  /**
+   * We are temporarily creating a default source for a demo, which throws off tests that expect a
+   * fresh database to be empty. To solve this, before the Source tests run we will delete the
+   * default source.
+   */
+  @Before
+  public void deleteDefaultSource() {
+    assertTrue("Unable to delete default source", this.manager.deleteSource("saunders-hall"));
   }
 
   /**
@@ -114,8 +125,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
 
     // case #2: retrieve stored Source
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source1));
-    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager
-        .getSource(source1.getName()));
+    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager.getSource(source1.getName()));
 
     // case #3: retrieve unknown Source name
     assertNull("Able to retrieve ficticiously-named Source", manager.getSource("bogus-source"));
@@ -123,12 +133,9 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     // case #4: store 3 Sources and verify retrieval
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(source2));
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(source3));
-    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager
-        .getSource(source1.getName()));
-    assertEquals(SOURCE_DOES_NOT_MATCH, source2, manager
-        .getSource(source2.getName()));
-    assertEquals(SOURCE_DOES_NOT_MATCH, source3, manager
-        .getSource(source3.getName()));
+    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager.getSource(source1.getName()));
+    assertEquals(SOURCE_DOES_NOT_MATCH, source2, manager.getSource(source2.getName()));
+    assertEquals(SOURCE_DOES_NOT_MATCH, source3, manager.getSource(source3.getName()));
 
     // case #5: retrieve empty Source name
     assertNull("Able to retrieve ficticiously-named Source", manager.getSource(""));
@@ -150,18 +157,15 @@ public class TestDbManagerSources extends DbManagerTestHelper {
 
     // case #1: store and retrieve Source
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source1));
-    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager
-        .getSource(source1.getName()));
+    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager.getSource(source1.getName()));
 
     // case #2: attempt to overwrite existing Source
     assertFalse("Overwriting Source succeeded, but should fail", manager.storeSource(source1));
 
     // case #3: store 2 Sources and verify retrieval
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(source2));
-    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager
-        .getSource(source1.getName()));
-    assertEquals(SOURCE_DOES_NOT_MATCH, source2, manager
-        .getSource(source2.getName()));
+    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager.getSource(source1.getName()));
+    assertEquals(SOURCE_DOES_NOT_MATCH, source2, manager.getSource(source2.getName()));
 
     // case #4: store null Source
     assertFalse("Storing null Source succeeded", manager.storeSource(null));
@@ -183,8 +187,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
 
     // case #2: delete stored Source
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(source1));
-    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager
-        .getSource(source1.getName()));
+    assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager.getSource(source1.getName()));
     assertTrue("Unable to delete source1", manager.deleteSource(source1.getName()));
     assertNull("Able to retrieve deleted Source", manager.getSource(source1.getName()));
 

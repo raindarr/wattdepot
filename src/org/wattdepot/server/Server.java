@@ -12,6 +12,7 @@ import org.restlet.Restlet;
 import org.restlet.Router;
 import org.restlet.data.Protocol;
 import org.wattdepot.resource.health.HealthResource;
+import org.wattdepot.resource.sensordata.SensorDataResource;
 import org.wattdepot.resource.user.UserResource;
 import org.wattdepot.resource.user.UsersResource;
 import org.wattdepot.server.db.DbManager;
@@ -104,14 +105,15 @@ public class Server extends Application {
     server.logger.info(server.serverProperties.echoProperties());
 
     Map<String, Object> attributes = server.getContext().getAttributes();
-     DbManager dbManager = new DbManager(server); // we need this later in this method.
-     attributes.put("DbManager", dbManager);
+    // Put server and serverProperties in first, because dbManager() will look at serverProperties
+    attributes.put("WattDepotServer", server);
+    attributes.put("ServerProperties", server.serverProperties);
+    DbManager dbManager = new DbManager(server); // we need this later in this method.
     // attributes.put("SdtManager", new SdtManager(server));
     // attributes.put("UserManager", new UserManager(server));
     // attributes.put("ProjectManager", new ProjectManager(server));
     // attributes.put("SensorDataManager", new SensorDataManager(server));
-    attributes.put("WattDepotServer", server);
-    attributes.put("ServerProperties", server.serverProperties);
+    attributes.put("DbManager", dbManager);
 
     // Now let's open for business.
     server.logger.info("Maximum Java heap size (MB): "
@@ -149,8 +151,15 @@ public class Server extends Application {
 
     Router router = new Router(getContext());
 
-    // Defines only one route
+    // Health resource is public, so no Guard
     router.attach("/" + HEALTH_URI, HealthResource.class);
+    // SensorData does it's own authentication processing, so don't use Guard
+    router.attach("/" + SOURCES_URI + "/{source}" + SENSORDATA_URI,
+        SensorDataResource.class);
+    router.attach("/" + SOURCES_URI + "/{source}" + SENSORDATA_URI
+        + "/?startTime={startTime}&endTime={endTime}", SensorDataResource.class);
+    router.attach("/" + SOURCES_URI + "/{source}" + SENSORDATA_URI + "/{timestamp}",
+        SensorDataResource.class);
     router.attachDefault(userGuard);
 
     return router;

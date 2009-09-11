@@ -1,5 +1,9 @@
 package org.wattdepot.server.db.memory;
 
+import static org.wattdepot.resource.source.SourceUtils.makeSource;
+import static org.wattdepot.resource.source.SourceUtils.makeSourceProperty;
+import static org.wattdepot.resource.user.UserUtils.makeUser;
+import static org.wattdepot.resource.user.UserUtils.userToUri;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.xml.datatype.DatatypeConstants;
@@ -14,6 +18,7 @@ import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
+import org.wattdepot.server.ServerProperties;
 import org.wattdepot.server.db.DbImplementation;
 
 /**
@@ -49,11 +54,46 @@ public class MemoryStorageImplementation extends DbImplementation {
   public void initialize(boolean wipe) {
     // Create the hash maps
     this.name2SourceHash = new ConcurrentHashMap<String, Source>();
-    this.source2SensorDatasHash = 
-      new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>();
+    this.source2SensorDatasHash =
+        new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>();
     this.name2UserHash = new ConcurrentHashMap<String, User>();
     // Since nothing is stored on disk, there is no data to be read into the hash maps
     // wipe parameter is also ignored, since the DB is always wiped on initialization
+
+    // Create default data to support short-term demo
+    if (!createDefaultData()) {
+      logger.severe("Unable to create default data");
+    }
+  }
+
+  /**
+   * Kludges up some default data so that SensorData can be stored. This is a total hack, and should
+   * be removed as soon as the all the resources have been fully implemented.
+   * 
+   * @return True if the default data could be created, or false otherwise.
+   */
+  public boolean createDefaultData() {
+    ServerProperties serverProps =
+        (ServerProperties) server.getContext().getAttributes().get("ServerProperties");
+    String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
+    String adminPassword = serverProps.get(ServerProperties.ADMIN_PASSWORD_KEY);
+    // create the admin User object based on the server properties
+    User adminUser = makeUser(adminUsername, adminPassword, true, null);
+    // stick admin user into database
+    if (!this.storeUser(adminUser)) {
+      return false;
+    }
+
+    org.wattdepot.resource.source.jaxb.Properties props =
+        new org.wattdepot.resource.source.jaxb.Properties();
+    props.getProperty().add(makeSourceProperty("carbonIntensity", "294"));
+    // create default source
+    Source defaultSource =
+        makeSource("saunders-hall", userToUri(adminUser, super.server), false, false,
+            "21.30078,-157.819129,41", "Sauders Hall on the University of Hawaii at Manoa campus",
+            "Obvius-brand power meter", props);
+    // stick default source into database
+    return this.storeSource(defaultSource);
   }
 
   /** {@inheritDoc} */
@@ -130,8 +170,8 @@ public class MemoryStorageImplementation extends DbImplementation {
     else {
       SensorDataIndex index = new SensorDataIndex();
       // Retrieve this Source's map of timestamps to SensorData
-      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-          .get(sourceName);
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+          this.source2SensorDatasHash.get(sourceName);
       // If there is any sensor data for this Source
       if (sensorDataMap != null) {
         // Loop over all SensorData in hash
@@ -162,8 +202,8 @@ public class MemoryStorageImplementation extends DbImplementation {
     else {
       SensorDataIndex index = new SensorDataIndex();
       // Retrieve this Source's map of timestamps to SensorData
-      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-          .get(sourceName);
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+          this.source2SensorDatasHash.get(sourceName);
       // If there is any sensor data for this Source
       if (sensorDataMap != null) {
         // Loop over all SensorData in hash
@@ -188,8 +228,8 @@ public class MemoryStorageImplementation extends DbImplementation {
     }
     else {
       // Retrieve this Source's map of timestamps to SensorData
-      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-          .get(sourceName);
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+          this.source2SensorDatasHash.get(sourceName);
       // If there is any sensor data for this Source
       if (sensorDataMap == null) {
         return null;
@@ -217,8 +257,8 @@ public class MemoryStorageImplementation extends DbImplementation {
       // taking everything after the last "/" in the URI.
       String sourceName = data.getSource().substring(data.getSource().lastIndexOf('/') + 1);
       // Retrieve this Source's map of timestamps to SensorData
-      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-          .get(sourceName);
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+          this.source2SensorDatasHash.get(sourceName);
       // If there is no sensor data for this Source yet
       if (sensorDataMap == null) {
         // Create the sensorDataMap
@@ -245,8 +285,8 @@ public class MemoryStorageImplementation extends DbImplementation {
     }
     else {
       // Retrieve this Source's map of timestamps to SensorData
-      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap = this.source2SensorDatasHash
-          .get(sourceName);
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+          this.source2SensorDatasHash.get(sourceName);
       // If there is any sensor data for this Source
       if (sensorDataMap == null) {
         return false;

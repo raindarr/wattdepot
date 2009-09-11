@@ -1,6 +1,7 @@
 package org.wattdepot.resource.user;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.wattdepot.client.WattDepotClient;
@@ -15,22 +16,27 @@ import org.wattdepot.test.ServerTestHelper;
 public class TestUserResource extends ServerTestHelper {
 
   /**
-   * Test that authentication fails without username and password, and works with admin username and
-   * password.
+   * Test that authentication fails without username and password.
    * 
    * @throws Exception If problems occur.
    */
   @Test
-  public void testAuthentication() throws Exception {
-    // Currently authenticating as admin user
-    // System.out.println("admin email: " + adminEmail + ", admin password: " + adminPassword);
-
+  public void testAuthenticationWithNoCredentials() throws Exception {
     // Shouldn't authenticate with no username or password
     WattDepotClient client = new WattDepotClient(getHostName(), null, null);
     assertFalse("Authentication worked with no credentials!!", client.isAuthenticated());
+  }
 
+  /**
+   * Test that authentication works with admin username and password.
+   * 
+   * @throws Exception If problems occur.
+   */
+  @Test
+  public void testAuthenticationWithAdminCredentials() throws Exception {
     // Should authenticate with admin username and password
-    client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+//    System.out.format("admin email: %s, admin password: %s\n", adminEmail, adminPassword);
     assertTrue("Authentication failed with admin credentials!", client.isAuthenticated());
   }
 
@@ -68,6 +74,7 @@ public class TestUserResource extends ServerTestHelper {
   public void testUsersResource() throws Exception {
     // Currently authenticating as admin user
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-    assertTrue("Empty DB has Users", client.getUserIndex().getUserRef().isEmpty());
+    assertSame("Fresh DB has more than just admin user", client.getUserIndex().getUserRef().size(),
+        1);
   }
 }

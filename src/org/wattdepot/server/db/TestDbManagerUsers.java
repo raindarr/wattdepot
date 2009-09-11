@@ -8,9 +8,11 @@ import static org.junit.Assert.assertTrue;
 import static org.wattdepot.resource.user.UserUtils.userRefEqualsUser;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserRef;
+import org.wattdepot.server.ServerProperties;
 
 /**
  * Instantiates a DbManager and tests the database methods related to User resources.
@@ -25,6 +27,20 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
   /** Make PMD happy. */
   private static final String USER_DOES_NOT_MATCH =
     "Retrieved user does not match original stored user";
+
+  /**
+   * We are temporarily creating an admin user for a demo, which throws off tests that expect a
+   * fresh database to be empty. To solve this, before the User tests run we will delete the
+   * admin User.
+   */
+  @Before
+  public void deleteAdminUser() {
+    ServerProperties serverProps = (ServerProperties) server.getContext().getAttributes()
+    .get("ServerProperties");
+    String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
+
+    assertTrue("Unable to delete admin user", this.manager.deleteUser(adminUsername));
+  }
 
   /**
    * Tests the getUsers method.
