@@ -46,13 +46,16 @@ public class TestDbManagerSources extends DbManagerTestHelper {
   }
 
   /**
-   * We are temporarily creating a default source for a demo, which throws off tests that expect a
-   * fresh database to be empty. To solve this, before the Source tests run we will delete the
-   * default source.
+   * We are temporarily creating some default sources for a demo, which throws off tests that expect
+   * a fresh database to be empty. To solve this, before the Source tests run we will delete the
+   * default sources.
    */
   @Before
-  public void deleteDefaultSource() {
-    assertTrue("Unable to delete default source", this.manager.deleteSource("saunders-hall"));
+  public void deleteDefaultSources() {
+    assertTrue("Unable to delete default public source", this.manager
+        .deleteSource(DbManager.defaultPublicSource));
+    assertTrue("Unable to delete default private source", this.manager
+        .deleteSource(DbManager.defaultPrivateSource));
   }
 
   /**

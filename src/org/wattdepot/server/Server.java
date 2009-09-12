@@ -108,11 +108,11 @@ public class Server extends Application {
     // Put server and serverProperties in first, because dbManager() will look at serverProperties
     attributes.put("WattDepotServer", server);
     attributes.put("ServerProperties", server.serverProperties);
-    DbManager dbManager = new DbManager(server); // we need this later in this method.
-    // attributes.put("SdtManager", new SdtManager(server));
-    // attributes.put("UserManager", new UserManager(server));
-    // attributes.put("ProjectManager", new ProjectManager(server));
-    // attributes.put("SensorDataManager", new SensorDataManager(server));
+    DbManager dbManager = new DbManager(server);
+    // Create default data to support short-term demo
+    if (!dbManager.createDefaultData()) {
+      server.logger.severe("Unable to create default data");
+    }
     attributes.put("DbManager", dbManager);
 
     // Now let's open for business.

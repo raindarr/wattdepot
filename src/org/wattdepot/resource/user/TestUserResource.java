@@ -1,7 +1,7 @@
 package org.wattdepot.resource.user;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.wattdepot.client.NotAuthorizedException;
@@ -19,10 +19,10 @@ public class TestUserResource extends ServerTestHelper {
   /**
    * Test that authentication fails without username and password.
    * 
-   * @throws Exception If problems occur.
+   * @throws WattDepotClientException If problems occur.
    */
   @Test
-  public void testAuthenticationWithNoCredentials() throws Exception {
+  public void testAuthenticationWithNoCredentials() throws WattDepotClientException {
     // Shouldn't authenticate with no username or password
     WattDepotClient client = new WattDepotClient(getHostName(), null, null);
     assertFalse("Authentication worked with no credentials!!", client.isAuthenticated());
@@ -31,23 +31,23 @@ public class TestUserResource extends ServerTestHelper {
   /**
    * Test that authentication works with admin username and password.
    * 
-   * @throws Exception If problems occur.
+   * @throws WattDepotClientException If problems occur.
    */
   @Test
-  public void testAuthenticationWithAdminCredentials() throws Exception {
+  public void testAuthenticationWithAdminCredentials() throws WattDepotClientException {
     // Should authenticate with admin username and password
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-//    System.out.format("admin email: %s, admin password: %s\n", adminEmail, adminPassword);
+    // System.out.format("admin email: %s, admin password: %s\n", adminEmail, adminPassword);
     assertTrue("Authentication failed with admin credentials!", client.isAuthenticated());
   }
 
   /**
    * Test that after authentication, can get placeholder User string.
    * 
-   * @throws Exception If problems occur.
+   * @throws WattDepotClientException If problems occur.
    */
   @Test
-  public void testUserResource() throws Exception {
+  public void testUserResource() throws WattDepotClientException {
     // Currently authenticating as admin user
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     assertTrue("User resource returned incorrect string", client.getUserString("foo").equals(
@@ -69,13 +69,13 @@ public class TestUserResource extends ServerTestHelper {
   /**
    * Test that after authentication, can retrieve user list.
    * 
-   * @throws Exception If problems occur.
+   * @throws WattDepotClientException If problems occur.
    */
   @Test
-  public void testUsersResource() throws Exception {
+  public void testUsersResource() throws WattDepotClientException {
     // Currently authenticating as admin user
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-    assertSame("Fresh DB has more than just admin user", client.getUserIndex().getUserRef().size(),
-        1);
+    assertNotNull("Unable to retrieve user list with admin account", client.getUserIndex()
+        .getUserRef());
   }
 }

@@ -65,6 +65,7 @@ public class SensorDataResource extends WattDepotResource {
     }
     // If credentials are provided, they need to be valid
     if (!isAnonymous() && !credentialsAreValid()) {
+      setStatusBadCredentials();
       return null;
     }
     Source source = dbManager.getSource(uriSource);

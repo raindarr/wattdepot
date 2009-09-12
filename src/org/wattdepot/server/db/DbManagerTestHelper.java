@@ -1,5 +1,6 @@
 package org.wattdepot.server.db;
 
+import static org.junit.Assert.assertTrue;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.makeSensorData;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.makeSensorDataProperty;
 import static org.wattdepot.resource.source.SourceUtils.makeSource;
@@ -52,6 +53,8 @@ public class DbManagerTestHelper {
     // TODO should loop over all DbImplementations once we have more than one
     this.manager = new DbManager(server,
         "org.wattdepot.server.db.memory.MemoryStorageImplementation", true);
+    // Need to create default data for each fresh DbManager
+    assertTrue("Unable to create default data", this.manager.createDefaultData()); 
   }
 
   /**

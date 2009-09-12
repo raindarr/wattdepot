@@ -1,5 +1,9 @@
 package org.wattdepot.server.db;
 
+import static org.wattdepot.resource.source.SourceUtils.makeSource;
+import static org.wattdepot.resource.source.SourceUtils.makeSourceProperty;
+import static org.wattdepot.resource.user.UserUtils.makeUser;
+import static org.wattdepot.resource.user.UserUtils.userToUri;
 import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
 import java.lang.reflect.Constructor;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -11,6 +15,7 @@ import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
+import org.wattdepot.server.ServerProperties;
 
 /**
  * Provides an interface to storage for the resources managed by the WattDepot server. Portions of
@@ -26,6 +31,24 @@ public class DbManager {
 
   /** The server using this DbManager. */
   protected Server server;
+
+  /** Name of the default public source for demo. */
+  public static final String defaultPublicSource = "saunders-hall";
+
+  /** Name of the default private source for demo. */
+  public static final String defaultPrivateSource = "secret-place";
+
+  /** Username of the default user that owns both default sources for demo. */
+  public static final String defaultOwnerUsername = "joebogus@example.com";
+
+  /** Password of the default user that owns both default sources for demo. */
+  public static final String defaultOwnerPassword = "totally-bogus";
+
+  /** Username of the default user that owns no sources for demo. */
+  public static final String defaultNonOwnerUsername = "jimbogus@example.com";
+
+  /** Password of the default user that owns no sources for demo. */
+  public static final String defaultNonOwnerPassword = "super-bogus";
 
   /**
    * Creates a new DbManager which manages access to the underlying persistency layer(s). Choice of
@@ -81,6 +104,55 @@ public class DbManager {
       throw new IllegalArgumentException(e);
     }
     this.dbImpl.initialize(wipe);
+  }
+
+  /**
+   * Kludges up some default data so that SensorData can be stored. This is a total hack, and should
+   * be removed as soon as the all the resources have been fully implemented.
+   * 
+   * @return True if the default data could be created, or false otherwise.
+   */
+  public boolean createDefaultData() {
+    ServerProperties serverProps =
+        (ServerProperties) server.getContext().getAttributes().get("ServerProperties");
+    String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
+    String adminPassword = serverProps.get(ServerProperties.ADMIN_PASSWORD_KEY);
+    // create the admin User object based on the server properties
+    User adminUser = makeUser(adminUsername, adminPassword, true, null);
+    // stick admin user into database
+    if (!this.storeUser(adminUser)) {
+      return false;
+    }
+    // create a non-admin user that owns a source for testing
+    User ownerUser = makeUser(defaultOwnerUsername, defaultOwnerPassword, false, null);
+    if (!this.storeUser(ownerUser)) {
+      return false;
+    }
+    // create a non-admin user that owns nothing for testing
+    User nonOwnerUser = makeUser(defaultNonOwnerUsername, defaultNonOwnerPassword, false, null);
+    if (!this.storeUser(nonOwnerUser)) {
+      return false;
+    }
+
+    org.wattdepot.resource.source.jaxb.Properties props =
+        new org.wattdepot.resource.source.jaxb.Properties();
+    props.getProperty().add(makeSourceProperty("carbonIntensity", "294"));
+    // create public source
+    Source source =
+        makeSource(defaultPublicSource, userToUri(ownerUser, this.server), true, false,
+            "21.30078,-157.819129,41", "Saunders Hall on the University of Hawaii at Manoa campus",
+            "Obvius-brand power meter", props);
+    // stick public source into database
+    if (!this.storeSource(source)) {
+      return false;
+    }
+
+    props.getProperty().clear();
+    props.getProperty().add(makeSourceProperty("carbonIntensity", "128"));
+    source =
+        makeSource(defaultPrivateSource, userToUri(ownerUser, this.server), false, false,
+            "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", props);
+    return (this.storeSource(source));
   }
 
   /**

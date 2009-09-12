@@ -1,9 +1,12 @@
 package org.wattdepot.resource.sensordata;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 import org.junit.Test;
+import org.wattdepot.client.NotAuthorizedException;
+import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
+import org.wattdepot.server.db.DbManager;
 import org.wattdepot.test.ServerTestHelper;
 
 /**
@@ -13,70 +16,165 @@ import org.wattdepot.test.ServerTestHelper;
  */
 public class TestSensorDataResource extends ServerTestHelper {
 
-  /** The hardcoded name for the public Source. Should be replaced when Source creation works. */
-  private static final String pubSource = "saunders-hall";
+  /** Making PMD happy. */
+  private static final String MISSING_SENSORDATAREFS =
+      "SensorDataIndex did not contain list of SensorDataRefs";
 
   /**
-   * Test that authentication fails without username and password.
+   * Tests retrieval of all SensorData from a Source. Type: public Source with no credentials.
    * 
    * @throws WattDepotClientException If problems are encountered
    */
   @Test
   public void testFullIndexPublicWithNoCredentials() throws WattDepotClientException {
-    // Shouldn't authenticate with no username or password
     WattDepotClient client = new WattDepotClient(getHostName(), null, null);
-    assertTrue("SensorDataIndex for fresh DB contained data", client.getSensorDataIndex(pubSource)
-        .getSensorDataRef().isEmpty());
+    assertNotNull(MISSING_SENSORDATAREFS, client
+        .getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef());
   }
 
-//  /**
-//   * Test that authentication works with admin username and password.
-//   * 
-//   * @throws Exception If problems occur.
-//   */
-//  @Test
-//  public void testAuthenticationWithAdminCredentials() throws Exception {
-//    // Should authenticate with admin username and password
-//    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-//    // System.out.format("admin email: %s, admin password: %s\n", adminEmail, adminPassword);
-//    assertTrue("Authentication failed with admin credentials!", client.isAuthenticated());
-//  }
-//
-//  /**
-//   * Test that after authentication, can get placeholder User string.
-//   * 
-//   * @throws Exception If problems occur.
-//   */
-//  @Test
-//  public void testUserResource() throws Exception {
-//    // Currently authenticating as admin user
-//    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-//    assertTrue("User resource returned incorrect string", client.getUserString("foo").equals(
-//        "User resource"));
-//  }
-//
-//  /**
-//   * Test that without authentication, cannot retrieve user list.
-//   * 
-//   * @throws WattDepotClientException If there are problems retrieving User list.
-//   */
-//  @Test(expected = NotAuthorizedException.class)
-//  public void testUsersResourceAnonymous() throws WattDepotClientException {
-//    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
-//    assertTrue("Able to retrieve users list anonymously", client.getUserIndex().getUserRef()
-//        .isEmpty());
-//  }
-//
-//  /**
-//   * Test that after authentication, can retrieve user list.
-//   * 
-//   * @throws Exception If problems occur.
-//   */
-//  @Test
-//  public void testUsersResource() throws Exception {
-//    // Currently authenticating as admin user
-//    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-//   assertSame("Fresh DB has more than just admin user", client.getUserIndex().getUserRef().size(),
-//        1);
-//  }
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: public Source with invalid credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testFullIndexPublicBadAuth() throws WattDepotClientException {
+    // Shouldn't authenticate with no username or password
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, "foo");
+    client.getSensorDataIndex(DbManager.defaultPublicSource);
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: public Source with valid admin
+   * credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test
+  public void testFullIndexPublicWithAdminCredentials() throws WattDepotClientException {
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    assertNotNull(MISSING_SENSORDATAREFS, client
+        .getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef());
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: public Source with valid owner
+   * credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test
+  public void testFullIndexPublicWithOwnerCredentials() throws WattDepotClientException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
+            DbManager.defaultOwnerPassword);
+    assertNotNull(MISSING_SENSORDATAREFS, client
+        .getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef());
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: public Source with valid non-owner
+   * credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test
+  public void testFullIndexPublicWithNonOwnerCredentials() throws WattDepotClientException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), DbManager.defaultNonOwnerUsername,
+            DbManager.defaultNonOwnerPassword);
+    assertNotNull(MISSING_SENSORDATAREFS, client
+        .getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef());
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: private Source with no credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testFullIndexPrivateWithNoCredentials() throws WattDepotClientException {
+    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    client.getSensorDataIndex(DbManager.defaultPrivateSource);
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: private Source with invalid credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testFullIndexPrivateBadAuth() throws WattDepotClientException {
+    // Shouldn't authenticate with no username or password
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, "wrong-password");
+    client.getSensorDataIndex(DbManager.defaultPrivateSource);
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: private Source with admin credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test
+  public void testFullIndexPrivateAdminAuth() throws WattDepotClientException {
+    // Shouldn't authenticate with no username or password
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    assertNotNull(MISSING_SENSORDATAREFS, client
+        .getSensorDataIndex(DbManager.defaultPrivateSource));
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: private Source with owner credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test
+  public void testFullIndexPrivateOwnerAuth() throws WattDepotClientException {
+    // Shouldn't authenticate with no username or password
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
+            DbManager.defaultOwnerPassword);
+    assertNotNull(MISSING_SENSORDATAREFS, client
+        .getSensorDataIndex(DbManager.defaultPrivateSource));
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: private Source with non-owner
+   * credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testFullIndexPrivateNonOwnerAuth() throws WattDepotClientException {
+    // Shouldn't authenticate with no username or password
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), DbManager.defaultNonOwnerUsername,
+            DbManager.defaultNonOwnerPassword);
+    client.getSensorDataIndex(DbManager.defaultPrivateSource);
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: unknown Source name with no credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = ResourceNotFoundException.class)
+  public void testFullIndexBadSourceNameAnon() throws WattDepotClientException {
+    // Shouldn't authenticate with no username or password
+    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    client.getSensorDataIndex("bogus-source-name");
+  }
+
+  /**
+   * Tests retrieval of all SensorData from a Source. Type: unknown Source name with valid
+   * credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = ResourceNotFoundException.class)
+  public void testFullIndexBadSourceNameAuth() throws WattDepotClientException {
+    // Shouldn't authenticate with no username or password
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    client.getSensorDataIndex("bogus-source-name");
+  }
 }

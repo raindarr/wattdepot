@@ -26,20 +26,24 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
 
   /** Make PMD happy. */
   private static final String USER_DOES_NOT_MATCH =
-    "Retrieved user does not match original stored user";
+      "Retrieved user does not match original stored user";
 
   /**
-   * We are temporarily creating an admin user for a demo, which throws off tests that expect a
-   * fresh database to be empty. To solve this, before the User tests run we will delete the
-   * admin User.
+   * We are temporarily creating some default users for a demo, which throws off tests that expect a
+   * fresh database to be empty. To solve this, before the User tests run we will delete the default
+   * users.
    */
   @Before
-  public void deleteAdminUser() {
-    ServerProperties serverProps = (ServerProperties) server.getContext().getAttributes()
-    .get("ServerProperties");
+  public void deleteDefaultUsers() {
+    ServerProperties serverProps =
+        (ServerProperties) server.getContext().getAttributes().get("ServerProperties");
     String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
 
     assertTrue("Unable to delete admin user", this.manager.deleteUser(adminUsername));
+    assertTrue("Unable to delete owner user", this.manager
+        .deleteUser(DbManager.defaultOwnerUsername));
+    assertTrue("Unable to delete non-owner user", this.manager
+        .deleteUser(DbManager.defaultNonOwnerUsername));
   }
 
   /**
@@ -53,15 +57,15 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     // UserRef in UserIndex.
 
     // case #1: Database starts fresh with no Users. Might change if admin user is pre-added.
-    assertTrue("Freshly created database contains users", manager.getUsers().getUserRef()
-        .isEmpty());
+    assertTrue("Freshly created database contains users",
+        manager.getUsers().getUserRef().isEmpty());
 
     // case #2: after storing a single User, should have UserIndex with one UserRef that matches
     // User
     assertTrue("Unable to store user1 in DB", manager.storeUser(this.user1));
     // Confirm that getUsers returns a single UserRef now
-    assertSame("getUsers returned wrong number of UserRefs", manager.getUsers().getUserRef()
-        .size(), 1);
+    assertSame("getUsers returned wrong number of UserRefs",
+        manager.getUsers().getUserRef().size(), 1);
     // Confirm that the single UserRef is from user1
     assertTrue("getUsers didn't return expected UserRef", userRefEqualsUser(manager.getUsers()
         .getUserRef().get(0), this.user1));
@@ -69,8 +73,8 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     // case #3: after storing two Users, should have UserIndex with two UserRefs that match Users
     assertTrue("Unable to store user2 in DB", manager.storeUser(this.user2));
     // Confirm that getUsers returns two UserRefs now
-    assertSame("getUsers returned wrong number of UserRefs", manager.getUsers().getUserRef()
-        .size(), 2);
+    assertSame("getUsers returned wrong number of UserRefs",
+        manager.getUsers().getUserRef().size(), 2);
     // Confirm that the two UserRefs are equivalent to user1 and user2
     List<UserRef> refs = manager.getUsers().getUserRef();
     List<User> origUsers = new ArrayList<User>();
@@ -88,8 +92,8 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
 
     // case #4: after deleting a User should have single UserRef in UserIndex.
     assertTrue("Unable to delete user1", manager.deleteUser(this.user1.getEmail()));
-    assertSame("getUsers returned wrong number of UserRefs", manager.getUsers().getUserRef()
-        .size(), 1);
+    assertSame("getUsers returned wrong number of UserRefs",
+        manager.getUsers().getUserRef().size(), 1);
     // Confirm that the single UserRef is from user2
     assertTrue("getUsers didn't return expected UserRef", userRefEqualsUser(manager.getUsers()
         .getUserRef().get(0), this.user2));
@@ -108,8 +112,7 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
 
     // case #2: store user, retrieve stored user and compare to original user
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user1));
-    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager
-        .getUser(this.user1.getEmail()));
+    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager.getUser(this.user1.getEmail()));
 
     // case #3: retrieve unknown username
     assertNull("Able to retrieve User with ficticious username", manager
@@ -117,10 +120,8 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
 
     // case #4: store second User and verify retrieval of both Users
     assertTrue("Unable to store user2 in DB", manager.storeUser(this.user2));
-    assertEquals(USER_DOES_NOT_MATCH, user2, manager
-        .getUser(this.user2.getEmail()));
-    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager
-        .getUser(this.user1.getEmail()));
+    assertEquals(USER_DOES_NOT_MATCH, user2, manager.getUser(this.user2.getEmail()));
+    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager.getUser(this.user1.getEmail()));
 
     // case #5: retrieve empty username
     assertNull("Able to retrieve User with empty username", manager.getUser(""));
@@ -139,18 +140,15 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
 
     // case #1: store user, retrieve stored user and compare to original user
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user1));
-    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager
-        .getUser(this.user1.getEmail()));
+    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager.getUser(this.user1.getEmail()));
 
     // case #2: attempt to overwrite existing user
     assertFalse("Overwriting user succeeded, but should fail", manager.storeUser(this.user1));
 
     // case #3: store second User and verify retrieval of both Users
     assertTrue("Unable to store user2 in DB", manager.storeUser(this.user2));
-    assertEquals(USER_DOES_NOT_MATCH, this.user2, manager
-        .getUser(this.user2.getEmail()));
-    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager
-        .getUser(this.user1.getEmail()));
+    assertEquals(USER_DOES_NOT_MATCH, this.user2, manager.getUser(this.user2.getEmail()));
+    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager.getUser(this.user1.getEmail()));
 
     // case #4: store null User
     assertFalse("Storing null user succeeded, but should fail", manager.storeUser(null));
@@ -170,8 +168,7 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
 
     // case #2: store user, then delete user and confirm deletion
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user1));
-    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager
-        .getUser(this.user1.getEmail()));
+    assertEquals(USER_DOES_NOT_MATCH, this.user1, manager.getUser(this.user1.getEmail()));
     assertTrue("Unable to delete user1", manager.deleteUser(this.user1.getEmail()));
     assertNull("Able to retrieve deleted user", manager.getUser(this.user1.getEmail()));
 
