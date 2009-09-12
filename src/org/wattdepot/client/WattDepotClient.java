@@ -3,6 +3,7 @@ package org.wattdepot.client;
 import java.io.IOException;
 import java.io.StringReader;
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import org.restlet.Client;
 import org.restlet.data.ChallengeResponse;
@@ -14,7 +15,9 @@ import org.restlet.data.Protocol;
 import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
+import org.restlet.data.Status;
 import org.restlet.resource.Representation;
+import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 
@@ -43,19 +46,20 @@ public class WattDepotClient {
 
   /** Users JAXBContext. */
   private static final JAXBContext userJAXB;
-//  /** SensorData JAXBContext. */
-//  private static final JAXBContext sensorDataJAXB;
-//  /** Source JAXBContext. */
-//  private static final JAXBContext sourceJAXB;
+  /** SensorData JAXBContext. */
+  private static final JAXBContext sensorDataJAXB;
+  // /** Source JAXBContext. */
+  // private static final JAXBContext sourceJAXB;
 
   // JAXBContexts are thread safe, so we can share them across all instances and threads.
   // https://jaxb.dev.java.net/guide/Performance_and_thread_safety.html
   static {
     try {
       userJAXB = JAXBContext.newInstance(org.wattdepot.resource.user.jaxb.ObjectFactory.class);
-//      sensorDataJAXB = JAXBContext
-//          .newInstance(org.wattdepot.resource.sensordata.jaxb.ObjectFactory.class);
-//     sourceJAXB = JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
+      sensorDataJAXB =
+          JAXBContext.newInstance(org.wattdepot.resource.sensordata.jaxb.ObjectFactory.class);
+      // sourceJAXB =
+      // JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
     }
     catch (Exception e) {
       throw new RuntimeException("Couldn't create JAXB context instances.", e);
@@ -108,7 +112,8 @@ public class WattDepotClient {
    * authentication if requested.
    * 
    * @param method the HTTP method requested.
-   * @param requestString A string, such as "users". No preceding slash.
+   * @param requestString A string, such as "users". Do not start the string with a '/' (it is
+   * unneeded).
    * @param mediaPref Indication of what type of media the client prefers from the server. See
    * XML_MEDIA and TEXT_MEDIA constants.
    * @param entity The representation to be sent with the request, or null if not needed.
@@ -117,12 +122,12 @@ public class WattDepotClient {
   private Response makeRequest(Method method, String requestString,
       Preference<MediaType> mediaPref, Representation entity) {
     Reference reference = new Reference(this.wattDepotUri + requestString);
-    Request request = (entity == null) ? new Request(method, reference) : new Request(method,
-        reference, entity);
+    Request request =
+        (entity == null) ? new Request(method, reference) : new Request(method, reference, entity);
     request.getClientInfo().getAcceptedMediaTypes().add(mediaPref);
     if (!isAnonymous()) {
-      ChallengeResponse authentication = new ChallengeResponse(scheme, this.username,
-          this.password);
+      ChallengeResponse authentication =
+          new ChallengeResponse(scheme, this.username, this.password);
       request.setChallengeResponse(authentication);
     }
     return this.client.handle(request);
@@ -180,25 +185,89 @@ public class WattDepotClient {
   }
 
   /**
+   * Returns a SensorDataIndex containing all the SensorData available for this source.
+   * 
+   * @param source The name of the Source.
+   * @return The SensorDataIndex.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the user index.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws WattDepotClientException If error is encountered retrieving the resource, or some
+   * unexpected problem is encountered.
+   */
+  public SensorDataIndex getSensorDataIndex(String source) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, WattDepotClientException {
+    Response response =
+        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI,
+            XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // an unknown source name was specified
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
+        return (SensorDataIndex) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new WattDepotClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new WattDepotClientException(status);
+    }
+  }
+
+  /**
    * Returns the UserIndex containing all Users on the server.
    * 
    * @return The UserIndex for the server.
-   * @throws WattDepotClientException If error is encountered retrieving the resource, or
-   * unmarshalling the XML
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the user index.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws WattDepotClientException If error is encountered retrieving the resource, or some
+   * unexpected problem is encountered.
    */
-  public UserIndex getUserIndex() throws WattDepotClientException {
+  public UserIndex getUserIndex() throws NotAuthorizedException, BadXmlException,
+      WattDepotClientException {
     Response response = makeRequest(Method.GET, Server.USERS_URI, XML_MEDIA, null);
-    if (!response.getStatus().isSuccess()) {
-      throw new WattDepotClientException(response.getStatus());
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // User credentials did not correspond to an admin
+      throw new NotAuthorizedException(status);
     }
-    try {
-      String xmlString = response.getEntity().getText();
-      System.err.println("UserIndex in client: " + xmlString); // DEBUG
-      Unmarshaller unmarshaller = userJAXB.createUnmarshaller();
-      return (UserIndex) unmarshaller.unmarshal(new StringReader(xmlString));
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        // System.err.println("UserIndex in client: " + xmlString); // DEBUG
+        Unmarshaller unmarshaller = userJAXB.createUnmarshaller();
+        return (UserIndex) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new WattDepotClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
     }
-    catch (Exception e) {
-      throw new WattDepotClientException(response.getStatus(), e);
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new WattDepotClientException(status);
     }
   }
 
@@ -209,8 +278,8 @@ public class WattDepotClient {
    * @return a String that is just a placeholding stub for the User resource.
    */
   public String getUserString(String username) {
-    Response response = makeRequest(Method.GET, Server.USERS_URI + "/" + username, TEXT_MEDIA,
-        null);
+    Response response =
+        makeRequest(Method.GET, Server.USERS_URI + "/" + username, TEXT_MEDIA, null);
     try {
       return response.getEntity().getText();
     }

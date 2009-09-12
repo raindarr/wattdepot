@@ -63,8 +63,8 @@ public class SensorDataResource extends WattDepotResource {
     if (!validateKnownSource()) {
       return null;
     }
-    // If credentials are provided, they need to be valid (regardless of whether source is public)
-    if (!credentialsAreValid()) {
+    // If credentials are provided, they need to be valid
+    if (!isAnonymous() && !credentialsAreValid()) {
       return null;
     }
     Source source = dbManager.getSource(uriSource);
@@ -81,7 +81,7 @@ public class SensorDataResource extends WattDepotResource {
           xmlString = getSensorDataIndex();
           return getStringRepresentation(xmlString);
         }
-        catch (Exception e) {
+        catch (JAXBException e) {
           setStatusInternalError(e);
           return null;
         }
@@ -107,7 +107,7 @@ public class SensorDataResource extends WattDepotResource {
           }
           return super.getStringRepresentation(xmlString);
         }
-        catch (Exception e) {
+        catch (JAXBException e) {
           setStatusInternalError(e);
           return null;
         }
@@ -259,7 +259,7 @@ public class SensorDataResource extends WattDepotResource {
       try {
         data = makeSensorData(entityString);
       }
-      catch (Exception e) {
+      catch (JAXBException e) {
         setStatusMiscError("Invalid SensorData representation: " + entityString);
         return;
       }

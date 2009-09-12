@@ -1,5 +1,6 @@
 package org.wattdepot.resource.user;
 
+import javax.xml.bind.JAXBException;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
@@ -47,7 +48,7 @@ public class UsersResource extends WattDepotResource {
         return super.getStringRepresentation(xmlString);
       }
     }
-    catch (Exception e) {
+    catch (JAXBException e) {
       setStatusInternalError(e);
     }
     return null;

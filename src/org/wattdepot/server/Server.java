@@ -154,11 +154,10 @@ public class Server extends Application {
     // Health resource is public, so no Guard
     router.attach("/" + HEALTH_URI, HealthResource.class);
     // SensorData does it's own authentication processing, so don't use Guard
-    router.attach("/" + SOURCES_URI + "/{source}" + SENSORDATA_URI,
-        SensorDataResource.class);
-    router.attach("/" + SOURCES_URI + "/{source}" + SENSORDATA_URI
+    router.attach("/" + SOURCES_URI + "/{source}" + "/" + SENSORDATA_URI, SensorDataResource.class);
+    router.attach("/" + SOURCES_URI + "/{source}" + "/" + SENSORDATA_URI
         + "/?startTime={startTime}&endTime={endTime}", SensorDataResource.class);
-    router.attach("/" + SOURCES_URI + "/{source}" + SENSORDATA_URI + "/{timestamp}",
+    router.attach("/" + SOURCES_URI + "/{source}" + "/" + SENSORDATA_URI + "/{timestamp}",
         SensorDataResource.class);
     router.attachDefault(userGuard);
 

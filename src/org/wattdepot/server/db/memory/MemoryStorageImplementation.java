@@ -90,7 +90,7 @@ public class MemoryStorageImplementation extends DbImplementation {
     props.getProperty().add(makeSourceProperty("carbonIntensity", "294"));
     // create default source
     Source defaultSource =
-        makeSource("saunders-hall", userToUri(adminUser, super.server), false, false,
+        makeSource("saunders-hall", userToUri(adminUser, super.server), true, false,
             "21.30078,-157.819129,41", "Sauders Hall on the University of Hawaii at Manoa campus",
             "Obvius-brand power meter", props);
     // stick default source into database

@@ -4,12 +4,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
+import org.wattdepot.client.NotAuthorizedException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
 import org.wattdepot.test.ServerTestHelper;
 
 /**
- * Tests the Ping API, which is very simple.
+ * Tests the User resource API at the HTTP level using WattDepotClient.
  * 
  * @author Robert Brewer
  */
@@ -58,7 +59,7 @@ public class TestUserResource extends ServerTestHelper {
    * 
    * @throws WattDepotClientException If there are problems retrieving User list.
    */
-  @Test(expected = WattDepotClientException.class)
+  @Test(expected = NotAuthorizedException.class)
   public void testUsersResourceAnonymous() throws WattDepotClientException {
     WattDepotClient client = new WattDepotClient(getHostName(), null, null);
     assertTrue("Able to retrieve users list anonymously", client.getUserIndex().getUserRef()

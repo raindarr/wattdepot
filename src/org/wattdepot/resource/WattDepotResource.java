@@ -129,9 +129,9 @@ public class WattDepotResource extends Resource {
    * Returns the XML string containing the UserIndex with all defined Users.
    * 
    * @return The XML string providing an index to all current Users.
-   * @throws Exception If there are problems mashalling the UserIndex
+   * @throws JAXBException If there are problems mashalling the UserIndex
    */
-  public String getUserIndex() throws Exception {
+  public String getUserIndex() throws JAXBException {
     Marshaller marshaller = userJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
 
@@ -160,9 +160,9 @@ public class WattDepotResource extends Resource {
    * 
    * @return The XML string representing the requested SensorDataIndex, or null if source name is
    * unknown.
-   * @throws Exception If there are problems mashalling the SensorDataIndex.
+   * @throws JAXBException If there are problems mashalling the SensorDataIndex.
    */
-  public String getSensorDataIndex() throws Exception {
+  public String getSensorDataIndex() throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorDataIndex index = this.dbManager.getSensorDataIndex(this.uriSource);
@@ -181,9 +181,9 @@ public class WattDepotResource extends Resource {
    * 
    * @param timestamp The timestamp requested.
    * @return The XML string representing the requested SensorData, or null if it cannot be found.
-   * @throws Exception If there are problems mashalling the SensorData.
+   * @throws JAXBException If there are problems mashalling the SensorData.
    */
-  public String getSensorData(XMLGregorianCalendar timestamp) throws Exception {
+  public String getSensorData(XMLGregorianCalendar timestamp) throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorData data = this.dbManager.getSensorData(uriSource, timestamp);
@@ -227,9 +227,9 @@ public class WattDepotResource extends Resource {
    * 
    * @param xmlString The XML string representing a SensorData.
    * @return The corresponding SensorData instance.
-   * @throws Exception If problems occur during unmarshalling.
+   * @throws JAXBException If problems occur during unmarshalling.
    */
-  public SensorData makeSensorData(String xmlString) throws Exception {
+  public SensorData makeSensorData(String xmlString) throws JAXBException {
     Unmarshaller unmarshaller = sensorDataJaxbContext.createUnmarshaller();
     return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
   }
@@ -253,9 +253,18 @@ public class WattDepotResource extends Resource {
   }
 
   /**
+   * Determines whether the credentials provided in the HTTP request indicate anonymous access or
+   * not.
+   * 
+   * @return true if anonymous access (no credentials), false otherwise.
+   */
+  public boolean isAnonymous() {
+    return (this.authUsername == null) && (this.authPassword == null);
+  }
+
+  /**
    * Determines whether the credentials provided in the HTTP request match the values for the User
    * in the database. Otherwise sets the Response status and returns false.
-   * 
    * 
    * @return True if the credentials match, false if they don't or the user doesn't exist
    */
@@ -317,9 +326,10 @@ public class WattDepotResource extends Resource {
       return true;
     }
     else {
-      // Might want to use a generic response message so as to not leak information.
+      // Sending 401, which leaks information but makes debugging easier. Maybe switch to 404
+      // later??
       this.responseMsg = ResponseMessage.notSourceOwner(this, authUsername, uriSource);
-      getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, removeNewLines(this.responseMsg));
+      getResponse().setStatus(Status.CLIENT_ERROR_UNAUTHORIZED, removeNewLines(this.responseMsg));
       return false;
     }
   }
@@ -414,6 +424,8 @@ public class WattDepotResource extends Resource {
    */
   protected void setStatusBadCredentials() {
     this.responseMsg = ResponseMessage.badCredentials(this);
+    // Sending 401, which leaks information but makes debugging easier. Maybe switch to 404
+    // later??
     getResponse().setStatus(Status.CLIENT_ERROR_UNAUTHORIZED, removeNewLines(this.responseMsg));
   }
 
