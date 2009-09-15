@@ -1,6 +1,6 @@
-<project name="jar" default="publish" xmlns:ivy="antlib:org.apache.ivy.ant">
+<project name="jar" default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
   <description>
-  Provides the targets for building jar files. 
+  Provides the targets for building jar files.
   </description>
 
   <import file="build.xml" />
@@ -9,59 +9,30 @@
   <property name="build.jar.dir" location="${build.dir}/jar" />
   <delete dir="${build.jar.dir}" quiet="true" />
 
-  <target name="jar" depends="jar-example01, jar-example02, jar-example03" />
+  <target name="jar" depends="jar-standalone" />
 
-  <target name="jar-example01" depends="compile" description="Create example01.jar">
+  <target name="jar-standalone" depends="compile" description="Creates standalone wattdepot-server.jar">
     <!-- Define the directories and distribution name -->
+    <delete dir="${tmp.dir}" quiet="yes" />
     <mkdir dir="${tmp.dir}" />
     <mkdir dir="${build.jar.dir}" />
+    <!-- Copy over all local classes -->
     <copy todir="${tmp.dir}">
       <fileset dir="${basedir}/build/classes" />
     </copy>
-    <unjar src="${lib.dir}/hackystat/sensorbase/sensorbaseclient.jar" dest="${tmp.dir}" />
-    <jar destfile="${build.jar.dir}/example01.jar" basedir="${tmp.dir}">
-      <manifest>
-        <attribute name="Main-Class" value="org.hackystat.developer.example.example01.Example01" />
-        <attribute name="Implementation-Title" value="Hackystat Developer Examples" />
-        <attribute name="Implementation-Version" value="${version}" />
-        <attribute name="Implementation-Vendor" value="Collaborative Software Development Laboratory, University of Hawaii" />
-      </manifest>
-    </jar>
-    <delete dir="${tmp.dir}" />
-  </target>
+    <!-- Unjar the required libraries -->
+    <unjar src="${lib.dir}/hackystat/utilities/stacktrace.lib.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/hackystat/utilities/tstamp.lib.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/restlet/org.simpleframework.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/restlet/org.restlet.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/restlet/com.noelios.restlet.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/restlet/com.noelios.restlet.ext.net.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/restlet/com.noelios.restlet.ext.simple_3.1.jar" dest="${tmp.dir}" />
 
-  <target name="jar-example02" depends="compile" description="Create example02.jar">
-    <!-- Define the directories and distribution name -->
-    <mkdir dir="${tmp.dir}" />
-    <mkdir dir="${build.jar.dir}" />
-    <copy todir="${tmp.dir}">
-      <fileset dir="${basedir}/build/classes" />
-    </copy>
-    <unjar src="${lib.dir}/hackystat/sensorbase/sensorbaseclient.jar" dest="${tmp.dir}" />
-    <unjar src="${lib.dir}/hackystat/sensorshell/sensorshell.jar" dest="${tmp.dir}" />
-    <jar destfile="${build.jar.dir}/example02.jar" basedir="${tmp.dir}">
+    <jar destfile="${build.jar.dir}/wattdepot-server.jar" basedir="${tmp.dir}">
       <manifest>
-        <attribute name="Main-Class" value="org.hackystat.developer.example.example02.Example02" />
-        <attribute name="Implementation-Title" value="Hackystat Developer Examples" />
-        <attribute name="Implementation-Version" value="${version}" />
-        <attribute name="Implementation-Vendor" value="Collaborative Software Development Laboratory, University of Hawaii" />
-      </manifest>
-    </jar>
-    <delete dir="${tmp.dir}" />
-  </target>
-
-  <target name="jar-example03" depends="compile" description="Create example03.jar">
-    <!-- Define the directories and distribution name -->
-    <mkdir dir="${tmp.dir}" />
-    <mkdir dir="${build.jar.dir}" />
-    <copy todir="${tmp.dir}">
-      <fileset dir="${basedir}/build/classes" />
-    </copy>
-    <unjar src="${lib.dir}/hackystat/dailyprojectdata/dailyprojectdata.jar" dest="${tmp.dir}" />
-    <jar destfile="${build.jar.dir}/example03.jar" basedir="${tmp.dir}">
-      <manifest>
-        <attribute name="Main-Class" value="org.hackystat.developer.example.example03.Example03" />
-        <attribute name="Implementation-Title" value="Hackystat Developer Examples" />
+        <attribute name="Main-Class" value="org.wattdepot.server.Server" />
+        <attribute name="Implementation-Title" value="WattDepot Server" />
         <attribute name="Implementation-Version" value="${version}" />
         <attribute name="Implementation-Vendor" value="Collaborative Software Development Laboratory, University of Hawaii" />
       </manifest>

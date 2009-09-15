@@ -27,7 +27,7 @@
     <!-- Transform the data into a format suitable for input to the hackystat xml data sensor. -->
     <xslt in="${sclc.dir}/size.xml" out="${sclc.dir}/hackystat-size.xml" style="${sclc.xsl.file}" />
     <!-- Invoke XmlData by executing the jar file and passing in command line args. -->
-    <java jar="${hackystat-sensors.dir}/xmldata-cli.jar" fork="true">
+    <java jar="${ant.lib.dir}/xmldata-cli.jar" fork="true">
       <arg line="-setRuntime -uniqueTimestamps -file ${sclc.dir}/hackystat-size.xml" />
     </java>
   </target>

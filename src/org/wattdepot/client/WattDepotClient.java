@@ -185,7 +185,8 @@ public class WattDepotClient {
   }
 
   /**
-   * Returns a SensorDataIndex containing all the SensorData available for this source.
+   * Requests a SensorDataIndex containing all the SensorData available for this source from the
+   * server.
    * 
    * @param source The name of the Source.
    * @return The SensorDataIndex.
@@ -230,6 +231,33 @@ public class WattDepotClient {
       throw new WattDepotClientException(status);
     }
   }
+
+//  /**
+//   * Stores a SensorData object in the server.
+//   * 
+//   * @param data The SensorData object to be stored.
+//   * @return True if the SensorData could be stored, false otherwise.
+//   * @throws JAXBException If there are problems marshalling the object.
+//   */
+//  public boolean storeSensorData(SensorData data) throws JAXBException {
+//    Marshaller marshaller = sensorDataJAXB.createMarshaller();
+//    StringWriter writer = new StringWriter();
+//    if (data == null) {
+//      return false;
+//    }
+//    else {
+//      marshaller.marshal(data, writer);
+//    }
+//    Representation rep =
+//        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
+//            CharacterSet.UTF_8);
+//    Response response =
+//        makeRequest(Method.PUT, Server.SOURCES_URI + "/" + data.getSource() + "/"
+//            + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString(), XML_MEDIA, rep);
+//    Status status = response.getStatus();
+//    // TODO: Need to check status codes, and throw appropriate exceptions as needed
+//    return false;
+//  }
 
   /**
    * Returns the UserIndex containing all Users on the server.

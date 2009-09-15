@@ -8,7 +8,6 @@ import java.util.logging.Handler;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-import org.hackystat.utilities.home.HackystatUserHome;
 
 /**
  * Provides a convenience method for Restlet logging that adjusts the output Handlers. Portions of
@@ -49,7 +48,7 @@ public final class RestletLoggerUtil {
         }
         // System.out.println("Removed handlers.");
         // Define a handler that writes to the ~/.wattdepot/<service>/logs directory
-        File logDir = new File(HackystatUserHome.getHome(), ".wattdepot/" + serviceDir + "/logs/");
+        File logDir = new File(WattDepotUserHome.getHome(), ".wattdepot/" + serviceDir + "/logs/");
         boolean dirsOk = logDir.mkdirs();
         if (!dirsOk && !logDir.exists()) {
           throw new RuntimeException("mkdirs() failed");
