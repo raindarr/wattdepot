@@ -176,4 +176,73 @@ public class SensorData
         return (this.properties!= null);
     }
 
+    // Broke down and added these manually to the generated code. It would be better if they were
+    // automatically generated via XJC plugins, but that required a bunch of dependencies that I
+    // was unwilling to deal with right now. If the schema files change, this code will be blown
+    // away, so there are unit tests that confirm that equals and hashCode work to guard against
+    // that.
+    
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((properties == null) ? 0 : properties.hashCode());
+      result = prime * result + ((source == null) ? 0 : source.hashCode());
+      result = prime * result + ((timestamp == null) ? 0 : timestamp.hashCode());
+      result = prime * result + ((tool == null) ? 0 : tool.hashCode());
+      return result;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      SensorData other = (SensorData) obj;
+      if (properties == null) {
+        if (other.properties != null) {
+          return false;
+        }
+      }
+      else if (!properties.equals(other.properties)) {
+        return false;
+      }
+      if (source == null) {
+        if (other.source != null) {
+          return false;
+        }
+      }
+      else if (!source.equals(other.source)) {
+        return false;
+      }
+      if (timestamp == null) {
+        if (other.timestamp != null) {
+          return false;
+        }
+      }
+      else if (!timestamp.equals(other.timestamp)) {
+        return false;
+      }
+      if (tool == null) {
+        if (other.tool != null) {
+          return false;
+        }
+      }
+      else if (!tool.equals(other.tool)) {
+        return false;
+      }
+      return true;
+    }
 }

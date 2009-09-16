@@ -106,6 +106,21 @@ public class ServerTestHelper {
       new org.wattdepot.resource.sensordata.jaxb.Properties();
     props.getProperty().add(makeSensorDataProperty("powerConsumed", "9500"));
     return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00"), "JUnit",
+        sourceToUri(DbManager.defaultPublicSource, server), props);
+  }
+
+  /**
+   * Creates a SensorData for use in testing, for the default private Source.
+   * 
+   * @return The freshly created SensorData object.
+   * @throws Exception If there are problems converting timestamp string to XMLGregorianCalendar
+   * (should never happen)
+   */
+  protected SensorData makeTestSensorDataPrivateSource() throws Exception {
+    org.wattdepot.resource.sensordata.jaxb.Properties props =
+      new org.wattdepot.resource.sensordata.jaxb.Properties();
+    props.getProperty().add(makeSensorDataProperty("powerProduced", "3000"));
+    return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:40:00.000-10:00"), "JUnit",
         sourceToUri(DbManager.defaultPrivateSource, server), props);
   }
 }

@@ -7,6 +7,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.datatype.XMLGregorianCalendar;
 import org.restlet.Client;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.ChallengeScheme;
@@ -201,11 +202,11 @@ public class WattDepotClient {
    * index.
    * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
-   * @throws WattDepotClientException If error is encountered retrieving the resource, or some
-   * unexpected problem is encountered.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
    */
   public SensorDataIndex getSensorDataIndex(String source) throws NotAuthorizedException,
-      ResourceNotFoundException, BadXmlException, WattDepotClientException {
+      ResourceNotFoundException, BadXmlException, MiscClientException {
     Response response =
         makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI,
             XML_MEDIA, null);
@@ -227,7 +228,7 @@ public class WattDepotClient {
       }
       catch (IOException e) {
         // Error getting the text from the entity body, bad news
-        throw new WattDepotClientException(status, e);
+        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -236,7 +237,61 @@ public class WattDepotClient {
     }
     else {
       // Some totally unexpected non-success status code, just throw generic client exception
-      throw new WattDepotClientException(status);
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Requests the SensorData from a given Source corresponding to the given timestamp.
+   * 
+   * @param source The name of the Source.
+   * @param timestamp The timestamp of the desired SensorData.
+   * @return The SensorData.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SensorData
+   * index.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public SensorData getSensorData(String source, XMLGregorianCalendar timestamp)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
+    Response response =
+        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
+            + "/" + timestamp.toString(), XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad timestamp provided in URI
+      throw new BadXmlException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified, or timestamp could not be found
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
+        return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
     }
   }
 
@@ -253,11 +308,10 @@ public class WattDepotClient {
    * specified was bad, or there was no XML, or the fields in the XML don't match the URI.
    * @throws OverwriteAttemptedException If there is already SensorData on the server with the given
    * timestamp.
-   * @throws WattDepotClientException If the server indicates an unexpected problem has occurred.
+   * @throws MiscClientException If the server indicates an unexpected problem has occurred.
    */
   public boolean storeSensorData(SensorData data) throws JAXBException, NotAuthorizedException,
-      ResourceNotFoundException, BadXmlException, OverwriteAttemptedException,
-      WattDepotClientException {
+      ResourceNotFoundException, BadXmlException, OverwriteAttemptedException, MiscClientException {
     Marshaller marshaller = sensorDataJAXB.createMarshaller();
     StringWriter writer = new StringWriter();
     if (data == null) {
@@ -294,7 +348,48 @@ public class WattDepotClient {
     }
     else {
       // Some unexpected type of error received, so punt
-      throw new WattDepotClientException(status);
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Deletes a SensorData resource from the server.
+   * 
+   * @param source The name of the source containing the resource to be deleted.
+   * @param timestamp The timestamp of the resource to be deleted.
+   * @return True if the SensorData could be deleted, false otherwise.
+   * @throws NotAuthorizedException If the client is not authorized to store the SensorData.
+   * @throws BadXmlException If the server reports that the timestamp specified was bad
+   * @throws ResourceNotFoundException If the source name doesn't exist on the server, or there is
+   * no data with the given timestamp
+   * @throws MiscClientException If the server indicates an unexpected problem has occurred.
+   */
+  public boolean deleteSensorData(String source, XMLGregorianCalendar timestamp)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
+    Response response =
+        makeRequest(Method.DELETE, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
+            + "/" + timestamp.toString(), XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad timestamp provided in URI
+      throw new BadXmlException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified, or timestamp could not be found
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      return true;
+    }
+    else {
+      // Some unexpected type of error received, so punt
+      throw new MiscClientException(status);
     }
   }
 
@@ -304,11 +399,11 @@ public class WattDepotClient {
    * @return The UserIndex for the server.
    * @throws NotAuthorizedException If the client is not authorized to retrieve the user index.
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
-   * @throws WattDepotClientException If error is encountered retrieving the resource, or some
-   * unexpected problem is encountered.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
    */
   public UserIndex getUserIndex() throws NotAuthorizedException, BadXmlException,
-      WattDepotClientException {
+      MiscClientException {
     Response response = makeRequest(Method.GET, Server.USERS_URI, XML_MEDIA, null);
     Status status = response.getStatus();
 
@@ -325,7 +420,7 @@ public class WattDepotClient {
       }
       catch (IOException e) {
         // Error getting the text from the entity body, bad news
-        throw new WattDepotClientException(status, e);
+        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -334,7 +429,7 @@ public class WattDepotClient {
     }
     else {
       // Some totally unexpected non-success status code, just throw generic client exception
-      throw new WattDepotClientException(status);
+      throw new MiscClientException(status);
     }
   }
 
