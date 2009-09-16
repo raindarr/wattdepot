@@ -2,12 +2,16 @@ package org.wattdepot.client;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import org.restlet.Client;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.ChallengeScheme;
+import org.restlet.data.CharacterSet;
+import org.restlet.data.Language;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.data.Preference;
@@ -17,9 +21,12 @@ import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
+import org.restlet.resource.StringRepresentation;
+import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
+import org.wattdepot.util.UriUtils;
 
 /**
  * Provides a high-level interface for Clients wishing to communicate with a WattDepot server.
@@ -190,7 +197,8 @@ public class WattDepotClient {
    * 
    * @param source The name of the Source.
    * @return The SensorDataIndex.
-   * @throws NotAuthorizedException If the client is not authorized to retrieve the user index.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SensorData
+   * index.
    * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws WattDepotClientException If error is encountered retrieving the resource, or some
@@ -204,7 +212,7 @@ public class WattDepotClient {
     Status status = response.getStatus();
 
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // an unknown source name was specified
+      // credentials were unacceptable to server
       throw new NotAuthorizedException(status);
     }
     if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
@@ -232,32 +240,63 @@ public class WattDepotClient {
     }
   }
 
-//  /**
-//   * Stores a SensorData object in the server.
-//   * 
-//   * @param data The SensorData object to be stored.
-//   * @return True if the SensorData could be stored, false otherwise.
-//   * @throws JAXBException If there are problems marshalling the object.
-//   */
-//  public boolean storeSensorData(SensorData data) throws JAXBException {
-//    Marshaller marshaller = sensorDataJAXB.createMarshaller();
-//    StringWriter writer = new StringWriter();
-//    if (data == null) {
-//      return false;
-//    }
-//    else {
-//      marshaller.marshal(data, writer);
-//    }
-//    Representation rep =
-//        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
-//            CharacterSet.UTF_8);
-//    Response response =
-//        makeRequest(Method.PUT, Server.SOURCES_URI + "/" + data.getSource() + "/"
-//            + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString(), XML_MEDIA, rep);
-//    Status status = response.getStatus();
-//    // TODO: Need to check status codes, and throw appropriate exceptions as needed
-//    return false;
-//  }
+  /**
+   * Stores a SensorData object in the server.
+   * 
+   * @param data The SensorData object to be stored.
+   * @return True if the SensorData could be stored, false otherwise.
+   * @throws JAXBException If there are problems marshalling the object for upload.
+   * @throws NotAuthorizedException If the client is not authorized to store the SensorData.
+   * @throws ResourceNotFoundException If the source name referenced in the SensorData doesn't exist
+   * on the server.
+   * @throws BadXmlException If the server reports that the XML sent was bad, or the timestamp
+   * specified was bad, or there was no XML, or the fields in the XML don't match the URI.
+   * @throws OverwriteAttemptedException If there is already SensorData on the server with the given
+   * timestamp.
+   * @throws WattDepotClientException If the server indicates an unexpected problem has occurred.
+   */
+  public boolean storeSensorData(SensorData data) throws JAXBException, NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, OverwriteAttemptedException,
+      WattDepotClientException {
+    Marshaller marshaller = sensorDataJAXB.createMarshaller();
+    StringWriter writer = new StringWriter();
+    if (data == null) {
+      return false;
+    }
+    else {
+      marshaller.marshal(data, writer);
+    }
+    Representation rep =
+        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
+            CharacterSet.UTF_8);
+    Response response =
+        makeRequest(Method.PUT, Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource())
+            + "/" + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString(), XML_MEDIA, rep);
+    Status status = response.getStatus();
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // either bad timestamp provided in URI or bad XML in entity body
+      throw new BadXmlException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
+      // client attempted to overwrite existing data
+      throw new OverwriteAttemptedException(status);
+    }
+    if (status.isSuccess()) {
+      return true;
+    }
+    else {
+      // Some unexpected type of error received, so punt
+      throw new WattDepotClientException(status);
+    }
+  }
 
   /**
    * Returns the UserIndex containing all Users on the server.

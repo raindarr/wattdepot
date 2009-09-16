@@ -64,8 +64,7 @@ public class SensorDataResource extends WattDepotResource {
       return null;
     }
     // If credentials are provided, they need to be valid
-    if (!isAnonymous() && !credentialsAreValid()) {
-      setStatusBadCredentials();
+    if (!isAnonymous() && !validateCredentials()) {
       return null;
     }
     Source source = dbManager.getSource(uriSource);
@@ -178,7 +177,7 @@ public class SensorDataResource extends WattDepotResource {
       return;
     }
     // If credentials are provided, they need to be valid
-    if (!credentialsAreValid()) {
+    if (!validateCredentials()) {
       return;
     }
     if (validateSourceOwnerOrAdmin()) {
@@ -233,7 +232,7 @@ public class SensorDataResource extends WattDepotResource {
       return;
     }
     // If credentials are provided, they need to be valid
-    if (!credentialsAreValid()) {
+    if (!validateCredentials()) {
       return;
     }
     if (validateSourceOwnerOrAdmin()) {

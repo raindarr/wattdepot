@@ -37,5 +37,10 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/hackystat/utilities/hackystat-utilities-javadoc.zip!/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/hackystat/utilities/time.lib.jar" sourcepath="lib/hackystat/utilities/hackystat-utilities-source.zip">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/hackystat/utilities/hackystat-utilities-javadoc.zip!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

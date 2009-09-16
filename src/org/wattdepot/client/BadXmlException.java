@@ -4,7 +4,8 @@ import org.restlet.data.Status;
 
 /**
  * An exception that is thrown when the WattDepot client receives XML from the server that it is
- * unable to unmarshall back into a Java object.
+ * unable to unmarshall back into a Java object, or when the server reports that the XML it received
+ * was bad.
  * 
  * @author Robert Brewer
  */
@@ -16,7 +17,7 @@ public class BadXmlException extends WattDepotClientException {
   private static final long serialVersionUID = 1302799956613793285L;
 
   /**
-   * Thrown when the server provides bad XML.
+   * Thrown when the server provides bad XML or server reports bad XML sent.
    * 
    * @param status The Status instance indicating the problem.
    */
@@ -25,7 +26,7 @@ public class BadXmlException extends WattDepotClientException {
   }
 
   /**
-   * Thrown when the server provides bad XML.
+   * Thrown when the server provides bad XML or server reports bad XML sent.
    * 
    * @param status The Status instance indicating the problem.
    * @param error The previous error.
@@ -34,11 +35,11 @@ public class BadXmlException extends WattDepotClientException {
     super(status, error);
   }
 
-//  public BadXmlException(String description, Throwable error) {
-//    super(description, error);
-//  }
-//
-//  public BadXmlException(String description) {
-//    super(description);
-//  }
+  // public BadXmlException(String description, Throwable error) {
+  // super(description, error);
+  // }
+  //
+  // public BadXmlException(String description) {
+  // super(description);
+  // }
 }

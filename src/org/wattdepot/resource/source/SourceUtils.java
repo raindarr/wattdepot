@@ -122,4 +122,15 @@ public class SourceUtils {
   public static String sourceToUri(Source source, Server server) {
     return server.getHostName() + Server.SOURCES_URI + "/" + source.getName();
   }
+
+  /**
+   * Given a Source object and the Server it belongs to, returns the URI to that Source resource.
+   * 
+   * @param sourceName The Source object under consideration.
+   * @param server The Server user belongs to.
+   * @return The URI to the Source resource corresponding to the given Source.
+   */
+  public static String sourceToUri(String sourceName, Server server) {
+    return server.getHostName() + Server.SOURCES_URI + "/" + sourceName;
+  }
 }

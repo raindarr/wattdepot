@@ -264,18 +264,25 @@ public class WattDepotResource extends Resource {
 
   /**
    * Determines whether the credentials provided in the HTTP request match the values for the User
-   * in the database. Otherwise sets the Response status and returns false.
+   * in the database. Otherwise sets the Response status and returns false. Note that this method
+   * will fail if there are no credentials available (client attempting anonymous access).
    * 
    * @return True if the credentials match, false if they don't or the user doesn't exist
    */
-  public boolean credentialsAreValid() {
+  public boolean validateCredentials() {
     User user = dbManager.getUser(authUsername);
     if (user == null) {
       setStatusBadCredentials();
       return false;
     }
     else {
-      return user.getEmail().equals(authUsername) && user.getPassword().equals(authPassword);
+      if (user.getEmail().equals(authUsername) && user.getPassword().equals(authPassword)) {
+        return true;
+      }
+      else {
+        setStatusBadCredentials();
+        return false;
+      }
     }
   }
 
