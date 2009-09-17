@@ -127,8 +127,8 @@ public class WattDepotClient {
    * @param entity The representation to be sent with the request, or null if not needed.
    * @return The Response instance returned from the server.
    */
-  private Response makeRequest(Method method, String requestString,
-      Preference<MediaType> mediaPref, Representation entity) {
+  public Response makeRequest(Method method, String requestString, Preference<MediaType> mediaPref,
+      Representation entity) {
     Reference reference = new Reference(this.wattDepotUri + requestString);
     Request request =
         (entity == null) ? new Request(method, reference) : new Request(method, reference, entity);

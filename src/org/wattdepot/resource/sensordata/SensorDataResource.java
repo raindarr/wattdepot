@@ -79,7 +79,6 @@ public class SensorDataResource extends WattDepotResource {
       if ((timestamp == null) && (startTime == null) && (endTime == null)) {
         try {
           xmlString = getSensorDataIndex();
-//          System.out.println("sending SensorDataIndex: " + xmlString); // DEBUG
           return getStringRepresentation(xmlString);
         }
         catch (JAXBException e) {
@@ -294,5 +293,4 @@ public class SensorDataResource extends WattDepotResource {
       return;
     }
   }
-
 }
