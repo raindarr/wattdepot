@@ -42,5 +42,15 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/hackystat/utilities/hackystat-utilities-javadoc.zip!/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/commons-cli/commons-cli.jar" sourcepath="lib/commons-cli/source.zip">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/commons-cli/javadoc.zip!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/opencsv/opencsv.jar" sourcepath="lib/opencsv/source.zip">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/opencsv/javadoc.zip!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

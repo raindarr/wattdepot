@@ -69,7 +69,7 @@ public class SensorDataUtils {
     ref.setTimestamp(data.getTimestamp());
     ref.setTool(data.getTool());
     ref.setSource(data.getSource());
-    ref.setHref(server.getHostName() + Server.SOURCES_URI + "/" + Server.SENSORDATA_URI + "/"
+    ref.setHref(data.getSource() + "/" + Server.SENSORDATA_URI + "/"
         + data.getTimestamp().toString());
     return ref;
   }
@@ -89,8 +89,8 @@ public class SensorDataUtils {
   public static boolean sensorDataRefEqualsSensorData(SensorDataRef ref, SensorData data) {
     XMLGregorianCalendar hrefTimestamp;
     try {
-      hrefTimestamp = Tstamp.makeTimestamp(ref.getHref().substring(
-          ref.getHref().lastIndexOf('/') + 1));
+      hrefTimestamp =
+          Tstamp.makeTimestamp(ref.getHref().substring(ref.getHref().lastIndexOf('/') + 1));
     }
     catch (Exception e) {
       // If the SourceRef has a bad timestamp, must be hosed so return false
@@ -98,8 +98,8 @@ public class SensorDataUtils {
     }
 
     return (ref.getTimestamp().equals(data.getTimestamp())
-        && (ref.getTool().equals(data.getTool())) && (ref.getSource().equals(data.getSource()))
-        && (data.getTimestamp().equals(hrefTimestamp)));
+        && (ref.getTool().equals(data.getTool())) && (ref.getSource().equals(data.getSource())) &&
+        (data.getTimestamp().equals(hrefTimestamp)));
   }
 
   /**
