@@ -1,16 +1,21 @@
 package org.wattdepot.server;
 
 import static org.wattdepot.server.ServerProperties.CONTEXT_ROOT_KEY;
+import static org.wattdepot.server.ServerProperties.GVIZ_CONTEXT_ROOT_KEY;
+import static org.wattdepot.server.ServerProperties.GVIZ_PORT_KEY;
 import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
 import static org.wattdepot.server.ServerProperties.PORT_KEY;
 import java.util.Map;
 import java.util.logging.Logger;
+import org.mortbay.jetty.servlet.Context;
+import org.mortbay.jetty.servlet.ServletHolder;
 import org.restlet.Application;
 import org.restlet.Component;
 import org.restlet.Guard;
 import org.restlet.Restlet;
 import org.restlet.Router;
 import org.restlet.data.Protocol;
+import org.wattdepot.resource.gviz.GVisualizationServlet;
 import org.wattdepot.resource.health.HealthResource;
 import org.wattdepot.resource.sensordata.SensorDataResource;
 import org.wattdepot.resource.user.UserResource;
@@ -34,6 +39,9 @@ public class Server extends Application {
   /** Holds the hostname associated with this Server. */
   private String hostName;
 
+  /** Holds the hostname associated with the Google Visualization API service. */
+  private String gvizHostName;
+
   /** Holds the WattDepotLogger for the Server. */
   private Logger logger = null;
 
@@ -51,6 +59,9 @@ public class Server extends Application {
 
   /** The URI used for the users resource. */
   public static final String USERS_URI = "users";
+
+  /** The URI used for the users resource. */
+  public static final String GVIZ_URI = "gviz";
 
   /**
    * Creates a new instance of a WattDepot HTTP server, listening on the port defined either by the
@@ -115,10 +126,25 @@ public class Server extends Application {
     }
     attributes.put("DbManager", dbManager);
 
+    // Set up the Google Visualization API servlet
+    server.gvizHostName = server.serverProperties.getGvizFullHost();
+    int gvizPort = Integer.valueOf(server.serverProperties.get(GVIZ_PORT_KEY));
+    org.mortbay.jetty.Server jettyServer = new org.mortbay.jetty.Server(gvizPort);
+    server.logger.warning("Google visualization URL: " + server.gvizHostName);
+    Context jettyContext =
+        new Context(jettyServer, "/" + server.serverProperties.get(GVIZ_CONTEXT_ROOT_KEY));
+
+    ServletHolder servletHolder = new ServletHolder(new GVisualizationServlet(server));
+    servletHolder.setInitParameter("applicationClassName",
+        "org.wattdepot.resource.gviz.GVisualizationServlet");
+    servletHolder.setInitOrder(1);
+    jettyContext.addServlet(servletHolder, "/source/*");
+
     // Now let's open for business.
     server.logger.info("Maximum Java heap size (MB): "
         + (Runtime.getRuntime().maxMemory() / 1000000.0));
     server.component.start();
+    jettyServer.start();
     server.logger.warning("WattDepot server (Version " + getVersion() + ") now running.");
     return server;
   }
@@ -143,7 +169,6 @@ public class Server extends Application {
   public synchronized Restlet createRoot() {
     // This Router is used to control access to the User resource
     Router userRouter = new Router(getContext());
-
     userRouter.attach("/" + USERS_URI, UsersResource.class);
     userRouter.attach("/" + USERS_URI + "/{user}", UserResource.class);
     Guard userGuard = new AdminAuthenticator(getContext());
@@ -159,6 +184,12 @@ public class Server extends Application {
         + "/?startTime={startTime}&endTime={endTime}", SensorDataResource.class);
     router.attach("/" + SOURCES_URI + "/{source}" + "/" + SENSORDATA_URI + "/{timestamp}",
         SensorDataResource.class);
+    // // Google Visualization API resource
+    // Route route = router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI,
+    // GVisualizationResource.class);
+    // route.getTemplate().setMatchingMode(Template.MODE_EQUALS);
+    // router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI + "?{parameters}",
+    // GVisualizationResource.class);
     router.attachDefault(userGuard);
 
     return router;

@@ -164,6 +164,9 @@ public class WattDepotResource extends Resource {
    */
   public String getSensorDataIndex() throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    // use line breaks and indentation in XML output so it is more readable. Might want to turn
+    // this off after development gets more stable, to save bandwidth.
+    marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
     StringWriter writer = new StringWriter();
     SensorDataIndex index = this.dbManager.getSensorDataIndex(this.uriSource);
     if (index == null) {

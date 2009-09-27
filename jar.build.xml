@@ -11,7 +11,9 @@
 
   <target name="jar" depends="jar-standalone" />
 
-  <target name="jar-standalone" depends="compile" description="Creates standalone wattdepot-server.jar">
+  <target name="jar-standalone"
+          depends="compile"
+          description="Creates standalone wattdepot-server.jar">
     <!-- Define the directories and distribution name -->
     <delete dir="${tmp.dir}" quiet="yes" />
     <mkdir dir="${tmp.dir}" />
@@ -28,13 +30,28 @@
     <unjar src="${lib.dir}/restlet/com.noelios.restlet.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/com.noelios.restlet.ext.net.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/com.noelios.restlet.ext.simple_3.1.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/commons-cli/commons-cli.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/opencsv/opencsv.jar" dest="${tmp.dir}" />
+
+    <jar destfile="${build.jar.dir}/wattdepot-tabularclient.jar" basedir="${tmp.dir}">
+      <manifest>
+        <attribute name="Main-Class" value="org.wattdepot.datainput.TabularFileDataInputClient" />
+        <attribute name="Implementation-Title" value="WattDepot TabularFileDataInputClient" />
+        <attribute name="Implementation-Version" value="${version}" />
+        <attribute name="Implementation-Vendor"
+                   value="Collaborative Software Development Laboratory, University of Hawaii" />
+      </manifest>
+    </jar>
+
+    <!-- several more libraries needed now, need to unjar them here. Haven't updated this yet -->
 
     <jar destfile="${build.jar.dir}/wattdepot-server.jar" basedir="${tmp.dir}">
       <manifest>
         <attribute name="Main-Class" value="org.wattdepot.server.Server" />
         <attribute name="Implementation-Title" value="WattDepot Server" />
         <attribute name="Implementation-Version" value="${version}" />
-        <attribute name="Implementation-Vendor" value="Collaborative Software Development Laboratory, University of Hawaii" />
+        <attribute name="Implementation-Vendor"
+                   value="Collaborative Software Development Laboratory, University of Hawaii" />
       </manifest>
     </jar>
     <delete dir="${tmp.dir}" />
@@ -44,12 +61,17 @@
      Ivy publication targets.
    -->
   <import file="javadoc.build.xml" />
-  <target name="publish" depends="jar, javadoc.zip" description="Publish this project in the local ivy repository">
+  <target name="publish"
+          depends="jar, javadoc.zip"
+          description="Publish this project in the local ivy repository">
     <ivy:resolve />
     <tstamp>
       <format property="publication-revision" pattern="yyyy.MM.dd.HH.mm.ss" />
     </tstamp>
-    <ivy:publish artifactspattern="${build.jar.dir}/[artifact].[ext]" resolver="local-repository" pubrevision="${publication-revision}" update="true" />
+    <ivy:publish artifactspattern="${build.jar.dir}/[artifact].[ext]"
+                 resolver="local-repository"
+                 pubrevision="${publication-revision}"
+                 update="true" />
   </target>
 
   <target name="publish-all" description="Publish all dependent projects, then this one.">

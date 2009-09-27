@@ -174,8 +174,35 @@ public class TabularFileDataInputClient {
 
     // Create the properties based on the PropertyDictionary
     // http://code.google.com/p/wattdepot/wiki/PropertyDictionary
-    Property prop1 = SensorDataUtils.makeSensorDataProperty("powerConsumed", col[5]);
-    Property prop2 = SensorDataUtils.makeSensorDataProperty("energyConsumedToDate", col[4]);
+    String powerConsumedString = col[5];
+    double powerConsumed;
+    try {
+      // Value in file is a String representing a floating point value in kW, while powerConsumed
+      // SensorData property is defined in dictionary as being in W, so parse and multiply by 1000.
+      powerConsumed = Double.parseDouble(powerConsumedString) * 1000;
+    }
+    catch (NumberFormatException e) {
+      System.err.println("Unable to parse floating point number: " + powerConsumedString);
+      return null;
+    }
+    Property prop1 =
+        SensorDataUtils.makeSensorDataProperty("powerConsumed", Double.toString(powerConsumed));
+
+    String energyConsumedToDateString = col[4];
+    double energyConsumedToDate;
+    try {
+      // Value in file is a String representing a floating point value in kWh, while
+      // energyConsumedToDate SensorData property is defined in dictionary as being in Wh, so parse
+      // and multiply by 1000.
+      energyConsumedToDate = Double.parseDouble(energyConsumedToDateString) * 1000;
+    }
+    catch (NumberFormatException e) {
+      System.err.println("Unable to parse floating point number: " + energyConsumedToDateString);
+      return null;
+    }
+    Property prop2 =
+        SensorDataUtils.makeSensorDataProperty("energyConsumedToDate", Double
+            .toString(energyConsumedToDate));
     Properties props = new Properties();
     props.getProperty().add(prop1);
     props.getProperty().add(prop2);

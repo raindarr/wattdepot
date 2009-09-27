@@ -21,6 +21,8 @@ public class ServerProperties {
   public static final String ADMIN_PASSWORD_KEY = "wattdepot-server.admin.password";
   /** The context root key. */
   public static final String CONTEXT_ROOT_KEY = "wattdepot-server.context.root";
+  /** The context root key. */
+  public static final String GVIZ_CONTEXT_ROOT_KEY = "wattdepot-server.gviz.context.root";
   /** The database directory key. */
   public static final String DB_DIR_KEY = "wattdepot-server.db.dir";
   /** The database implementation class. */
@@ -35,12 +37,16 @@ public class ServerProperties {
   public static final String SMTP_HOST_KEY = "wattdepot-server.smtp.host";
   /** The wattdepot-server port key. */
   public static final String PORT_KEY = "wattdepot-server.port";
+  /** The wattdepot-server Google Visualization API port key. */
+  public static final String GVIZ_PORT_KEY = "wattdepot-server.gviz.port";
   /** The test installation key. */
   public static final String TEST_INSTALL_KEY = "wattdepot-server.test.install";
   /** The test domain key. */
   public static final String TEST_DOMAIN_KEY = "wattdepot-server.test.domain";
   /** The wattdepot-server port key during testing. */
   public static final String TEST_PORT_KEY = "wattdepot-server.test.port";
+  /** The wattdepot-server port key during testing. */
+  public static final String TEST_GVIZ_PORT_KEY = "wattdepot-server.test.gviz.port";
   /** The wattdepot-server db dir during testing. */
   public static final String TEST_DB_DIR_KEY = "wattdepot-server.test.db.dir";
   /** The test admin email key. */
@@ -86,6 +92,7 @@ public class ServerProperties {
     properties.setProperty(ADMIN_EMAIL_KEY, defaultAdmin);
     properties.setProperty(ADMIN_PASSWORD_KEY, defaultAdmin);
     properties.setProperty(CONTEXT_ROOT_KEY, "wattdepot");
+    properties.setProperty(GVIZ_CONTEXT_ROOT_KEY, "gviz");
     properties.setProperty(DB_DIR_KEY, serverHome + "/db");
     // TODO Replace with actual class name of storage implementation that actually persists things
     properties.setProperty(DB_IMPL_KEY,
@@ -95,12 +102,14 @@ public class ServerProperties {
     properties.setProperty(RESTLET_LOGGING_KEY, FALSE);
     properties.setProperty(SMTP_HOST_KEY, "mail.hawaii.edu");
     properties.setProperty(PORT_KEY, "8182");
+    properties.setProperty(GVIZ_PORT_KEY, "8184");
     properties.setProperty(TEST_DOMAIN_KEY, "example.com");
     properties.setProperty(TEST_INSTALL_KEY, FALSE);
     properties.setProperty(TEST_ADMIN_EMAIL_KEY, defaultAdmin);
     properties.setProperty(TEST_ADMIN_PASSWORD_KEY, defaultAdmin);
     properties.setProperty(TEST_DB_DIR_KEY, serverHome + "/testdb");
     properties.setProperty(TEST_PORT_KEY, "8183");
+    properties.setProperty(TEST_GVIZ_PORT_KEY, "8185");
     properties.setProperty(TEST_HOSTNAME_KEY, "localhost");
 
     FileInputStream stream = null;
@@ -163,6 +172,7 @@ public class ServerProperties {
     properties.setProperty(HOSTNAME_KEY, properties.getProperty(TEST_HOSTNAME_KEY));
     properties.setProperty(DB_DIR_KEY, properties.getProperty(TEST_DB_DIR_KEY));
     properties.setProperty(PORT_KEY, properties.getProperty(TEST_PORT_KEY));
+    properties.setProperty(GVIZ_PORT_KEY, properties.getProperty(TEST_GVIZ_PORT_KEY));
     properties.setProperty(TEST_INSTALL_KEY, TRUE);
     // Change the db implementation class if DB_IMPL_KEY is in system properties.
     String dbImpl = System.getProperty(DB_IMPL_KEY);
@@ -225,13 +235,25 @@ public class ServerProperties {
   }
 
   /**
-   * Returns the fully qualified host name, such as "http://localhost:9876/sensorbase/". Note, the
+   * Returns the fully qualified host name, such as "http://localhost:9876/wattdepot/". Note, the
    * String will end with "/", so there is no need to append another if you are constructing a URI.
    * 
    * @return The fully qualified host name.
    */
   public String getFullHost() {
     return "http://" + get(HOSTNAME_KEY) + ":" + get(PORT_KEY) + "/" + get(CONTEXT_ROOT_KEY) + "/";
+  }
+
+  /**
+   * Returns the fully qualified host name of the Google Visualization API service, such as
+   * "http://localhost:9876/gviz/". Note, the String will end with "/", so there is no need to
+   * append another if you are constructing a URI.
+   * 
+   * @return The fully qualified host name.
+   */
+  public String getGvizFullHost() {
+    return "http://" + get(HOSTNAME_KEY) + ":" + get(GVIZ_PORT_KEY) + "/"
+        + get(GVIZ_CONTEXT_ROOT_KEY) + "/";
   }
 
 }

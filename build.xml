@@ -9,6 +9,29 @@
 
   <import file="common.build.xml" />
 
+  <!-- *** Kludge until these packages are available via Ivy RoundUp. *** -->
+  <!-- Always make environment variables available with the "env." prefix. -->
+  <property environment="env" />
+  <available file="${env.ICU4J_HOME}" type="dir" property="icu4j.available" />
+  <fail message="This package requires icu4j to be installed and ICU4J_HOME defined"
+        unless="icu4j.available" />
+  <path id="icu4j.path" location="${env.ICU4J_HOME}/icu4j-4_0_1_1.jar" />
+  <available file="${env.GCOLLECTIONS_HOME}" type="dir" property="gcollections.available" />
+  <fail message="This package requires Google Collections to be installed and GCOLLECTIONS_HOME defined"
+        unless="gcollections.available" />
+  <path id="gcollections.path" location="${env.GCOLLECTIONS_HOME}/google-collect-1.0-rc2.jar" />
+  <available file="${env.GDATASOURCE_HOME}" type="dir" property="gdatasource.available" />
+  <fail message="This package requires Google Visualization data source to be installed and GDATASOURCE_HOME defined"
+        unless="gdatasource.available" />
+  <path id="gdatasource.path"
+        location="${env.GDATASOURCE_HOME}/visualization-datasource-1.0.2.jar" />
+  <!--
+  <available file="${env.CATALINA_HOME}" type="dir" property="catalina.available" />
+  <fail message="This package requires Apache Tomcat to be installed and CATALINA_HOME defined"
+        unless="catalina.available" />
+  <path id="catalina.path" location="${env.CATALINA_HOME}/common/lib/servlet-api.jar" />
+    -->
+
   <target name="install-libraries" description="Install external libraries.">
     <ivy:retrieve organisation="org.junit"
                   module="junit"
@@ -27,6 +50,7 @@
     <path id="javamail.path" location="${lib.dir}/javamail/mail.jar" />
     -->
 
+    <!-- Used to handle RESTful communication on both server and client sides -->
     <ivy:retrieve organisation="org.restlet"
                   module="restlet"
                   revision="${restlet.version}"
@@ -43,6 +67,7 @@
       </fileset>
     </path>
 
+    <!-- Used to process command line arguments in data input clients -->
     <ivy:retrieve organisation="org.apache.commons"
                   module="commons-cli"
                   revision="1.2"
@@ -59,6 +84,41 @@
       </fileset>
     </path>
 
+    <!-- Needed by Google Visualization Data Source Library -->
+    <ivy:retrieve organisation="org.apache.commons"
+                  module="commons-lang"
+                  revision="2.4"
+                  pattern="${lib.dir}/commons-lang/[artifact].[ext]"
+                  sync="false"
+                  inline="true"
+                  conf="default"
+                  log="download-only"
+                  transitive="false"
+                  type="jar, javadoc, source" />
+    <path id="commons-lang.path">
+      <fileset dir="${lib.dir}/commons-lang">
+        <include name="*.jar" />
+      </fileset>
+    </path>
+
+    <!-- Needed by Google Visualization Data Source Library -->
+    <ivy:retrieve organisation="org.apache.commons"
+                  module="commons-logging"
+                  revision="1.1.1"
+                  pattern="${lib.dir}/commons-logging/[artifact].[ext]"
+                  sync="false"
+                  inline="true"
+                  conf="default"
+                  log="download-only"
+                  transitive="false"
+                  type="jar, javadoc, source" />
+    <path id="commons-logging.path">
+      <fileset dir="${lib.dir}/commons-logging">
+        <include name="*.jar" />
+      </fileset>
+    </path>
+
+    <!-- Needed by Google Visualization Data Source Library, and TabularFileDataInputClient -->
     <ivy:retrieve organisation="net.sourceforge.opencsv"
                   module="opencsv"
                   revision="1.8"
@@ -71,6 +131,23 @@
                   type="jar, javadoc, source" />
     <path id="opencsv.path">
       <fileset dir="${lib.dir}/opencsv">
+        <include name="*.jar" />
+      </fileset>
+    </path>
+
+    <!-- Needed by Google Visualization Data Source Library -->
+    <ivy:retrieve organisation="org.mortbay"
+                  module="jetty"
+                  revision="${jetty.version}"
+                  pattern="${lib.dir}/jetty/[artifact].[ext]"
+                  sync="true"
+                  inline="true"
+                  conf="default"
+                  log="download-only"
+                  transitive="false"
+                  type="jar, javadoc" />
+    <path id="jetty.path">
+      <fileset dir="${lib.dir}/jetty">
         <include name="*.jar" />
       </fileset>
     </path>
@@ -117,11 +194,18 @@
   <!-- The compile classpath is useful to many tools. -->
   <path id="compile.classpath">
     <path refid="junit.path" />
-    <!--    <path refid="javamail.path" /> -->
+    <!-- <path refid="javamail.path" /> -->
     <path refid="restlet.path" />
     <path refid="commons-cli.path" />
+    <path refid="commons-lang.path" />
+    <path refid="commons-logging.path" />
     <path refid="opencsv.path" />
-    <!--    <path refid="derby.path" /> -->
+    <path refid="icu4j.path" />
+    <path refid="gcollections.path" />
+    <path refid="gdatasource.path" />
+    <path refid="jetty.path" />
+    <!-- <path refid="catalina.path" /> -->
+    <!-- <path refid="derby.path" /> -->
     <path refid="utilities.path" />
   </path>
 
