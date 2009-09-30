@@ -53,7 +53,6 @@ public class GVisualizationServlet extends DataSourceServlet {
 
     // This is everything following the URI, which should start with "/gviz/source/"
     String rawPath = request.getPathInfo();
-    System.err.println("rawPath: " + rawPath); // DEBUG
     if ((rawPath == null) || ("".equals(rawPath)) || "/".equals(rawPath)) {
       throw new DataSourceException(ReasonType.INVALID_REQUEST, "No Source name provided.");
     }
@@ -75,7 +74,7 @@ public class GVisualizationServlet extends DataSourceServlet {
     // Create a data table,
     DataTable data = new DataTable();
     ArrayList<ColumnDescription> cd = new ArrayList<ColumnDescription>();
-    cd.add(new ColumnDescription("timestamp", ValueType.DATETIME, "Date & Time"));
+    cd.add(new ColumnDescription("timePoint", ValueType.DATETIME, "Date & Time"));
     cd.add(new ColumnDescription("powerConsumed", ValueType.NUMBER, "Power (W)"));
     cd.add(new ColumnDescription("energyConsumedToDate", ValueType.NUMBER, "Energy Consumed (Wh)"));
     data.addColumns(cd);

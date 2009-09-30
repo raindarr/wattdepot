@@ -8,6 +8,8 @@ import com.google.visualization.datasource.datatable.ColumnDescription;
 import com.google.visualization.datasource.datatable.DataTable;
 import com.google.visualization.datasource.datatable.value.ValueType;
 import com.google.visualization.datasource.query.Query;
+import com.ibm.icu.util.GregorianCalendar;
+import com.ibm.icu.util.TimeZone;
 
 public class QueryTestServlet extends DataSourceServlet {
 
@@ -18,24 +20,29 @@ public class QueryTestServlet extends DataSourceServlet {
     // Create a data table,
     DataTable data = new DataTable();
     ArrayList<ColumnDescription> cd = new ArrayList<ColumnDescription>();
-    cd.add(new ColumnDescription("name", ValueType.TEXT, "Animal name"));
-    cd.add(new ColumnDescription("link", ValueType.TEXT, "Link to wikipedia"));
-    cd.add(new ColumnDescription("population", ValueType.NUMBER, "Population size"));
-    cd.add(new ColumnDescription("vegeterian", ValueType.BOOLEAN, "Vegetarian?"));
+    cd.add(new ColumnDescription("datetime", ValueType.DATETIME, "Timestamp"));
+    cd.add(new ColumnDescription("pens", ValueType.NUMBER, "Number of Pens Sold"));
+    cd.add(new ColumnDescription("isFountain", ValueType.BOOLEAN, "Fountain pen?"));
 
     data.addColumns(cd);
 
     // Fill the data table.
     try {
-      data.addRowFromValues("Aye-aye", "http://en.wikipedia.org/wiki/Aye-aye", 100, true);
-      data.addRowFromValues("Sloth", "http://en.wikipedia.org/wiki/Sloth", 300, true);
-      data.addRowFromValues("Leopard", "http://en.wikipedia.org/wiki/Leopard", 50, false);
-      data.addRowFromValues("Tiger", "http://en.wikipedia.org/wiki/Tiger", 80, false);
+      data.addRowFromValues(makeCal(2009, 9, 29, 20, 0, 0), 5, true);
+      data.addRowFromValues(makeCal(2009, 9, 29, 20, 0, 30), 1, false);
+      data.addRowFromValues(makeCal(2009, 9, 29, 20, 1, 0), 13, true);
+      data.addRowFromValues(makeCal(2009, 9, 29, 20, 1, 49), 2, false);
     }
     catch (TypeMismatchException e) {
       System.out.println("Invalid type!");
     }
     return data;
+  }
+  
+  private GregorianCalendar makeCal(int year, int month, int date, int hour, int minute, int second) {
+    GregorianCalendar cal = new GregorianCalendar(year, month, date, hour, minute, second);
+    cal.setTimeZone(TimeZone.getTimeZone("GMT"));
+    return cal;
   }
   
   /**

@@ -22,9 +22,10 @@
     <copy todir="${tmp.dir}">
       <fileset dir="${basedir}/build/classes" />
     </copy>
-    <!-- Unjar the required libraries -->
+    <!-- Unjar the libraries required for client (subset of those needed for server) -->
     <unjar src="${lib.dir}/hackystat/utilities/stacktrace.lib.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/hackystat/utilities/tstamp.lib.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/hackystat/utilities/time.lib.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/org.simpleframework.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/org.restlet.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/com.noelios.restlet.jar" dest="${tmp.dir}" />
@@ -43,7 +44,15 @@
       </manifest>
     </jar>
 
-    <!-- several more libraries needed now, need to unjar them here. Haven't updated this yet -->
+    <!-- Unjar the additional libraries required for server -->
+    <unjar src="${lib.dir}/commons-lang/commons-lang.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/commons-logging/commons-logging.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/jetty/servlet-api-2.5.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/jetty/jetty.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/jetty/jetty-util.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/icu4j/icu4j.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/google-collections/google-collect.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/google-visualization-java/visualization-datasource.jar" dest="${tmp.dir}" />
 
     <jar destfile="${build.jar.dir}/wattdepot-server.jar" basedir="${tmp.dir}">
       <manifest>
