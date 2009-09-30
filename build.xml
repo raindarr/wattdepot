@@ -11,20 +11,8 @@
 
   <!-- *** Kludge until these packages are available via Ivy RoundUp. *** -->
   <!-- Always make environment variables available with the "env." prefix. -->
-  <property environment="env" />
-  <available file="${env.ICU4J_HOME}" type="dir" property="icu4j.available" />
-  <fail message="This package requires icu4j to be installed and ICU4J_HOME defined"
-        unless="icu4j.available" />
-  <path id="icu4j.path" location="${env.ICU4J_HOME}/icu4j-4_0_1_1.jar" />
-  <available file="${env.GCOLLECTIONS_HOME}" type="dir" property="gcollections.available" />
-  <fail message="This package requires Google Collections to be installed and GCOLLECTIONS_HOME defined"
-        unless="gcollections.available" />
-  <path id="gcollections.path" location="${env.GCOLLECTIONS_HOME}/google-collect-1.0-rc2.jar" />
-  <available file="${env.GDATASOURCE_HOME}" type="dir" property="gdatasource.available" />
-  <fail message="This package requires Google Visualization data source to be installed and GDATASOURCE_HOME defined"
-        unless="gdatasource.available" />
-  <path id="gdatasource.path"
-        location="${env.GDATASOURCE_HOME}/visualization-datasource-1.0.2.jar" />
+<!--  <property environment="env" /> -->
+
   <!--
   <available file="${env.CATALINA_HOME}" type="dir" property="catalina.available" />
   <fail message="This package requires Apache Tomcat to be installed and CATALINA_HOME defined"
@@ -152,6 +140,54 @@
       </fileset>
     </path>
 
+    <!-- Needed by Google Visualization Data Source Library -->
+    <ivy:retrieve organisation="com.ibm.icu4j"
+                  module="icu4j"
+                  revision="4.0.1.1"
+                  pattern="${lib.dir}/icu4j/[artifact].[ext]"
+                  sync="true"
+                  inline="true"
+                  conf="all"
+                  log="download-only"
+                  transitive="false" />
+    <path id="icu4j.path">
+      <fileset dir="${lib.dir}/icu4j">
+        <include name="*.jar" />
+      </fileset>
+    </path>
+
+    <!-- Needed by Google Visualization Data Source Library -->
+    <ivy:retrieve organisation="com.google.common"
+                  module="google-collections"
+                  revision="1.0-rc2"
+                  pattern="${lib.dir}/google-collections/[artifact].[ext]"
+                  sync="true"
+                  inline="true"
+                  conf="all"
+                  log="download-only"
+                  transitive="false" />
+    <path id="google-collections.path">
+      <fileset dir="${lib.dir}/google-collections">
+        <include name="*.jar" />
+      </fileset>
+    </path>
+
+    <!-- Google Visualization Data Source Library itself -->
+    <ivy:retrieve organisation="com.google.visualization"
+                  module="google-visualization-java"
+                  revision="1.0.2"
+                  pattern="${lib.dir}/google-visualization-java/[artifact].[ext]"
+                  sync="true"
+                  inline="true"
+                  conf="all"
+                  log="download-only"
+                  transitive="false" />
+    <path id="google-visualization-java.path">
+      <fileset dir="${lib.dir}/google-visualization-java">
+        <include name="*.jar" />
+      </fileset>
+    </path>
+
     <!-- Should put the revision into library.versions.properties when Hackystat starts using it -->
     <!--
     <ivy:retrieve organisation="javax.xml.bind" module="jaxb" revision="2.1.11" pattern="${lib.dir}/jaxb/[artifact].[ext]" sync="true" inline="true" conf="default" log="download-only" transitive="false" type="jar, javadoc, source" />
@@ -200,10 +236,10 @@
     <path refid="commons-lang.path" />
     <path refid="commons-logging.path" />
     <path refid="opencsv.path" />
-    <path refid="icu4j.path" />
-    <path refid="gcollections.path" />
-    <path refid="gdatasource.path" />
     <path refid="jetty.path" />
+    <path refid="icu4j.path" />
+    <path refid="google-collections.path" />
+    <path refid="google-visualization-java.path" />
     <!-- <path refid="catalina.path" /> -->
     <!-- <path refid="derby.path" /> -->
     <path refid="utilities.path" />

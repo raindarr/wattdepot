@@ -10,7 +10,7 @@
   <property name="checkstyle.install.dir" location="${lib.dir}/checkstyle"/>
   <property name="checkstyle.jar" value="checkstyle-all.jar"/>
   <property name="checkstyle.failOnViolation" value="false"/>
-  <property name="checkstyle.config.file" value="hackystat.checkstyle.xml"/>
+  <property name="checkstyle.config.file" value="wattdepot.checkstyle.xml"/>
   <property name="checkstyle.config.file.path" location="${configfiles.dir}/${checkstyle.config.file}"/>
 
   <available file="${checkstyle.config.file.path}" type="file" property="checkstyle.config.available" />
@@ -20,7 +20,8 @@
   </target>
 
   <target name="checkstyle.install.config.file" unless="checkstyle.config.available">
-    <get src="${configfiles.url}/${checkstyle.config.file}"
+    <!-- Modified checkstyle config file is pulled from WattDepot now, not Hackystat -->
+    <get src="http://wattdepot.googlecode.com/svn/trunk/xml/configfiles/${checkstyle.config.file}"
          dest="${checkstyle.config.file.path}" usetimestamp="true"/>
   </target>
 

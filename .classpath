@@ -52,21 +52,6 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/opencsv/javadoc.zip!/"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="var" path="ICU4J_HOME/icu4j-4_0_1_1.jar" sourcepath="/ICU4J_HOME/icu4j-4_0_1_1-src.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:file:/Users/rbrewer/java/icu4j/icu4j-4_0_1_1-docs.jar!/"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="var" path="GCOLLECTIONS_HOME/google-collect-1.0-rc2.jar" sourcepath="/GCOLLECTIONS_HOME/src-1.0-rc2.zip">
-		<attributes>
-			<attribute name="javadoc_location" value="file:/Users/rbrewer/java/google-collect-1.0-rc2/javadoc/"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="var" path="GDATASOURCE_HOME/visualization-datasource-1.0.2.jar" sourcepath="/GDATASOURCE_HOME/visualization-datasource-1.0.2-src.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="http://code.google.com/apis/visualization/documentation/dev/dsl_javadocs/"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="lib" path="lib/commons-lang/commons-lang.jar" sourcepath="lib/commons-lang/source.zip">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/commons-lang/javadoc.zip!/"/>
@@ -90,6 +75,21 @@
 	<classpathentry kind="lib" path="lib/jetty/jetty-util.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/jetty/javadoc.zip!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/icu4j/icu4j.jar" sourcepath="lib/icu4j/source.zip">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/icu4j/javadoc.zip!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/google-collections/google-collect.jar" sourcepath="lib/google-collections/source.zip">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/google-collections/javadoc.zip!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/google-visualization-java/visualization-datasource.jar" sourcepath="lib/google-visualization-java/source.zip">
+		<attributes>
+			<attribute name="javadoc_location" value="http://code.google.com/apis/visualization/documentation/dev/dsl_javadocs/"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="output" path="bin"/>

@@ -53,8 +53,8 @@ public class GVisualizationServlet extends DataSourceServlet {
 
     // This is everything following the URI, which should start with "/gviz/source/"
     String rawPath = request.getPathInfo();
+    System.err.println("rawPath: " + rawPath); // DEBUG
     if ((rawPath == null) || ("".equals(rawPath)) || "/".equals(rawPath)) {
-      System.err.println("rawPath: " + rawPath);
       throw new DataSourceException(ReasonType.INVALID_REQUEST, "No Source name provided.");
     }
     if ((rawPath.length() > 1) && (rawPath.startsWith("/"))) {
