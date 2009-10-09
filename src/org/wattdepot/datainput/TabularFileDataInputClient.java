@@ -3,14 +3,9 @@ package org.wattdepot.datainput;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.Locale;
 import javax.xml.bind.JAXBException;
-import javax.xml.datatype.XMLGregorianCalendar;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -23,13 +18,8 @@ import org.wattdepot.client.NotAuthorizedException;
 import org.wattdepot.client.OverwriteAttemptedException;
 import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
-import org.wattdepot.resource.sensordata.jaxb.Properties;
-import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.server.Server;
 import au.com.bytecode.opencsv.CSVReader;
-import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
 
 /**
  * Reads data from files in tabular formats (delimited by some character), creates a SensorData
@@ -60,6 +50,9 @@ public class TabularFileDataInputClient {
   /** Name of the application on the command line. */
   protected static final String toolName = "TabularFileDataInputClient";
 
+  /** The parser used to turn rows into SensorData objects. */
+  protected RowParser parser;
+
   /**
    * Creates the new TabularFileDataInputClient.
    * 
@@ -79,6 +72,7 @@ public class TabularFileDataInputClient {
     this.username = username;
     this.password = password;
     this.skipFirstRow = skipFirstRow;
+    this.parser = new VerisRowParser(toolName, serverUri, sourceName);
   }
 
   /**
@@ -91,7 +85,7 @@ public class TabularFileDataInputClient {
     List<SensorData> list = null;
 
     try {
-      list = readFile(this.filename, this.skipFirstRow);
+      list = readFile(this.filename, this.skipFirstRow, this.parser);
     }
     catch (IOException e) {
       return false;
@@ -110,105 +104,40 @@ public class TabularFileDataInputClient {
    * Reads a tabular file and produces a List of SensorData to be sent to the server.
    * 
    * @param filename name of the file containing the data
-   * @return a List of SensorData objects created from the rows in the file.
    * @param skipFirstRow If true, indicates that the first row of the file should be ignored (often
    * used for column headers, and not containing data).
+   * @param parser The RowParser used to turn rows into SensorData.
+   * @return a List of SensorData objects created from the rows in the file.
    * @throws IOException if there is a problem encountered while reading the file.
    */
-  public List<SensorData> readFile(String filename, boolean skipFirstRow) throws IOException {
+  public List<SensorData> readFile(String filename, boolean skipFirstRow, RowParser parser)
+      throws IOException {
     List<SensorData> dataList = new ArrayList<SensorData>();
     CSVReader reader = null;
 
     try {
-      reader = new CSVReader(new FileReader(filename), '\t');
+      if (skipFirstRow) {
+        // use 4 arg constructor with skip lines = 1
+        reader = new CSVReader(new FileReader(filename), '\t', CSVReader.DEFAULT_QUOTE_CHARACTER, 1);
+      }
+      else {
+        reader = new CSVReader(new FileReader(filename), '\t');
+      }
     }
     catch (FileNotFoundException e) {
       System.err.format("Data file %s not found. Exiting.%n", filename);
       return null;
     }
     String[] nextLine;
-    if (skipFirstRow) {
-      // Just throw away the first line
-      reader.readNext();
-    }
     while ((nextLine = reader.readNext()) != null) {
       // nextLine[] is an array of values from the current row in the file
-      SensorData data = parseRow(nextLine);
+      SensorData data = parser.parseRow(nextLine);
       if (data != null) {
         dataList.add(data);
       }
     }
+    reader.close();
     return dataList;
-  }
-
-  /**
-   * Converts a row of the table into an appropriate SensorData object. Child classes will generally
-   * override this method to parse the table rows that come from their particular table layout.
-   * 
-   * @param col The row of the table, with each column represented as a String array element.
-   * @return The new SensorData object.
-   */
-  protected SensorData parseRow(String[] col) {
-    // Example rows from BMO data (real data is tab separated, but aligned here for readability):
-    // time (US/Hawaii) error lowrange highrange Energy Consumption (kWh) Real Power (kW)
-    // 2009-08-01 00:00:02 0 0 0 55307.16 3.594
-    String dateString = col[0];
-    Date newDate = null;
-    // Example data: 2009-08-01 00:15:12
-    String dateFormatString = "yyyy-MM-dd HH:mm:ss";
-    SimpleDateFormat format = new SimpleDateFormat(dateFormatString, Locale.US);
-    try {
-      newDate = format.parse(dateString);
-    }
-    catch (java.text.ParseException e) {
-      System.err.println("Unable to parse date: " + dateString);
-      return null;
-    }
-    GregorianCalendar cal = new GregorianCalendar();
-    cal.setTime(newDate);
-    XMLGregorianCalendar timestamp = new XMLGregorianCalendarImpl(cal);
-
-    // // DEBUG
-    // DateFormat df = DateFormat.getDateTimeInstance();
-    // System.out.println("Input date: " + dateString + ", output date: " + df.format(newDate));
-
-    // Create the properties based on the PropertyDictionary
-    // http://code.google.com/p/wattdepot/wiki/PropertyDictionary
-    String powerConsumedString = col[5];
-    double powerConsumed;
-    try {
-      // Value in file is a String representing a floating point value in kW, while powerConsumed
-      // SensorData property is defined in dictionary as being in W, so parse and multiply by 1000.
-      powerConsumed = Double.parseDouble(powerConsumedString) * 1000;
-    }
-    catch (NumberFormatException e) {
-      System.err.println("Unable to parse floating point number: " + powerConsumedString);
-      return null;
-    }
-    Property prop1 =
-        SensorDataUtils.makeSensorDataProperty("powerConsumed", Double.toString(powerConsumed));
-
-    String energyConsumedToDateString = col[4];
-    double energyConsumedToDate;
-    try {
-      // Value in file is a String representing a floating point value in kWh, while
-      // energyConsumedToDate SensorData property is defined in dictionary as being in Wh, so parse
-      // and multiply by 1000.
-      energyConsumedToDate = Double.parseDouble(energyConsumedToDateString) * 1000;
-    }
-    catch (NumberFormatException e) {
-      System.err.println("Unable to parse floating point number: " + energyConsumedToDateString);
-      return null;
-    }
-    Property prop2 =
-        SensorDataUtils.makeSensorDataProperty("energyConsumedToDate", Double
-            .toString(energyConsumedToDate));
-    Properties props = new Properties();
-    props.getProperty().add(prop1);
-    props.getProperty().add(prop2);
-
-    return SensorDataUtils.makeSensorData(timestamp, toolName, this.serverUri + Server.SOURCES_URI
-        + "/" + this.sourceName, props);
   }
 
   /**
@@ -218,7 +147,7 @@ public class TabularFileDataInputClient {
    * @param list the SensorData to send.
    * @return true if the data was sent successfully, false otherwise.
    */
-  protected boolean sendData(WattDepotClient client, List<SensorData> list) {
+  public boolean sendData(WattDepotClient client, List<SensorData> list) {
     if (!client.isHealthy()) {
       System.err.println("Unable to connect to server: " + this.serverUri);
       return false;

@@ -174,8 +174,7 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testFullIndexPrivateAdminAuth() throws WattDepotClientException {
     // Shouldn't authenticate with no username or password
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-    assertNotNull(MISSING_SENSORDATAREFS,
-        client.getSensorDataIndex(DbManager.defaultPrivateSource));
+    assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(DbManager.defaultPrivateSource));
   }
 
   /**
@@ -189,8 +188,7 @@ public class TestSensorDataResource extends ServerTestHelper {
     WattDepotClient client =
         new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
             DbManager.defaultOwnerPassword);
-    assertNotNull(MISSING_SENSORDATAREFS,
-        client.getSensorDataIndex(DbManager.defaultPrivateSource));
+    assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(DbManager.defaultPrivateSource));
   }
 
   /**
@@ -328,7 +326,7 @@ public class TestSensorDataResource extends ServerTestHelper {
   }
 
   /**
-   * Tests that SensorData cannot be retrieved from an empty database. Type: public Source with no
+   * Tests that SensorData cannot be retrieved using a bogus timestamp. Type: public Source with no
    * credentials.
    * 
    * @throws Exception If stuff goes wrong.
@@ -488,8 +486,7 @@ public class TestSensorDataResource extends ServerTestHelper {
         new WattDepotClient(getHostName(), DbManager.defaultNonOwnerUsername,
             DbManager.defaultNonOwnerPassword);
     SensorData data = makeTestSensorDataPrivateSource();
-    assertFalse("Able to store SensorData with non-owner credentials",
-        client.storeSensorData(data));
+    assertFalse("Able to store SensorData with non-owner credentials", client.storeSensorData(data));
     assertEquals(RETRIEVED_DATA_DOESNT_MATCH, data, client.getSensorData(
         DbManager.defaultPrivateSource, data.getTimestamp()));
   }
@@ -541,10 +538,10 @@ public class TestSensorDataResource extends ServerTestHelper {
   }
 
   /**
-   * Tests storing SensorData to a Source. Type: empty entity body with owner credentials.
+   * Tests storing SensorData to a Source. Type: no entity body with owner credentials.
    */
   @Test
-  public void testStoreEmptyEntity() {
+  public void testStoreNullEntity() {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
         SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, sourceToUri(
@@ -555,6 +552,28 @@ public class TestSensorDataResource extends ServerTestHelper {
         client.makeRequest(Method.PUT, Server.SOURCES_URI + "/"
             + UriUtils.getUriSuffix(data.getSource()) + "/" + Server.SENSORDATA_URI + "/"
             + data.getTimestamp().toString(), new Preference<MediaType>(MediaType.TEXT_XML), null);
+    Status status = response.getStatus();
+    assertEquals("Able to store SensorData with no entity body",
+        Status.CLIENT_ERROR_BAD_REQUEST, status);
+  }
+
+  /**
+   * Tests storing SensorData to a Source. Type: empty entity body with owner credentials.
+   */
+  @Test
+  public void testStoreEmptyEntity() {
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    SensorData data =
+        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, sourceToUri(
+            DbManager.defaultPublicSource, server), null);
+    // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send empty
+    // body. Have to do things manually.
+    Representation rep =
+      new StringRepresentation("", MediaType.TEXT_XML, Language.ALL, CharacterSet.UTF_8);
+    Response response =
+        client.makeRequest(Method.PUT, Server.SOURCES_URI + "/"
+            + UriUtils.getUriSuffix(data.getSource()) + "/" + Server.SENSORDATA_URI + "/"
+            + data.getTimestamp().toString(), new Preference<MediaType>(MediaType.TEXT_XML), rep);
     Status status = response.getStatus();
     assertEquals("Able to store SensorData with empty entity body",
         Status.CLIENT_ERROR_BAD_REQUEST, status);

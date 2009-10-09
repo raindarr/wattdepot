@@ -256,6 +256,10 @@ public class SensorDataResource extends WattDepotResource {
       }
       SensorData data;
       // Try to make the XML payload into sensor data, return failure if this fails.
+      if ((entityString == null) || ("".equals(entityString))) {
+        setStatusMiscError("Entity body was empty");
+        return;
+      }
       try {
         data = makeSensorData(entityString);
       }

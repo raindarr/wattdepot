@@ -1,7 +1,9 @@
 package org.wattdepot.resource.gviz;
 
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
@@ -20,7 +22,8 @@ import com.ibm.icu.util.TimeZone;
 
 /**
  * Accepts requests using the Google Visualization API and fulfills then with data from the
- * WattDepot database.
+ * WattDepot database. Currently does not use authentication, and therefore does not obey the
+ * WattDepot security model.
  * 
  * @author Robert Brewer
  */
@@ -34,6 +37,9 @@ public class GVisualizationServlet extends DataSourceServlet {
 
   /** The WattDepot database manager, for retrieving sensor data. */
   protected transient DbManager dbManager;
+
+  /** Conversion factor for milliseconds per minute. */
+  private static final long MILLISECONDS_PER_MINUTE = 60L * 1000;
 
   /**
    * Create the new servlet, and record the provided Server to make queries on the DB.
@@ -104,24 +110,80 @@ public class GVisualizationServlet extends DataSourceServlet {
       // System.err.format("timestamp: %s, power: %f, energy: %f%n", ref.getTimestamp().toString(),
       // powerConsumed, energyConsumedToDate); // DEBUG
       try {
-        // Calendar conversion hell. GViz library uses com.ibm.icu.util.GregorianCalendar, which is
-        // different from java.util.GregorianCalendar. So we go from our native format
-        // XMLGregorianCalendar -> GregorianCalendar, extract milliseconds since epoch, feed that
-        // to the IBM GregorianCalendar.
-        com.ibm.icu.util.GregorianCalendar gvizCal = new com.ibm.icu.util.GregorianCalendar();
-        gvizCal.setTimeInMillis(ref.getTimestamp().toGregorianCalendar().getTimeInMillis());
-        // Added bonus, DateTimeValue only accepts GregorianCalendars if the timezone is GMT.
-        // Need to verify that this isn't shifting times if the timezone was already set in
-        // XMLGregorianCalendar.
-        gvizCal.setTimeZone(TimeZone.getTimeZone("GMT"));
         // Add a row into the table
-        data.addRowFromValues(gvizCal, powerConsumed, energyConsumedToDate);
+        data.addRowFromValues(convertTimestamp(ref.getTimestamp()), powerConsumed,
+            energyConsumedToDate);
       }
       catch (TypeMismatchException e) {
         throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Problem adding data to table"); // NOPMD
       }
     }
     return data;
+  }
+
+  /**
+   * Takes an XMLGregorianCalendar (the native WattDepot timestamp format) and returns a
+   * com.ibm.icu.util.GregorianCalendar (<b>note:</b> this is <b>not</b> the same as a
+   * java.util.GregorianCalendar!) with the time zone set to GMT, but with the timestamp adjusted by
+   * any time zone offset in the XMLGregorianCalendar.
+   * 
+   * For example, if the input value is 10 AM Hawaii Standard Time (HST is -10 hours from UTC), then
+   * the output will be 10 AM UTC, effectively subtracting 10 hours from the timestamp (in addition
+   * to the conversion between types).
+   * 
+   * This rigamarole is needed because the Google Visualization data source library only accepts
+   * timestamps in UTC, and the Annonated Timeline visualization displays the UTC values. Without
+   * this conversion, any graphs of meter data recorded in the Hawaii time zone (for instance) would
+   * display the data 10 hours later in the graph, which is not acceptable.
+   * 
+   * @param timestamp the input timestamp, presumably from WattDepot
+   * @return a com.ibm.icu.util.GregorianCalendar suitable for use by the Google visualization data
+   * source library, and normalized by any time zone offset in timestamp but with timeZone field set
+   * to GMT.
+   */
+  protected com.ibm.icu.util.GregorianCalendar convertTimestamp(XMLGregorianCalendar timestamp) {
+    return this.convertTimestamp(timestamp, timestamp.getTimezone());
+  }
+
+  /**
+   * Takes an XMLGregorianCalendar (the native WattDepot timestamp format) and a time zone offset
+   * (expressed as minutes from UTC) and returns a com.ibm.icu.util.GregorianCalendar (<b>note:</b>
+   * this is <b>not</b> the same as a java.util.GregorianCalendar!) with the time zone set to GMT,
+   * but with the timestamp adjusted by the provided offset.
+   * 
+   * For example, if the input value is 10 AM Hawaii Standard Time (HST is -10 hours from UTC), and
+   * the offset is -600 minutes then the output will be 10 AM UTC, effectively subtracting 10 hours
+   * from the timestamp (in addition to the conversion between types).
+   * 
+   * This rigamarole is needed because the Google Visualization data source library only accepts
+   * timestamps in UTC, and the Annonated Timeline visualization displays the UTC values. Without
+   * this conversion, any graphs of meter data recorded in the Hawaii time zone (for instance) would
+   * display the data 10 hours later in the graph, which is not acceptable. The timezoneOffset is
+   * provided if in the future we want the capability to display data normalized to an arbitrary
+   * time zone, rather than just the one the data was collected in.
+   * 
+   * @param timestamp the input timestamp, presumably from WattDepot
+   * @param timeZoneOffset the desired offset in minutes from UTC.
+   * @return a com.ibm.icu.util.GregorianCalendar suitable for use by the Google visualization data
+   * source library, and normalized by timeZoneOffset but with timeZone field set to GMT.
+   */
+  protected com.ibm.icu.util.GregorianCalendar convertTimestamp(XMLGregorianCalendar timestamp,
+      int timeZoneOffset) {
+    // Calendar conversion hell. GViz library uses com.ibm.icu.util.GregorianCalendar, which is
+    // different from java.util.GregorianCalendar. So we go from our native format
+    // XMLGregorianCalendar -> GregorianCalendar, extract milliseconds since epoch, feed that
+    // to the IBM GregorianCalendar.
+    com.ibm.icu.util.GregorianCalendar gvizCal = new com.ibm.icu.util.GregorianCalendar();
+    // Added bonus, DateTimeValue only accepts GregorianCalendars if the timezone is GMT.
+    gvizCal.setTimeZone(TimeZone.getTimeZone("GMT"));
+    // System.err.println("timestamp: " + timestamp.toString()); // DEBUG
+    GregorianCalendar standardCal = timestamp.toGregorianCalendar();
+    // System.err.println("standardCal: " + standardCal.toString()); // DEBUG
+    // Add the timeZoneOffset to the epoch time after converting to milliseconds
+    gvizCal.setTimeInMillis(standardCal.getTimeInMillis()
+        + (timeZoneOffset * MILLISECONDS_PER_MINUTE));
+    // System.err.println("gvizCal: " + gvizCal.toString()); // DEBUG
+    return gvizCal;
   }
 
   /**

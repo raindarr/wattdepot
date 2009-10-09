@@ -21,7 +21,6 @@ import org.wattdepot.resource.sensordata.SensorDataResource;
 import org.wattdepot.resource.user.UserResource;
 import org.wattdepot.resource.user.UsersResource;
 import org.wattdepot.server.db.DbManager;
-import org.wattdepot.tinker.QueryTestServlet;
 import org.wattdepot.util.logger.RestletLoggerUtil;
 import org.wattdepot.util.logger.WattDepotLogger;
 
@@ -140,12 +139,6 @@ public class Server extends Application {
         "org.wattdepot.resource.gviz.GVisualizationServlet");
     servletHolder.setInitOrder(1);
     jettyContext.addServlet(servletHolder, "/sources/*");
-
-    // DEBUG, this is just for debugging, to be removed after query issue is resolved 
-    ServletHolder servletHolder2 = new ServletHolder(new QueryTestServlet());
-    servletHolder.setInitParameter("applicationClassName", "org.wattdepot.tinker.QueryTestServlet");
-    servletHolder.setInitOrder(1);
-    jettyContext.addServlet(servletHolder2, "/querytest/*");
 
     // Now let's open for business.
     server.logger.info("Maximum Java heap size (MB): "

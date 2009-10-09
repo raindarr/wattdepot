@@ -75,8 +75,8 @@ public class ServerProperties {
   }
 
   /**
-   * Reads in the properties in ~/.wattdepot/wattdepot-server.properties if this file exists, and
-   * provides default values for all properties not mentioned in this file. Will also add any
+   * Reads in the properties in ~/.wattdepot/server/wattdepot-server.properties if this file exists,
+   * and provides default values for all properties not mentioned in this file. Will also add any
    * pre-existing System properties that start with "wattdepot-server.".
    * 
    * @throws Exception if errors occur.
@@ -116,17 +116,17 @@ public class ServerProperties {
     try {
       stream = new FileInputStream(propFile);
       properties.load(stream);
-      System.out.println("Loading SensorBase properties from: " + propFile);
+      System.out.println("Loading Server properties from: " + propFile);
     }
     catch (IOException e) {
-      System.out.println(propFile + " not found. Using default sensorbase properties.");
+      System.out.println(propFile + " not found. Using default server properties.");
     }
     finally {
       if (stream != null) {
         stream.close();
       }
     }
-    addSensorBaseSystemProperties(this.properties);
+    addServerSystemProperties(this.properties);
     trimProperties(properties);
 
     // Now add to System properties. Since the Mailer class expects to find this stuff on the
@@ -144,7 +144,7 @@ public class ServerProperties {
    * 
    * @param properties The properties instance to be updated with the WattDepot system properties.
    */
-  private void addSensorBaseSystemProperties(Properties properties) {
+  private void addServerSystemProperties(Properties properties) {
     Properties systemProperties = System.getProperties();
     for (Map.Entry<Object, Object> entry : systemProperties.entrySet()) {
       String sysPropName = (String) entry.getKey();
@@ -203,7 +203,7 @@ public class ServerProperties {
       alphaProps.put(propName, propValue);
     }
     StringBuffer buff = new StringBuffer(25);
-    buff.append("SensorBase Properties:").append(cr);
+    buff.append("Server Properties:").append(cr);
     for (String key : alphaProps.keySet()) {
       buff.append(pad).append(key).append(eq).append(get(key)).append(cr);
     }

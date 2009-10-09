@@ -5,6 +5,17 @@ System.getProperties().toString()
 
   
 DatatypeFactory factory = DatatypeFactory.newInstance();
-XMLGregorianCalendar xmlCal = factory.newXMLGregorianCalendar(new GregorianCalendar());
+GregorianCalendar calendar = new GregorianCalendar();
+calendar.setTimeInMillis(1254865157780L);
+XMLGregorianCalendar xmlCal = factory.newXMLGregorianCalendar(calendar);
 xmlCal.toXMLFormat();
+Duration duration = factory.newDuration(1000);
+xmlCal.add(duration);
+xmlCal.toXMLFormat();
+(java.lang.String) 2009-10-06T11:39:18.780-10:00
+
+
+
 (java.lang.String) 2009-09-02T20:29:38.366-10:00(java.lang.String) 2009-08-28T13:28:51.705-10:00
+
+(java.lang.String) 2009-10-06T11:39:17.780-10:00

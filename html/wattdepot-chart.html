@@ -16,6 +16,9 @@
     // Specify the data source URL.
     var query = new google.visualization.Query('http://localhost:8184/gviz/sources/saunders-hall');
     
+    // Apply query language.
+    query.setQuery('select timePoint, powerConsumed');
+
     // Send the query with a callback function.
     query.send(handleQueryResponse);
    }
