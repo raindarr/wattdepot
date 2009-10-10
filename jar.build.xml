@@ -13,7 +13,7 @@
 
   <target name="jar-standalone"
           depends="compile"
-          description="Creates standalone wattdepot-server.jar">
+          description="Creates standalone wattdepot-server.jar, and input client jars ">
     <!-- Define the directories and distribution name -->
     <delete dir="${tmp.dir}" quiet="yes" />
     <mkdir dir="${tmp.dir}" />
@@ -38,6 +38,16 @@
       <manifest>
         <attribute name="Main-Class" value="org.wattdepot.datainput.TabularFileDataInputClient" />
         <attribute name="Implementation-Title" value="WattDepot TabularFileDataInputClient" />
+        <attribute name="Implementation-Version" value="${version}" />
+        <attribute name="Implementation-Vendor"
+                   value="Collaborative Software Development Laboratory, University of Hawaii" />
+      </manifest>
+    </jar>
+
+    <jar destfile="${build.jar.dir}/wattdepot-bmoclient.jar" basedir="${tmp.dir}">
+      <manifest>
+        <attribute name="Main-Class" value="org.wattdepot.datainput.BMODataInputClient" />
+        <attribute name="Implementation-Title" value="WattDepot BMODataInputClient" />
         <attribute name="Implementation-Version" value="${version}" />
         <attribute name="Implementation-Vendor"
                    value="Collaborative Software Development Laboratory, University of Hawaii" />
