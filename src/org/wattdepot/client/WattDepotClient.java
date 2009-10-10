@@ -450,4 +450,13 @@ public class WattDepotClient {
     }
   }
 
+  /**
+   * Retrieves the WattDepot URI used by this client. This is useful for creating resource objects
+   * that have URIs in their fields (and thus need the WattDepot URI to construct those URIs).
+   *  
+   * @return The URI of the WattDepot server used by this client.
+   */
+  public String getWattDepotUri() {
+    return wattDepotUri;
+  }
 }
