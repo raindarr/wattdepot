@@ -159,7 +159,7 @@ public class Server extends Application {
     }
     else {
       try {
-        server.loadDefaultResources(dbManager, server);
+        server.loadDefaultResources(dbManager);
       }
       catch (Exception e) {
         server.logger.severe("Unable to load default resources: " + e.toString());
@@ -197,7 +197,7 @@ public class Server extends Application {
    * @param dbManager The database the default resources will be loaded into.
    * @throws JAXBException If there are problems unmarshalling XML from the files
    */
-  protected void loadDefaultResources(DbManager dbManager, Server server) throws JAXBException {
+  protected void loadDefaultResources(DbManager dbManager) throws JAXBException {
     String userHome = System.getProperty("user.home");
     String wattDepotHome = userHome + "/.wattdepot";
     String serverHome = wattDepotHome + "/server";
@@ -229,7 +229,7 @@ public class Server extends Application {
           source = (Source) unmarshaller.unmarshal(sourceFile);
           // Source read from the file might have an Owner field that points to a different
           // host URI. We want all defaults normalized to this server, so update it.
-          source.setOwner(UserUtils.updateUri(source.getOwner(), server));
+          source.setOwner(UserUtils.updateUri(source.getOwner(), this));
           if (dbManager.storeSource(source)) {
             logger.info("Loaded source " + source.getName() + " from defaults.");
           }
@@ -247,7 +247,7 @@ public class Server extends Application {
           data = (SensorData) unmarshaller.unmarshal(sensorDataFile);
           // SensorData read from the file might have an Owner field that points to a different
           // host URI. We want all defaults normalized to this server, so update it.
-          data.setSource(SourceUtils.updateUri(data.getSource(), server));
+          data.setSource(SourceUtils.updateUri(data.getSource(), this));
           if (dbManager.storeSensorData(data)) {
             logger.info("Loaded sensor data for source " + data.getSource() + ", time "
                 + data.getTimestamp() + " from defaults.");

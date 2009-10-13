@@ -100,9 +100,14 @@ public class TestSensorDataJaxb {
         .hashCode(), data2.hashCode());
   }
 
+  /**
+   * Tests toString for the SensorData type.
+   * 
+   * @throws Exception If there are problems creating the timestamp
+   */
   @Test
   public void testToString() throws Exception {
-    String key1 = "some-key", value1 = "some-value", key2 = "foo-key", value2 = "foo-value";
+    String key1 = "foo-key", value1 = "foo", key2 = "bar-key", value2 = "bar";
     Property prop1 = SensorDataUtils.makeSensorDataProperty(key1, value1);
     Property prop2 = SensorDataUtils.makeSensorDataProperty(key2, value2);
     Properties props1 = new Properties();
@@ -115,9 +120,9 @@ public class TestSensorDataJaxb {
     data1 =
         SensorDataUtils.makeSensorData(timestamp1, "JUnit",
             "http://localhost:8183/wattdepot/sources/saunders-hall", props1);
-    assertEquals(
-        "SensorData [properties=[Property [key=some-key, value=some-value], Property [key=foo-key,"
-            + " value=foo-value]], source=http://localhost:8183/wattdepot/sources/saunders-hall,"
+    assertEquals("SensorData did not create expected toString",
+        "SensorData [properties=[Property [key=foo-key, value=foo], Property [key=bar-key,"
+            + " value=bar]], source=http://localhost:8183/wattdepot/sources/saunders-hall,"
             + " timestamp=2009-07-28T08:00:00.000-10:00, tool=JUnit]", data1.toString());
   }
 }
