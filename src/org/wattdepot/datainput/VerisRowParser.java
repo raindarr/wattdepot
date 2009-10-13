@@ -35,8 +35,7 @@ public class VerisRowParser extends RowParser {
   }
 
   /**
-   * Converts a row of the table into an appropriate SensorData object. Child classes will generally
-   * override this method to parse the table rows that come from their particular table layout.
+   * Converts a row of the table into an appropriate SensorData object.
    * 
    * @param col The row of the table, with each column represented as a String array element.
    * @return The new SensorData object.

@@ -255,7 +255,7 @@
     </javac>
   </target>
 
-  <target name="run" depends="compile" description="Compiles the WattDepot and starts it up.">
+  <target name="run" depends="compile" description="Compiles the WattDepot server and starts it up.">
     <java classname="org.wattdepot.server.Server" fork="yes">
       <classpath>
         <pathelement location="${build.dir}/classes" />

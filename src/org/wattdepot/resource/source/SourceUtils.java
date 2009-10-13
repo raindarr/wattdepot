@@ -123,7 +123,7 @@ public class SourceUtils {
   }
 
   /**
-   * Given a Source object and the Server it belongs to, returns the URI to that Source resource.
+   * Given a Source name and the Server it belongs to, returns the URI to that Source resource.
    * 
    * @param sourceName The Source object under consideration.
    * @param server The Server user belongs to.
