@@ -64,8 +64,7 @@ public class SourceUtils {
    * @return The new SourceRef object.
    */
   public static SourceRef makeSourceRef(Source source, Server server) {
-    return makeSourceRef(source, server.getHostName() + Server.SOURCES_URI + "/"
-        + source.getName());
+    return makeSourceRef(source, server.getHostName() + Server.SOURCES_URI + "/" + source.getName());
   }
 
   /**
@@ -132,5 +131,20 @@ public class SourceUtils {
    */
   public static String sourceToUri(String sourceName, Server server) {
     return server.getHostName() + Server.SOURCES_URI + "/" + sourceName;
+  }
+
+  /**
+   * Takes the URI to a Source resource on an arbitrary WattDepot server, and turns it into a URI
+   * for that source on the provided server. This is useful when reading a SensorData resource from
+   * a file, where the stored URI might point to an source resource that is on a different server.
+   * 
+   * @param uri The URI that is to be updated.
+   * @param server The current server instance.
+   * @return A URI String for the given source on the given server.
+   */
+  public static String updateUri(String uri, Server server) {
+    // Grab out the username at the end of the URI
+    String sourceName = uri.substring(uri.lastIndexOf('/') + 1);
+    return sourceToUri(sourceName, server);
   }
 }

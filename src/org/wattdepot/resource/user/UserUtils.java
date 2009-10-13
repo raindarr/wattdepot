@@ -89,4 +89,30 @@ public class UserUtils {
   public static String userToUri(User user, Server server) {
     return server.getHostName() + Server.USERS_URI + "/" + user.getEmail();
   }
+  
+  /**
+   * Given a username and the Server it belongs to, returns the URI to that User resource.
+   *  
+   * @param username The name of the User object under consideration.
+   * @param server The Server user belongs to.
+   * @return The URI to the User resource corresponding to the given User.
+   */
+  public static String userToUri(String username, Server server) {
+    return server.getHostName() + Server.USERS_URI + "/" + username;
+  }
+  
+  /**
+   * Takes the URI to a User resource on an arbitrary WattDepot server, and turns it into a URI for
+   * that user on the provided server. This is useful when reading a Source resource from a file,
+   * where the stored URI might point to an owner resource that is on a different server.
+   *  
+   * @param uri The URI that is to be updated.
+   * @param server The current server instance.
+   * @return A URI String for the given user on the given server.
+   */
+  public static String updateUri(String uri, Server server) {
+    // Grab out the username at the end of the URI
+    String username = uri.substring(uri.lastIndexOf('/') + 1);
+    return userToUri(username, server);
+  }
 }

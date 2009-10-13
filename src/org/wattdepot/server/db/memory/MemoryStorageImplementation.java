@@ -227,7 +227,7 @@ public class MemoryStorageImplementation extends DbImplementation {
         // add to SenorDataHash in thread-safe manner (in case someone beats us to it)
         this.source2SensorDatasHash.putIfAbsent(sourceName, sensorDataMap);
         // Don't need to check result, since we only care that there is a hash we can store to,
-        // not whether or not the one we created actually got stored.
+        // not whether the one we created actually got stored.
       }
       // Try putting the new SensorData into the hash for the appropriate source
       SensorData previousValue = sensorDataMap.putIfAbsent(data.getTimestamp(), data);

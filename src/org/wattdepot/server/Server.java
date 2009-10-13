@@ -5,8 +5,13 @@ import static org.wattdepot.server.ServerProperties.GVIZ_CONTEXT_ROOT_KEY;
 import static org.wattdepot.server.ServerProperties.GVIZ_PORT_KEY;
 import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
 import static org.wattdepot.server.ServerProperties.PORT_KEY;
+import static org.wattdepot.server.ServerProperties.TEST_INSTALL_KEY;
+import java.io.File;
 import java.util.Map;
 import java.util.logging.Logger;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import org.mortbay.jetty.servlet.Context;
 import org.mortbay.jetty.servlet.ServletHolder;
 import org.restlet.Application;
@@ -18,8 +23,13 @@ import org.restlet.data.Protocol;
 import org.wattdepot.resource.gviz.GVisualizationServlet;
 import org.wattdepot.resource.health.HealthResource;
 import org.wattdepot.resource.sensordata.SensorDataResource;
+import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.source.SourceUtils;
+import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.user.UserResource;
+import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.UsersResource;
+import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.logger.RestletLoggerUtil;
 import org.wattdepot.util.logger.WattDepotLogger;
@@ -62,6 +72,26 @@ public class Server extends Application {
 
   /** The URI used for the users resource. */
   public static final String GVIZ_URI = "gviz";
+
+  /** Users JAXBContext. */
+  private static final JAXBContext userJAXB;
+  /** SensorData JAXBContext. */
+  private static final JAXBContext sensorDataJAXB;
+  /** Source JAXBContext. */
+  private static final JAXBContext sourceJAXB;
+  // JAXBContexts are thread safe, so we can share them across all instances and threads.
+  // https://jaxb.dev.java.net/guide/Performance_and_thread_safety.html
+  static {
+    try {
+      userJAXB = JAXBContext.newInstance(org.wattdepot.resource.user.jaxb.ObjectFactory.class);
+      sensorDataJAXB =
+          JAXBContext.newInstance(org.wattdepot.resource.sensordata.jaxb.ObjectFactory.class);
+      sourceJAXB = JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
+    }
+    catch (Exception e) {
+      throw new RuntimeException("Couldn't create JAXB context instances.", e);
+    }
+  }
 
   /**
    * Creates a new instance of a WattDepot HTTP server, listening on the port defined either by the
@@ -120,9 +150,20 @@ public class Server extends Application {
     attributes.put("WattDepotServer", server);
     attributes.put("ServerProperties", server.serverProperties);
     DbManager dbManager = new DbManager(server);
-    // Create default data to support short-term demo
-    if (!dbManager.createDefaultData()) {
-      server.logger.severe("Unable to create default data");
+    if (server.serverProperties.get(TEST_INSTALL_KEY).equalsIgnoreCase("true")) {
+      // In test mode, use programmatically created test data
+      // Create default data to support short-term demo
+      if (!dbManager.createDefaultData()) {
+        server.logger.severe("Unable to create default data");
+      }
+    }
+    else {
+      try {
+        server.loadDefaultResources(dbManager, server);
+      }
+      catch (Exception e) {
+        server.logger.severe("Unable to load default resources: " + e.toString());
+      }
     }
     attributes.put("DbManager", dbManager);
 
@@ -147,6 +188,81 @@ public class Server extends Application {
     jettyServer.start();
     server.logger.warning("WattDepot server (Version " + getVersion() + ") now running.");
     return server;
+  }
+
+  /**
+   * Loads the default resources from canonical directory into database. Intended to be called after
+   * the database has been created, but before the server has started accepting network connections.
+   * 
+   * @param dbManager The database the default resources will be loaded into.
+   * @throws JAXBException If there are problems unmarshalling XML from the files
+   */
+  protected void loadDefaultResources(DbManager dbManager, Server server) throws JAXBException {
+    String userHome = System.getProperty("user.home");
+    String wattDepotHome = userHome + "/.wattdepot";
+    String serverHome = wattDepotHome + "/server";
+    String defaultDir = serverHome + "/default-resources";
+    File defaultDirFile = new File(defaultDir);
+    Unmarshaller unmarshaller;
+
+    if (defaultDirFile.isDirectory()) {
+      File usersDir = new File(defaultDirFile, "users");
+      if (usersDir.isDirectory()) {
+        unmarshaller = userJAXB.createUnmarshaller();
+        User user;
+        for (File userFile : usersDir.listFiles()) {
+          user = (User) unmarshaller.unmarshal(userFile);
+          if (dbManager.storeUser(user)) {
+            logger.info("Loaded user " + user.getEmail() + " from defaults.");
+          }
+          else {
+            logger.warning("Default resource from file \"" + userFile.toString()
+                + "\" could not be stored in DB.");
+          }
+        }
+      }
+      File sourcesDir = new File(defaultDirFile, "sources");
+      if (sourcesDir.isDirectory()) {
+        unmarshaller = sourceJAXB.createUnmarshaller();
+        Source source;
+        for (File sourceFile : sourcesDir.listFiles()) {
+          source = (Source) unmarshaller.unmarshal(sourceFile);
+          // Source read from the file might have an Owner field that points to a different
+          // host URI. We want all defaults normalized to this server, so update it.
+          source.setOwner(UserUtils.updateUri(source.getOwner(), server));
+          if (dbManager.storeSource(source)) {
+            logger.info("Loaded source " + source.getName() + " from defaults.");
+          }
+          else {
+            logger.warning("Default resource from file \"" + sourceFile.toString()
+                + "\" could not be stored in DB.");
+          }
+        }
+      }
+      File sensorDataDir = new File(defaultDirFile, "sensordata");
+      if (sensorDataDir.isDirectory()) {
+        unmarshaller = sensorDataJAXB.createUnmarshaller();
+        SensorData data;
+        for (File sensorDataFile : sensorDataDir.listFiles()) {
+          data = (SensorData) unmarshaller.unmarshal(sensorDataFile);
+          // SensorData read from the file might have an Owner field that points to a different
+          // host URI. We want all defaults normalized to this server, so update it.
+          data.setSource(SourceUtils.updateUri(data.getSource(), server));
+          if (dbManager.storeSensorData(data)) {
+            logger.info("Loaded sensor data for source " + data.getSource() + ", time "
+                + data.getTimestamp() + " from defaults.");
+          }
+          else {
+            logger.warning("Default resource from file \"" + sensorDataFile.toString()
+                + "\" could not be stored in DB.");
+          }
+        }
+      }
+    }
+    else {
+      logger.warning("Default resource directory " + defaultDir
+          + " not found, no default resources loaded.");
+    }
   }
 
   /**

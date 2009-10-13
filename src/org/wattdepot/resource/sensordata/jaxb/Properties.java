@@ -10,6 +10,7 @@ package org.wattdepot.resource.sensordata.jaxb;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -128,5 +129,13 @@ public class Properties
         return false;
       }
       return true;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+      return Arrays.toString(property.toArray());
     }
 }

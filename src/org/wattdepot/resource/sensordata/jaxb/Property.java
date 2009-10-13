@@ -159,4 +159,12 @@ public class Property
       }
       return true;
     }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+      return "Property [key=" + key + ", value=" + value + "]";
+    }
 }

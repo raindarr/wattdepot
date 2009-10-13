@@ -41,6 +41,7 @@ public class VerisRowParser extends RowParser {
    * @param col The row of the table, with each column represented as a String array element.
    * @return The new SensorData object.
    */
+  @Override
   public SensorData parseRow(String[] col) {
     // Example rows from BMO data (real data is tab separated):
     // time (US/Hawaii) error lowrange highrange Energy Consumption (kWh) Real Power (kW)

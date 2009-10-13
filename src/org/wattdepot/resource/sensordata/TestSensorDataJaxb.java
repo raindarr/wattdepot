@@ -99,4 +99,25 @@ public class TestSensorDataJaxb {
     assertEquals("Two SensorData objects with identical fields have different hashCodes", data1
         .hashCode(), data2.hashCode());
   }
+
+  @Test
+  public void testToString() throws Exception {
+    String key1 = "some-key", value1 = "some-value", key2 = "foo-key", value2 = "foo-value";
+    Property prop1 = SensorDataUtils.makeSensorDataProperty(key1, value1);
+    Property prop2 = SensorDataUtils.makeSensorDataProperty(key2, value2);
+    Properties props1 = new Properties();
+    SensorData data1;
+
+    props1.getProperty().add(prop1);
+    props1.getProperty().add(prop2);
+
+    XMLGregorianCalendar timestamp1 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
+    data1 =
+        SensorDataUtils.makeSensorData(timestamp1, "JUnit",
+            "http://localhost:8183/wattdepot/sources/saunders-hall", props1);
+    assertEquals(
+        "SensorData [properties=[Property [key=some-key, value=some-value], Property [key=foo-key,"
+            + " value=foo-value]], source=http://localhost:8183/wattdepot/sources/saunders-hall,"
+            + " timestamp=2009-07-28T08:00:00.000-10:00, tool=JUnit]", data1.toString());
+  }
 }
