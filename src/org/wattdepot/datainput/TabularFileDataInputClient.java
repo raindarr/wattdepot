@@ -131,7 +131,13 @@ public class TabularFileDataInputClient {
     String[] nextLine;
     while ((nextLine = reader.readNext()) != null) {
       // nextLine[] is an array of values from the current row in the file
-      SensorData data = parser.parseRow(nextLine);
+      SensorData data = null;
+      try {
+        data = parser.parseRow(nextLine);
+      }
+      catch (RowParseException e) {
+        System.err.println(e);
+      }
       if (data != null) {
         dataList.add(data);
       }

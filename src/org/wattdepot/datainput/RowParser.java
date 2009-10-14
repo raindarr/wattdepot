@@ -40,6 +40,7 @@ public abstract class RowParser {
    * 
    * @param col The row of the table, with each column represented as a String array element.
    * @return The new SensorData object.
+   * @throws RowParseException If there are problems parsing the row.
    */
-  public abstract SensorData parseRow(String[] col);
+  public abstract SensorData parseRow(String[] col) throws RowParseException;
 }

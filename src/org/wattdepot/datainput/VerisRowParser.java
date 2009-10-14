@@ -22,7 +22,7 @@ public class VerisRowParser extends RowParser {
   private SimpleDateFormat format;
 
   /**
-   * Creates the RowParser, and initializes fields based on the provided arguments.
+   * Creates the VerisRowParser, and initializes fields based on the provided arguments.
    * 
    * @param toolName Name of the tool sending the data.
    * @param serverUri URI of WattDepot server to send data to.
@@ -39,15 +39,16 @@ public class VerisRowParser extends RowParser {
    * 
    * @param col The row of the table, with each column represented as a String array element.
    * @return The new SensorData object.
+   * @throws RowParseException If there are problems parsing the row.
    */
   @Override
-  public SensorData parseRow(String[] col) {
+  public SensorData parseRow(String[] col) throws RowParseException {
     // Example rows from BMO data (real data is tab separated):
     // time (US/Hawaii) error lowrange highrange Energy Consumption (kWh) Real Power (kW)
     // 2009-08-01 00:00:02 \t 0 \t 0 \t 0 \t 55307.16 \t 3.594
     if ((col == null) || (col.length < 6)) {
       // row is missing some columns, so don't try parsing, just give up
-      return null;
+      throw new RowParseException("Row missing some columns.");
     }
     String dateString = col[0];
     Date newDate = null;
@@ -55,11 +56,8 @@ public class VerisRowParser extends RowParser {
       newDate = format.parse(dateString);
     }
     catch (java.text.ParseException e) {
-      System.err.println("Unable to parse date: " + dateString);
-      return null;
+      throw new RowParseException("Bad timestamp found in input file: " + dateString, e);
     }
-    // GregorianCalendar cal = new GregorianCalendar();
-    // cal.setTime(newDate);
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp(newDate.getTime());
 
     // // DEBUG
@@ -76,8 +74,8 @@ public class VerisRowParser extends RowParser {
       powerConsumed = Double.parseDouble(powerConsumedString) * 1000;
     }
     catch (NumberFormatException e) {
-      System.err.println("Unable to parse floating point number: " + powerConsumedString);
-      return null;
+      throw new RowParseException("Unable to parse floating point number: " + powerConsumedString,
+          e);
     }
     Property prop1 =
         SensorDataUtils.makeSensorDataProperty("powerConsumed", Double.toString(powerConsumed));
@@ -91,8 +89,8 @@ public class VerisRowParser extends RowParser {
       energyConsumedToDate = Double.parseDouble(energyConsumedToDateString) * 1000;
     }
     catch (NumberFormatException e) {
-      System.err.println("Unable to parse floating point number: " + energyConsumedToDateString);
-      return null;
+      throw new RowParseException("Unable to parse floating point number: "
+          + energyConsumedToDateString, e);
     }
     Property prop2 =
         SensorDataUtils.makeSensorDataProperty("energyConsumedToDate", Double

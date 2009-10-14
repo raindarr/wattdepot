@@ -4,25 +4,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import javax.xml.datatype.XMLGregorianCalendar;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.hackystat.utilities.tstamp.Tstamp;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
-import org.wattdepot.resource.sensordata.jaxb.Properties;
-import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.server.Server;
 import au.com.bytecode.opencsv.CSVReader;
 
 /**
@@ -35,7 +26,7 @@ import au.com.bytecode.opencsv.CSVReader;
 public class OscarDataConverter {
 
   /** Name of the application on the command line. */
-  protected static final String toolName = "OscarDataConverter";
+  protected static final String TOOL_NAME = "OscarDataConverter";
 
   /** Name of the file to be input. */
   protected String filename;
@@ -46,8 +37,8 @@ public class OscarDataConverter {
   /** URI of WattDepot server this data will live in. */
   protected String serverUri;
 
-  /** Used to parse dates from the input data, kept in field to reduce object creation. */
-  protected SimpleDateFormat format;
+  /** The parser used to turn rows into SensorData objects. */
+  protected RowParser parser;
 
   /**
    * Creates the new OscarDataConverter.
@@ -60,7 +51,7 @@ public class OscarDataConverter {
     this.filename = filename;
     this.directory = directory;
     this.serverUri = uri;
-    this.format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US);
+    this.parser = new OscarRowParser(TOOL_NAME, this.serverUri);
   }
 
   /**
@@ -103,9 +94,16 @@ public class OscarDataConverter {
     String[] nextLine;
     File outputFile;
     int rowsConverted = 0;
+
     while ((nextLine = reader.readNext()) != null) {
       // nextLine[] is an array of values from the current row in the file
-      SensorData data = parseRow(nextLine);
+      SensorData data = null;
+      try {
+        data = this.parser.parseRow(nextLine);
+      }
+      catch (RowParseException e) {
+        System.err.println(e);
+      }
       if (data != null) {
         // Create a new output file in the output directory named by source name and timestamp
         String sourceUri = data.getSource();
@@ -124,47 +122,6 @@ public class OscarDataConverter {
     reader.close();
     System.out.format("Converted %d rows of input data.%n", rowsConverted);
     return true;
-  }
-
-  /**
-   * Converts a row of the table into an appropriate SensorData object.
-   * 
-   * @param col The row of the table, with each column represented as a String array element.
-   * @return The new SensorData object.
-   */
-  public SensorData parseRow(String[] col) {
-    String dateString = col[0];
-    Date newDate = null;
-    try {
-      newDate = this.format.parse(dateString);
-    }
-    catch (java.text.ParseException e) {
-      System.err.format("Bad timestamp found in input file: %s%n", dateString);
-      return null;
-    }
-    XMLGregorianCalendar timestamp = Tstamp.makeTimestamp(newDate.getTime());
-
-    String sourceName = col[1];
-    // Create the properties based on the PropertyDictionary
-    // http://code.google.com/p/wattdepot/wiki/PropertyDictionary
-    String powerGeneratedString = col[2];
-    double powerGenerated;
-    try {
-      // Value in file is a String representing an integer value in MW, while powerGenerated
-      // SensorData property is defined in dictionary as being in W, so parse and multiply by 10^6.
-      powerGenerated = Integer.parseInt(powerGeneratedString) * 1000 * 1000;
-    }
-    catch (NumberFormatException e) {
-      System.err.println("Unable to parse power generated: " + powerGeneratedString);
-      return null;
-    }
-    Property prop1 =
-        SensorDataUtils.makeSensorDataProperty("powerGenerated", Double.toString(powerGenerated));
-
-    Properties props = new Properties();
-    props.getProperty().add(prop1);
-    return SensorDataUtils.makeSensorData(timestamp, toolName, this.serverUri + Server.SOURCES_URI
-        + "/" + sourceName, props);
   }
 
   /**
@@ -196,7 +153,7 @@ public class OscarDataConverter {
 
     HelpFormatter formatter = new HelpFormatter();
     if (cmd.hasOption("h")) {
-      formatter.printHelp(toolName, options);
+      formatter.printHelp(TOOL_NAME, options);
       System.exit(0);
     }
     if (cmd.hasOption("f")) {
@@ -204,7 +161,7 @@ public class OscarDataConverter {
     }
     else {
       System.err.println("Required filename parameter not provided, exiting.");
-      formatter.printHelp(toolName, options);
+      formatter.printHelp(TOOL_NAME, options);
       System.exit(1);
     }
     if (cmd.hasOption("d")) {
@@ -212,7 +169,7 @@ public class OscarDataConverter {
     }
     else {
       System.err.println("Required directory parameter not provided, exiting.");
-      formatter.printHelp(toolName, options);
+      formatter.printHelp(TOOL_NAME, options);
       System.exit(1);
     }
     if (cmd.hasOption("w")) {
@@ -220,7 +177,7 @@ public class OscarDataConverter {
     }
     else {
       System.err.println("Required URI parameter not provided, exiting.");
-      formatter.printHelp(toolName, options);
+      formatter.printHelp(TOOL_NAME, options);
       System.exit(1);
     }
 
