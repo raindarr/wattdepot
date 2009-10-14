@@ -126,11 +126,22 @@ public class SourceUtils {
    * Given a Source name and the Server it belongs to, returns the URI to that Source resource.
    * 
    * @param sourceName The Source object under consideration.
-   * @param server The Server user belongs to.
-   * @return The URI to the Source resource corresponding to the given Source.
+   * @param server The Server source belongs to.
+   * @return The URI to the Source resource corresponding to the given Source name.
    */
   public static String sourceToUri(String sourceName, Server server) {
     return server.getHostName() + Server.SOURCES_URI + "/" + sourceName;
+  }
+
+  /**
+   * Given a Source name and the server URI it belongs to, returns the URI to that Source resource.
+   * 
+   * @param sourceName The Source object under consideration.
+   * @param serverUri The server URI source belongs to.
+   * @return The URI to the Source resource corresponding to the given Source name.
+   */
+  public static String sourceToUri(String sourceName, String serverUri) {
+    return serverUri + Server.SOURCES_URI + "/" + sourceName;
   }
 
   /**

@@ -9,7 +9,7 @@ import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.server.Server;
+import org.wattdepot.resource.source.SourceUtils;
 
 /**
  * Parses the tabular data format sent by Veris meters monitored by the Obvius Acquisuite device.
@@ -44,7 +44,11 @@ public class VerisRowParser extends RowParser {
   public SensorData parseRow(String[] col) {
     // Example rows from BMO data (real data is tab separated):
     // time (US/Hawaii) error lowrange highrange Energy Consumption (kWh) Real Power (kW)
-    // 2009-08-01 00:00:02 0 0 0 55307.16 3.594
+    // 2009-08-01 00:00:02 \t 0 \t 0 \t 0 \t 55307.16 \t 3.594
+    if ((col == null) || (col.length < 6)) {
+      // row is missing some columns, so don't try parsing, just give up
+      return null;
+    }
     String dateString = col[0];
     Date newDate = null;
     try {
@@ -97,7 +101,7 @@ public class VerisRowParser extends RowParser {
     props.getProperty().add(prop1);
     props.getProperty().add(prop2);
 
-    return SensorDataUtils.makeSensorData(timestamp, this.toolName, this.serverUri
-        + Server.SOURCES_URI + "/" + this.sourceName, props);
+    return SensorDataUtils.makeSensorData(timestamp, this.toolName, SourceUtils.sourceToUri(
+        this.sourceName, this.serverUri), props);
   }
 }

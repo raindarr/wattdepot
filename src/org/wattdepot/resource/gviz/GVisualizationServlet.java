@@ -83,6 +83,7 @@ public class GVisualizationServlet extends DataSourceServlet {
     cd.add(new ColumnDescription("timePoint", ValueType.DATETIME, "Date & Time"));
     cd.add(new ColumnDescription("powerConsumed", ValueType.NUMBER, "Power (W)"));
     cd.add(new ColumnDescription("energyConsumedToDate", ValueType.NUMBER, "Energy Consumed (Wh)"));
+    cd.add(new ColumnDescription("powerGenerated", ValueType.NUMBER, "Power Generated (Wh)"));
     data.addColumns(cd);
 
     // Get all sensor data for this Source
@@ -90,7 +91,7 @@ public class GVisualizationServlet extends DataSourceServlet {
     Properties props;
     // Iterate over each SensorDataRef
     for (SensorDataRef ref : index.getSensorDataRef()) {
-      Double powerConsumed = null, energyConsumedToDate = null;
+      Double powerConsumed = null, energyConsumedToDate = null, powerGenerated = null;
       props = dbManager.getSensorData(sourceName, ref.getTimestamp()).getProperties();
       // Look for properties on this SensorData that we are interested in
       for (Property prop : props.getProperty()) {
@@ -100,6 +101,9 @@ public class GVisualizationServlet extends DataSourceServlet {
           }
           else if (prop.getKey().equals("energyConsumedToDate")) {
             energyConsumedToDate = new Double(prop.getValue());
+          }
+          else if (prop.getKey().equals("powerGenerated")) {
+            powerGenerated = new Double(prop.getValue());
           }
         }
         catch (NumberFormatException e) {
@@ -112,7 +116,7 @@ public class GVisualizationServlet extends DataSourceServlet {
       try {
         // Add a row into the table
         data.addRowFromValues(convertTimestamp(ref.getTimestamp()), powerConsumed,
-            energyConsumedToDate);
+            energyConsumedToDate, powerGenerated);
       }
       catch (TypeMismatchException e) {
         throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Problem adding data to table"); // NOPMD
