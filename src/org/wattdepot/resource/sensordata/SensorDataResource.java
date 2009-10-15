@@ -112,7 +112,7 @@ public class SensorDataResource extends WattDepotResource {
           return null;
         }
       }
-      // If only start and end times are provided, must be looking for filtered sensor data
+      // If only start and end times are provided, must be looking for a range of sensor data
       else if ((timestamp == null) && (startTime != null) && (endTime != null)) {
         XMLGregorianCalendar startObj = null, endObj = null;
         // check if start timestamp is OK

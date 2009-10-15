@@ -4,7 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.compareSensorDataRefsToSensorDatas;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.sensorDataRefEqualsSensorData;
 import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
@@ -27,12 +29,14 @@ import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.StringRepresentation;
+import org.wattdepot.client.BadXmlException;
 import org.wattdepot.client.NotAuthorizedException;
 import org.wattdepot.client.OverwriteAttemptedException;
 import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbManager;
@@ -282,7 +286,6 @@ public class TestSensorDataResource extends ServerTestHelper {
   }
 
   // Tests for GET {host}/sources/{source}/sensordata/{timestamp}
-  // TODO
   // Cheating: by looking inside the black box, we know that all GET methods share the same access
   // control code, so not repeating all of that for this type of GET.
 
@@ -345,8 +348,136 @@ public class TestSensorDataResource extends ServerTestHelper {
   }
 
   // Tests for GET {host}/sources/{source}/sensordata/?startTime={timestamp}&endTime={timestamp}
-  // not yet implemented in WattDepotClient
-  // TODO
+  // Again: cheating by looking inside the black box, we know that all GET methods share the same
+  // access control code, so not repeating all of that for this type of GET.
+
+  /**
+   * Tests that after storing SensorData to a Source, the fetching various ranges of SensorData
+   * corresponds to the data that has been stored. Type: public Source with owner credentials.
+   * 
+   * @throws Exception If stuff goes wrong.
+   */
+  @Test
+  public void testRangeIndexAfterStores() throws Exception {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
+            DbManager.defaultOwnerPassword);
+    SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
+        makeTestSensorData3();
+    // before all three of the test data items
+    XMLGregorianCalendar before1 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00"),
+    // between data1 and data2
+    between1And2 = Tstamp.makeTimestamp("2009-07-28T09:07:00.000-10:00"),
+    // between data2 and data3
+    between2And3 = Tstamp.makeTimestamp("2009-07-28T09:23:00.000-10:00"),
+    // after all three test data items
+    after3 = Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00"),
+    // Ever later than after3
+    moreAfter3 = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
+
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data1));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data2));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
+
+    // valid range covering no data
+    assertEquals("SensorDataIndex generated for period containing no SensorData",
+        new SensorDataIndex().getSensorDataRef(), client.getSensorDataIndex(
+            DbManager.defaultPublicSource, after3, moreAfter3).getSensorDataRef());
+
+    // range covering all three data items
+    List<SensorDataRef> retrievedRefs =
+        client.getSensorDataIndex(DbManager.defaultPublicSource, before1, after3)
+            .getSensorDataRef();
+    List<SensorData> origData = new ArrayList<SensorData>();
+    origData.add(data1);
+    origData.add(data2);
+    origData.add(data3);
+    assertTrue("SensorDataRefs from getSensorDataIndex do not match input SensorData",
+        compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+
+    // range covering only data1
+    assertSame("getSensorDataIndex didn't contain all expected SensorData", client
+        .getSensorDataIndex(DbManager.defaultPublicSource, before1, between1And2)
+        .getSensorDataRef().size(), 1);
+    assertTrue("getSensorDataIndex entry didn't match input data", sensorDataRefEqualsSensorData(
+        client.getSensorDataIndex(DbManager.defaultPublicSource, before1, between1And2)
+            .getSensorDataRef().get(0), data1));
+
+    // range covering only data2
+    assertSame("getSensorDataIndex didn't contain all expected SensorData", client
+        .getSensorDataIndex(DbManager.defaultPublicSource, between1And2, between2And3)
+        .getSensorDataRef().size(), 1);
+    assertTrue("getSensorDataIndex didn't return expected ", sensorDataRefEqualsSensorData(client
+        .getSensorDataIndex(DbManager.defaultPublicSource, between1And2, between2And3)
+        .getSensorDataRef().get(0), data2));
+
+    // range covering data1 & data2
+    retrievedRefs =
+        client.getSensorDataIndex(DbManager.defaultPublicSource, before1, between2And3)
+            .getSensorDataRef();
+    origData.clear();
+    origData.add(data1);
+    origData.add(data2);
+    assertTrue("SensorDataRefs from getSensorDataIndex do not match input SensorData",
+        compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+
+    // range covering data2 & data3
+    retrievedRefs =
+        client.getSensorDataIndex(DbManager.defaultPublicSource, between1And2, after3)
+            .getSensorDataRef();
+    origData.clear();
+    origData.add(data2);
+    origData.add(data3);
+    assertTrue("SensorDataRefs from getSensorDataIndex do not match input SensorData",
+        compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+  }
+
+  /**
+   * Tests that a Source starts with no SensorData. Type: public Source with valid owner
+   * credentials.
+   * 
+   * @throws Exception If problems are encountered
+   */
+  @Test
+  public void testRangeIndexStartsEmpty() throws Exception {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
+            DbManager.defaultOwnerPassword);
+    // before all three of the test data items
+    XMLGregorianCalendar before1 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00"),
+    // after all three test data items
+    after3 = Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00");
+
+    assertTrue("Fresh DB contains SensorData", client.getSensorDataIndex(
+        DbManager.defaultPublicSource, before1, after3).getSensorDataRef().isEmpty());
+  }
+
+  /**
+   * Tests that after storing SensorData to a Source, the end time parameter must be later than the
+   * end time Type: public Source with owner credentials.
+   * 
+   * @throws Exception If stuff goes wrong.
+   */
+  @Test(expected = BadXmlException.class)
+  public void testRangeIndexBadInterval() throws Exception {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
+            DbManager.defaultOwnerPassword);
+    SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
+        makeTestSensorData3();
+    // before all three of the test data items
+    XMLGregorianCalendar before1 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00"),
+    // after all three test data items
+    after3 = Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00");
+
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data1));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data2));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
+
+    // This should fail since start time is after end time
+    client.getSensorDataIndex(DbManager.defaultPublicSource, after3, before1);
+    fail("Fetching SensorDataIndex with bad range succeeded");
+  }
 
   // Tests for PUT {host}/sources/{source}/sensordata/{timestamp}
 
@@ -553,8 +684,8 @@ public class TestSensorDataResource extends ServerTestHelper {
             + UriUtils.getUriSuffix(data.getSource()) + "/" + Server.SENSORDATA_URI + "/"
             + data.getTimestamp().toString(), new Preference<MediaType>(MediaType.TEXT_XML), null);
     Status status = response.getStatus();
-    assertEquals("Able to store SensorData with no entity body",
-        Status.CLIENT_ERROR_BAD_REQUEST, status);
+    assertEquals("Able to store SensorData with no entity body", Status.CLIENT_ERROR_BAD_REQUEST,
+        status);
   }
 
   /**
@@ -569,7 +700,7 @@ public class TestSensorDataResource extends ServerTestHelper {
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send empty
     // body. Have to do things manually.
     Representation rep =
-      new StringRepresentation("", MediaType.TEXT_XML, Language.ALL, CharacterSet.UTF_8);
+        new StringRepresentation("", MediaType.TEXT_XML, Language.ALL, CharacterSet.UTF_8);
     Response response =
         client.makeRequest(Method.PUT, Server.SOURCES_URI + "/"
             + UriUtils.getUriSuffix(data.getSource()) + "/" + Server.SENSORDATA_URI + "/"

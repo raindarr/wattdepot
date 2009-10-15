@@ -242,6 +242,64 @@ public class WattDepotClient {
   }
 
   /**
+   * Requests a SensorDataIndex containing SensorData in the range between the given start and end
+   * timestamps for this source from the server.
+   * 
+   * @param source The name of the Source.
+   * @param startTime The start of the range.
+   * @param endTime The end of the range.
+   * @return The SensorDataIndex.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SensorData
+   * index.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public SensorDataIndex getSensorDataIndex(String source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime) throws NotAuthorizedException, ResourceNotFoundException,
+      BadXmlException, MiscClientException {
+    String uri =
+        Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + "?startTime="
+            + startTime.toXMLFormat() + "&" + "endTime=" + endTime.toXMLFormat();
+    Response response =
+        makeRequest(Method.GET, uri, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad timestamp provided in URI
+      throw new BadXmlException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
+        return (SensorDataIndex) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
    * Requests the SensorData from a given Source corresponding to the given timestamp.
    * 
    * @param source The name of the Source.
@@ -259,7 +317,7 @@ public class WattDepotClient {
       MiscClientException {
     Response response =
         makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
-            + "/" + timestamp.toString(), XML_MEDIA, null);
+            + "/" + timestamp.toXMLFormat(), XML_MEDIA, null);
     Status status = response.getStatus();
 
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
@@ -325,7 +383,7 @@ public class WattDepotClient {
             CharacterSet.UTF_8);
     Response response =
         makeRequest(Method.PUT, Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource())
-            + "/" + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString(), XML_MEDIA, rep);
+            + "/" + Server.SENSORDATA_URI + "/" + data.getTimestamp().toXMLFormat(), XML_MEDIA, rep);
     Status status = response.getStatus();
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
       // credentials were unacceptable to server
@@ -369,7 +427,7 @@ public class WattDepotClient {
       MiscClientException {
     Response response =
         makeRequest(Method.DELETE, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
-            + "/" + timestamp.toString(), XML_MEDIA, null);
+            + "/" + timestamp.toXMLFormat(), XML_MEDIA, null);
     Status status = response.getStatus();
 
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
@@ -453,7 +511,7 @@ public class WattDepotClient {
   /**
    * Retrieves the WattDepot URI used by this client. This is useful for creating resource objects
    * that have URIs in their fields (and thus need the WattDepot URI to construct those URIs).
-   *  
+   * 
    * @return The URI of the WattDepot server used by this client.
    */
   public String getWattDepotUri() {

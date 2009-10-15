@@ -189,7 +189,7 @@ public class WattDepotResource extends Resource {
   public String getSensorData(XMLGregorianCalendar timestamp) throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
-    SensorData data = this.dbManager.getSensorData(uriSource, timestamp);
+    SensorData data = this.dbManager.getSensorData(this.uriSource, timestamp);
     if (data == null) {
       return null;
     }
@@ -215,7 +215,7 @@ public class WattDepotResource extends Resource {
       throws JAXBException, DbBadIntervalException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
-    SensorDataIndex index = this.dbManager.getSensorDataIndex(uriSource, startTime, endTime);
+    SensorDataIndex index = this.dbManager.getSensorDataIndex(this.uriSource, startTime, endTime);
     if (index == null) {
       return null;
     }
