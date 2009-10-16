@@ -1,5 +1,6 @@
 package org.wattdepot.server.db.memory;
 
+import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.xml.datatype.DatatypeConstants;
@@ -30,8 +31,7 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** Holds the mapping from Source name to Source object. */
   private ConcurrentMap<String, Source> name2SourceHash;
   /** Holds the mapping from Source name to a map of timestamp to SensorData. */
-  private ConcurrentMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>
-    source2SensorDatasHash;
+  private ConcurrentMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>> source2SensorDatasHash;
   /** Holds the mapping from username to a User object. */
   private ConcurrentMap<String, User> name2UserHash;
 
@@ -141,6 +141,7 @@ public class MemoryStorageImplementation extends DbImplementation {
           index.getSensorDataRef().add(SensorDataUtils.makeSensorDataRef(data, this.server));
         }
       }
+      Collections.sort(index.getSensorDataRef());
       return index;
     }
   }
@@ -169,14 +170,18 @@ public class MemoryStorageImplementation extends DbImplementation {
       if (sensorDataMap != null) {
         // Loop over all SensorData in hash
         for (SensorData data : sensorDataMap.values()) {
-          // Only interested in SensorData that is after startTime and before endTime
-          if ((data.getTimestamp().compare(startTime) == DatatypeConstants.GREATER)
-              && (data.getTimestamp().compare(endTime) == DatatypeConstants.LESSER)) {
+          // Only interested in SensorData that is startTime <= data <= endTime
+          int startComparison = data.getTimestamp().compare(startTime);
+          int endComparison = data.getTimestamp().compare(endTime);
+          if ((startComparison == DatatypeConstants.EQUAL)
+              || (endComparison == DatatypeConstants.EQUAL)
+              || ((startComparison == DatatypeConstants.GREATER) && (endComparison == DatatypeConstants.LESSER))) {
             // convert each matching SensorData to SensorDataRef, add to index
             index.getSensorDataRef().add(SensorDataUtils.makeSensorDataRef(data, this.server));
           }
         }
       }
+      Collections.sort(index.getSensorDataRef());
       return index;
     }
   }

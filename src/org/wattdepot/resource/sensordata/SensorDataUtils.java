@@ -75,6 +75,25 @@ public class SensorDataUtils {
   }
 
   /**
+   * Creates a SensorDataRef object from the given parameters. Note that no parameter is needed for
+   * the Href field, as it can be constructed from the source and timestamp.
+   *
+   * @param timestamp The timestamp for the new object.
+   * @param tool The tool for the new object.
+   * @param source The URI of the source for the new object.
+   * @return The new SensorDataRef object.
+   */
+  public static SensorDataRef makeSensorDataRef(XMLGregorianCalendar timestamp, String tool,
+      String source) {
+    SensorDataRef ref = new SensorDataRef();
+    ref.setTimestamp(timestamp);
+    ref.setTool(tool);
+    ref.setSource(source);
+    ref.setHref(source + "/" + Server.SENSORDATA_URI + "/" + timestamp.toXMLFormat());
+    return ref;
+  }
+
+  /**
    * Determines if the subset of information in a SensorDataRef is equal to particular SensorData
    * object. Note that only the final segment of the href field of the SensorDataRef is compared to
    * the Source object, as the SensorData object does not contain its own URI. Thus if the
@@ -98,8 +117,8 @@ public class SensorDataUtils {
     }
 
     return (ref.getTimestamp().equals(data.getTimestamp())
-        && (ref.getTool().equals(data.getTool())) && (ref.getSource().equals(data.getSource())) &&
-        (data.getTimestamp().equals(hrefTimestamp)));
+        && (ref.getTool().equals(data.getTool())) && (ref.getSource().equals(data.getSource())) && (data
+        .getTimestamp().equals(hrefTimestamp)));
   }
 
   /**

@@ -2,10 +2,14 @@ package org.wattdepot.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import java.io.StringReader;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.datatype.XMLGregorianCalendar;
 import org.hackystat.utilities.tstamp.Tstamp;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,7 +41,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * @throws DbException If there is a problem storing the test data in the database
    * 
    */
-  @SuppressWarnings("PMD.AvoidDuplicateLiterals") // PMD going wild on the test data
+  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
+  // PMD going wild on the test data
   @BeforeClass
   public static void loadOscarData() throws RowParseException, JAXBException, DbException {
     // Some sim data from Oscar to load into the system before tests
@@ -269,7 +274,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
   /**
    * Fetches one SensorData from WattDepot server, and formats it as a nice string, and compares
    * that to an expected value. Solves this assignment problem:
-   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.5_list_sensordata_{source}_timestamp_{timestamp}
+   * http://code.google.com/p/wattdepot/wiki
+   * /WattDepotCLI#2.5_list_sensordata_{source}_timestamp_{timestamp}
    * 
    * @throws Exception If there is a problem with anything.
    */
@@ -277,13 +283,14 @@ public class TestOscarFunctionality extends ServerTestHelper {
   public void displayOneSensorData() throws Exception {
     // Anonymous access
     WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    // These are the parameters that would be coming from the command line
+    String sourceName = "SIM_KAHE_2", timestampString = "2009-10-12T00:15:00.000-10:00";
     SensorData data = null;
     String expectedOutput =
         String
             .format("Tool: OscarDataConverter%nSource: SIM_KAHE_2%nProperties: (powerGenerated : 6.4E7)%n");
-    data =
-        client.getSensorData("SIM_KAHE_2", Tstamp.makeTimestamp("2009-10-12T00:15:00.000-10:00"));
-    StringBuffer buff = new StringBuffer();
+    data = client.getSensorData(sourceName, Tstamp.makeTimestamp(timestampString));
+    StringBuffer buff = new StringBuffer(200);
     buff.append(String.format("Tool: %s%n", data.getTool()));
     buff.append(String.format("Source: %s%n", UriUtils.getUriSuffix(data.getSource())));
     buff.append("Properties: ");
@@ -298,6 +305,47 @@ public class TestOscarFunctionality extends ServerTestHelper {
       buff.append(String.format("(%s : %s)", prop.getKey(), prop.getValue()));
     }
     buff.append(String.format("%n"));
+    assertEquals("Generated string doesn't match expected", expectedOutput, buff.toString());
+  }
+
+  /**
+   * Fetches one day of SensorData from WattDepot server, and formats it as series of nice lines,
+   * and compares that to an expected value. Solves this assignment problem:
+   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.6_list_sensordata_{source}_day_{day}
+   * 
+   * @throws Exception If there is a problem with anything.
+   */
+  @Test
+  public void listOneDaySensorData() throws Exception {
+    // Anonymous access
+    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    // These are the parameters that would be coming from the command line
+    String sourceName = "SIM_KAHE_2", day = "2009-10-12";
+    String lineSep = System.getProperty("line.separator");
+    String expectedOutput =
+        "2009-10-12T00:00:00.000-10:00 Tool: OscarDataConverter Properties: [Property [key=powerGenerated, value=5.5E7]]"
+            + lineSep
+            + "2009-10-12T00:15:00.000-10:00 Tool: OscarDataConverter Properties: [Property [key=powerGenerated, value=6.4E7]]"
+            + lineSep
+            + "2009-10-12T00:30:00.000-10:00 Tool: OscarDataConverter Properties: [Property [key=powerGenerated, value=5.0E7]]"
+            + lineSep;
+    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+    Date startDate;
+    XMLGregorianCalendar startTime, endTime;
+    startDate = format.parse(day);
+    startTime = Tstamp.makeTimestamp(startDate.getTime());
+    endTime = Tstamp.incrementDays(startTime, 1);
+    // // DEBUG
+    // DateFormat formatOutput = DateFormat.getDateTimeInstance();
+    // System.out.format("Start time: %s, end time: %s%n", startTime.toString(),
+    // endTime.toString());
+    List<SensorData> dataList = client.getSensorDatas(sourceName, startTime, endTime);
+    StringBuffer buff = new StringBuffer(1000);
+    for (SensorData data : dataList) {
+      buff.append(data.getTimestamp() + " Tool: " + data.getTool() + " Properties: ");
+      buff.append(data.getProperties().toString());
+      buff.append(String.format("%n"));
+    }
     assertEquals("Generated string doesn't match expected", expectedOutput, buff.toString());
   }
 }

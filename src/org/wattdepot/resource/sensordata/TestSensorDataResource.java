@@ -51,6 +51,9 @@ import org.wattdepot.util.UriUtils;
 public class TestSensorDataResource extends ServerTestHelper {
 
   /** Making PMD happy. */
+  private static final String REFS_DONT_MATCH_SENSORDATA = "SensorDataRefs from getSensorDataIndex do not match input SensorData";
+
+  /** Making PMD happy. */
   private static final String DATA_STORE_FAILED = "SensorData store failed";
 
   /** Making PMD happy. */
@@ -366,10 +369,14 @@ public class TestSensorDataResource extends ServerTestHelper {
         makeTestSensorData3();
     // before all three of the test data items
     XMLGregorianCalendar before1 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00"),
+    // At the time of data1
+    at1 = Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00"),
     // between data1 and data2
     between1And2 = Tstamp.makeTimestamp("2009-07-28T09:07:00.000-10:00"),
     // between data2 and data3
     between2And3 = Tstamp.makeTimestamp("2009-07-28T09:23:00.000-10:00"),
+    // At the time of data3
+    at3 = Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00"),
     // after all three test data items
     after3 = Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00"),
     // Ever later than after3
@@ -392,7 +399,18 @@ public class TestSensorDataResource extends ServerTestHelper {
     origData.add(data1);
     origData.add(data2);
     origData.add(data3);
-    assertTrue("SensorDataRefs from getSensorDataIndex do not match input SensorData",
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
+        compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+
+    // range starting exactly at data1 and ending exactly at data3
+    retrievedRefs =
+        client.getSensorDataIndex(DbManager.defaultPublicSource, at1, at3)
+            .getSensorDataRef();
+    origData.clear();
+    origData.add(data1);
+    origData.add(data2);
+    origData.add(data3);
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
         compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
 
     // range covering only data1
@@ -418,7 +436,7 @@ public class TestSensorDataResource extends ServerTestHelper {
     origData.clear();
     origData.add(data1);
     origData.add(data2);
-    assertTrue("SensorDataRefs from getSensorDataIndex do not match input SensorData",
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
         compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
 
     // range covering data2 & data3
@@ -428,7 +446,7 @@ public class TestSensorDataResource extends ServerTestHelper {
     origData.clear();
     origData.add(data2);
     origData.add(data3);
-    assertTrue("SensorDataRefs from getSensorDataIndex do not match input SensorData",
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
         compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
   }
 

@@ -5,7 +5,6 @@
 // Generated on: 2009.08.17 at 01:54:50 PM HST 
 //
 
-
 package org.wattdepot.resource.sensordata.jaxb;
 
 import java.io.Serializable;
@@ -15,25 +14,27 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlSchemaType;
 import javax.xml.bind.annotation.XmlType;
+import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 
-
 /**
- * <p>Java class for anonymous complex type.
+ * <p>
+ * Java class for anonymous complex type.
  * 
- * <p>The following schema fragment specifies the expected content contained within this class.
+ * <p>
+ * The following schema fragment specifies the expected content contained within this class.
  * 
  * <pre>
- * &lt;complexType>
- *   &lt;complexContent>
- *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
- *       &lt;attribute ref="{}Timestamp use="required""/>
- *       &lt;attribute ref="{}Tool use="required""/>
- *       &lt;attribute ref="{}Source use="required""/>
- *       &lt;attribute ref="{}Href use="required""/>
- *     &lt;/restriction>
- *   &lt;/complexContent>
- * &lt;/complexType>
+ * &lt;complexType&gt;
+ *   &lt;complexContent&gt;
+ *     &lt;restriction base=&quot;{http://www.w3.org/2001/XMLSchema}anyType&quot;&gt;
+ *       &lt;attribute ref=&quot;{}Timestamp use=&quot;required&quot;&quot;/&gt;
+ *       &lt;attribute ref=&quot;{}Tool use=&quot;required&quot;&quot;/&gt;
+ *       &lt;attribute ref=&quot;{}Source use=&quot;required&quot;&quot;/&gt;
+ *       &lt;attribute ref=&quot;{}Href use=&quot;required&quot;&quot;/&gt;
+ *     &lt;/restriction&gt;
+ *   &lt;/complexContent&gt;
+ * &lt;/complexType&gt;
  * </pre>
  * 
  * 
@@ -41,133 +42,241 @@ import javax.xml.datatype.XMLGregorianCalendar;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "")
 @XmlRootElement(name = "SensorDataRef")
-public class SensorDataRef
-    implements Serializable
-{
+public class SensorDataRef implements Serializable, Comparable<SensorDataRef> {
 
-    private final static long serialVersionUID = 12343L;
-    @XmlAttribute(name = "Timestamp", required = true)
-    @XmlSchemaType(name = "dateTime")
-    protected XMLGregorianCalendar timestamp;
-    @XmlAttribute(name = "Tool", required = true)
-    protected String tool;
-    @XmlAttribute(name = "Source", required = true)
-    @XmlSchemaType(name = "anyURI")
-    protected String source;
-    @XmlAttribute(name = "Href", required = true)
-    @XmlSchemaType(name = "anyURI")
-    protected String href;
+  private final static long serialVersionUID = 12343L;
+  @XmlAttribute(name = "Timestamp", required = true)
+  @XmlSchemaType(name = "dateTime")
+  protected XMLGregorianCalendar timestamp;
+  @XmlAttribute(name = "Tool", required = true)
+  protected String tool;
+  @XmlAttribute(name = "Source", required = true)
+  @XmlSchemaType(name = "anyURI")
+  protected String source;
+  @XmlAttribute(name = "Href", required = true)
+  @XmlSchemaType(name = "anyURI")
+  protected String href;
 
-    /**
-     * Gets the value of the timestamp property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link XMLGregorianCalendar }
-     *     
-     */
-    public XMLGregorianCalendar getTimestamp() {
-        return timestamp;
+  /**
+   * Gets the value of the timestamp property.
+   * 
+   * @return possible object is {@link XMLGregorianCalendar }
+   * 
+   */
+  public XMLGregorianCalendar getTimestamp() {
+    return timestamp;
+  }
+
+  /**
+   * Sets the value of the timestamp property.
+   * 
+   * @param value allowed object is {@link XMLGregorianCalendar }
+   * 
+   */
+  public void setTimestamp(XMLGregorianCalendar value) {
+    this.timestamp = value;
+  }
+
+  public boolean isSetTimestamp() {
+    return (this.timestamp != null);
+  }
+
+  /**
+   * Gets the value of the tool property.
+   * 
+   * @return possible object is {@link String }
+   * 
+   */
+  public String getTool() {
+    return tool;
+  }
+
+  /**
+   * Sets the value of the tool property.
+   * 
+   * @param value allowed object is {@link String }
+   * 
+   */
+  public void setTool(String value) {
+    this.tool = value;
+  }
+
+  public boolean isSetTool() {
+    return (this.tool != null);
+  }
+
+  /**
+   * Gets the value of the source property.
+   * 
+   * @return possible object is {@link String }
+   * 
+   */
+  public String getSource() {
+    return source;
+  }
+
+  /**
+   * Sets the value of the source property.
+   * 
+   * @param value allowed object is {@link String }
+   * 
+   */
+  public void setSource(String value) {
+    this.source = value;
+  }
+
+  public boolean isSetSource() {
+    return (this.source != null);
+  }
+
+  /**
+   * Gets the value of the href property.
+   * 
+   * @return possible object is {@link String }
+   * 
+   */
+  public String getHref() {
+    return href;
+  }
+
+  /**
+   * Sets the value of the href property.
+   * 
+   * @param value allowed object is {@link String }
+   * 
+   */
+  public void setHref(String value) {
+    this.href = value;
+  }
+
+  public boolean isSetHref() {
+    return (this.href != null);
+  }
+
+  // Broke down and added these manually to the generated code. It would be better if they were
+  // automatically generated via XJC plugins, but that required a bunch of dependencies that I
+  // was unwilling to deal with right now. If the schema files change, this code will be blown
+  // away, so there are unit tests that confirm that equals and hashCode work to guard against
+  // that.
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((href == null) ? 0 : href.hashCode());
+    result = prime * result + ((source == null) ? 0 : source.hashCode());
+    result = prime * result + ((timestamp == null) ? 0 : timestamp.hashCode());
+    result = prime * result + ((tool == null) ? 0 : tool.hashCode());
+    return result;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
-
-    /**
-     * Sets the value of the timestamp property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link XMLGregorianCalendar }
-     *     
-     */
-    public void setTimestamp(XMLGregorianCalendar value) {
-        this.timestamp = value;
+    if (obj == null) {
+      return false;
     }
-
-    public boolean isSetTimestamp() {
-        return (this.timestamp!= null);
+    if (getClass() != obj.getClass()) {
+      return false;
     }
-
-    /**
-     * Gets the value of the tool property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getTool() {
-        return tool;
+    SensorDataRef other = (SensorDataRef) obj;
+    if (href == null) {
+      if (other.href != null) {
+        return false;
+      }
     }
-
-    /**
-     * Sets the value of the tool property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setTool(String value) {
-        this.tool = value;
+    else if (!href.equals(other.href)) {
+      return false;
     }
-
-    public boolean isSetTool() {
-        return (this.tool!= null);
+    if (source == null) {
+      if (other.source != null) {
+        return false;
+      }
     }
-
-    /**
-     * Gets the value of the source property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getSource() {
-        return source;
+    else if (!source.equals(other.source)) {
+      return false;
     }
-
-    /**
-     * Sets the value of the source property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setSource(String value) {
-        this.source = value;
+    if (timestamp == null) {
+      if (other.timestamp != null) {
+        return false;
+      }
     }
-
-    public boolean isSetSource() {
-        return (this.source!= null);
+    else if (!timestamp.equals(other.timestamp)) {
+      return false;
     }
-
-    /**
-     * Gets the value of the href property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getHref() {
-        return href;
+    if (tool == null) {
+      if (other.tool != null) {
+        return false;
+      }
     }
-
-    /**
-     * Sets the value of the href property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setHref(String value) {
-        this.href = value;
+    else if (!tool.equals(other.tool)) {
+      return false;
     }
+    return true;
+  }
 
-    public boolean isSetHref() {
-        return (this.href!= null);
+  @Override
+  public int compareTo(SensorDataRef o) {
+    // if o is null, throw NullPointerException, per Comparable JavaDoc
+    if (o == null) {
+      throw new NullPointerException("Tried to compare SensorDataRef with null");
     }
-
+    if (o.equals(this)) {
+      return 0;
+    }
+    int timestampCompare = timestamp.compare(o.getTimestamp());
+    if (timestampCompare == DatatypeConstants.LESSER) {
+      // this is earlier than o
+      return -1;
+    }
+    else if (timestampCompare == DatatypeConstants.GREATER) {
+      // this is later than o
+      return 1;
+    }
+    else if ((timestampCompare == DatatypeConstants.EQUAL)
+        || (timestampCompare == DatatypeConstants.INDETERMINATE)) {
+      // move on to the other fields for comparison
+      int sourceCompare = source.compareTo(o.getSource());
+      if (sourceCompare == 0) {
+        // sources are the same, so check tool field
+        int toolCompare = tool.compareTo(o.getTool());
+        if (toolCompare == 0) {
+          // tools are the same, so check href field
+          int hrefCompare = href.compareTo(o.getHref());
+          if (hrefCompare == 0) {
+            // timestamps must be incomparable, since we tested equals at the start, yet we have
+            // found all the other fields to be equal. Just give up and say they are the same.
+            return 0;
+          }
+          else {
+            // tools differ, so just return the comparison value
+            return hrefCompare;
+          }
+        }
+        else {
+          // tools differ, so just return the comparison value
+          return toolCompare;
+        }
+      }
+      else {
+        // sources differ, so just return the comparison value
+        return sourceCompare;
+      }
+    }
+    else {
+      throw new RuntimeException("XMLGregorianCalendar.compare returned invalid value");
+    }
+  }
 }

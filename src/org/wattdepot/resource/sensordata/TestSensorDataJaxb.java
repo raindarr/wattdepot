@@ -2,12 +2,14 @@ package org.wattdepot.resource.sensordata;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.hackystat.utilities.tstamp.Tstamp;
 import org.junit.Test;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 
 /**
  * Ensures that the equals() and hashCode() methods that have been manually added to the JAXB
@@ -21,6 +23,11 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
  * @author Robert Brewer
  */
 public class TestSensorDataJaxb {
+
+  /** Making PMD happy. */
+  private static final String JUNIT_TOOL = "JUnit";
+  /** Making PMD happy, at the expense of readability. */
+  private static final String DEFAULT_TIMESTAMP = "2009-07-28T08:00:00.000-10:00";
 
   /**
    * Tests equals and hashCode for the SensorData Property type.
@@ -85,13 +92,13 @@ public class TestSensorDataJaxb {
     props2.getProperty().add(prop3);
     props2.getProperty().add(prop4);
 
-    XMLGregorianCalendar timestamp1 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
-    XMLGregorianCalendar timestamp2 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
+    XMLGregorianCalendar timestamp1 = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
+    XMLGregorianCalendar timestamp2 = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
     data1 =
-        SensorDataUtils.makeSensorData(timestamp1, "JUnit",
+        SensorDataUtils.makeSensorData(timestamp1, JUNIT_TOOL,
             "http://localhost:8183/wattdepot/sources/saunders-hall", props1);
     data2 =
-        SensorDataUtils.makeSensorData(timestamp2, "JUnit",
+        SensorDataUtils.makeSensorData(timestamp2, JUNIT_TOOL,
             "http://localhost:8183/wattdepot/sources/saunders-hall", props2);
 
     assertNotSame("Two newly created SensorData are the same object", data1, data2);
@@ -116,13 +123,61 @@ public class TestSensorDataJaxb {
     props1.getProperty().add(prop1);
     props1.getProperty().add(prop2);
 
-    XMLGregorianCalendar timestamp1 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
+    XMLGregorianCalendar timestamp1 = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
     data1 =
-        SensorDataUtils.makeSensorData(timestamp1, "JUnit",
+        SensorDataUtils.makeSensorData(timestamp1, JUNIT_TOOL,
             "http://localhost:8183/wattdepot/sources/saunders-hall", props1);
     assertEquals("SensorData did not create expected toString",
         "SensorData [properties=[Property [key=foo-key, value=foo], Property [key=bar-key,"
             + " value=bar]], source=http://localhost:8183/wattdepot/sources/saunders-hall,"
             + " timestamp=2009-07-28T08:00:00.000-10:00, tool=JUnit]", data1.toString());
+  }
+
+  /**
+   * Tests equals, hashCode, and compareTo for the SensorDataRef type.
+   * 
+   * @throws Exception If there are problems creating timestamps
+   */
+  @Test
+  public void testSensorDataRef() throws Exception {
+    // Create a bunch of components we can use to make various SensorDataRefs that will compare
+    // differently. "Equal" suffix means the same as the original, "Before" means should compare
+    // less than, "After" means should compare greater than.
+    XMLGregorianCalendar timestamp = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
+    XMLGregorianCalendar timestampEqual = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
+    XMLGregorianCalendar timestampBefore = Tstamp.makeTimestamp("2009-07-27T08:00:00.000-10:00");
+    XMLGregorianCalendar timestampAfter = Tstamp.makeTimestamp("2009-07-29T08:00:00.000-10:00");
+    String tool = JUNIT_TOOL;
+    String toolEqual = JUNIT_TOOL;
+    String toolBefore = "A-JUnit";
+    String toolAfter = "Z-JUnit";
+    String source = "http://server.wattdepot.org:1234/sources/saunders-hall";
+    String sourceEqual = "http://server.wattdepot.org:1234/sources/saunders-hall";
+    String sourceBefore = "http://server.wattdepot.org:1234/sources/a-saunders-hall";
+    String sourceAfter = "http://server.wattdepot.org:1234/sources/z-saunders-hall";
+    SensorDataRef ref = SensorDataUtils.makeSensorDataRef(timestamp, tool, source);
+    SensorDataRef refEqual =
+        SensorDataUtils.makeSensorDataRef(timestampEqual, toolEqual, sourceEqual);
+    assertNotSame("Two newly created SensorDataRefs are the same object", ref, refEqual);
+    assertEquals("Two SensorDataRefs with identical fields are not equal", ref, refEqual);
+    assertEquals("Two SensorDataRefs with identical fields have different hashCodes", ref
+        .hashCode(), refEqual.hashCode());
+    assertEquals("SensorDataRef.compareTo timestamp not working", 0, ref.compareTo(refEqual));
+    SensorDataRef refTimestampBefore =
+        SensorDataUtils.makeSensorDataRef(timestampBefore, tool, source);
+    SensorDataRef refTimestampAfter =
+        SensorDataUtils.makeSensorDataRef(timestampAfter, tool, source);
+    assertEquals("SensorDataRef.compareTo timestamp not working", -1, ref
+        .compareTo(refTimestampAfter));
+    assertEquals("SensorDataRef.compareTo timestamp not working", 1, ref
+        .compareTo(refTimestampBefore));
+    SensorDataRef refToolBefore = SensorDataUtils.makeSensorDataRef(timestamp, toolBefore, source);
+    SensorDataRef refToolAfter = SensorDataUtils.makeSensorDataRef(timestamp, toolAfter, source);
+    assertTrue("SensorDataRef.compareTo tool not working", ref.compareTo(refToolAfter) < 0);
+    assertTrue("SensorDataRef.compareTo tool not working", ref.compareTo(refToolBefore) > 0);
+    SensorDataRef refSourceBefore = SensorDataUtils.makeSensorDataRef(timestamp, tool, sourceBefore);
+    SensorDataRef refSourceAfter = SensorDataUtils.makeSensorDataRef(timestamp, tool, sourceAfter);
+    assertTrue("SensorDataRef.compareTo source not working", ref.compareTo(refSourceAfter) < 0);
+    assertTrue("SensorDataRef.compareTo source not working", ref.compareTo(refSourceBefore) > 0);
   }
 }

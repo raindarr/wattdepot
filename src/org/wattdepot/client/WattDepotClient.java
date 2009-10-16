@@ -3,6 +3,8 @@ package org.wattdepot.client;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -25,6 +27,7 @@ import org.restlet.resource.Representation;
 import org.restlet.resource.StringRepresentation;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
+import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 import org.wattdepot.util.UriUtils;
@@ -242,8 +245,9 @@ public class WattDepotClient {
   }
 
   /**
-   * Requests a SensorDataIndex containing SensorData in the range between the given start and end
-   * timestamps for this source from the server.
+   * Requests a SensorDataIndex representing all the SensorData resources for the named Source such
+   * that their timestamp is greater than or equal to the given start time and less than or equal to
+   * the given end time from the server.
    * 
    * @param source The name of the Source.
    * @param startTime The start of the range.
@@ -262,8 +266,7 @@ public class WattDepotClient {
     String uri =
         Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + "?startTime="
             + startTime.toXMLFormat() + "&" + "endTime=" + endTime.toXMLFormat();
-    Response response =
-        makeRequest(Method.GET, uri, XML_MEDIA, null);
+    Response response = makeRequest(Method.GET, uri, XML_MEDIA, null);
     Status status = response.getStatus();
 
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
@@ -297,6 +300,35 @@ public class WattDepotClient {
       // Some totally unexpected non-success status code, just throw generic client exception
       throw new MiscClientException(status);
     }
+  }
+
+  /**
+   * Requests a List of SensorData representing all the SensorData resources for the named Source
+   * such that their timestamp is greater than or equal to the given start time and less than or
+   * equal to the given end time from the server. Currently just a convenience method, but if the
+   * REST API is extended to support getting SensorData directly without going through a
+   * SensorDataIndex, this method will use that more efficient API call.
+   * 
+   * @param source The name of the Source.
+   * @param startTime The start of the range.
+   * @param endTime The end of the range.
+   * @return The List of SensorData in the range.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SensorData
+   * index.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public List<SensorData> getSensorDatas(String source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime) throws NotAuthorizedException, ResourceNotFoundException,
+      BadXmlException, MiscClientException {
+    List<SensorData> dataList = new ArrayList<SensorData>();
+    SensorDataIndex index = getSensorDataIndex(source, startTime, endTime);
+    for (SensorDataRef ref : index.getSensorDataRef()) {
+      dataList.add(getSensorData(ref));
+    }
+    return dataList;
   }
 
   /**
@@ -351,6 +383,23 @@ public class WattDepotClient {
       // Some totally unexpected non-success status code, just throw generic client exception
       throw new MiscClientException(status);
     }
+  }
+
+  /**
+   * Convenience method for retrieving a SensorData given its SensorDataRef.
+   * 
+   * @param ref The SensorDataRef of the desired SensorData.
+   * @return The SensorData.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SensorData
+   * index.
+   * @throws ResourceNotFoundException If the source name in the ref doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public SensorData getSensorData(SensorDataRef ref) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    return getSensorData(UriUtils.getUriSuffix(ref.getSource()), ref.getTimestamp());
   }
 
   /**

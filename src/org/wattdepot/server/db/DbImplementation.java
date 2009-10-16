@@ -94,7 +94,8 @@ public abstract class DbImplementation {
 
   /**
    * Returns the SensorDataIndex listing all sensor data for the named Source. If the Source has no
-   * SensorData resources, the index will be empty.
+   * SensorData resources, the index will be empty (not null). The list will be sorted in order of
+   * increasing timestamp values.
    * 
    * @param sourceName The name of the Source whose sensor data is to be returned.
    * @return a SensorDataIndex object containing all relevant sensor data resources, or null if
@@ -103,9 +104,10 @@ public abstract class DbImplementation {
   public abstract SensorDataIndex getSensorDataIndex(String sourceName);
 
   /**
-   * Returns the SensorDataIndex representing all the SensorData resources for the named Source
-   * between the given start and end times. If the Source has no appropriate SensorData resources,
-   * the index will be empty.
+   * Returns the SensorDataIndex representing all the SensorData resources for the named Source such
+   * that their timestamp is greater than or equal to the given start time and less than or equal to
+   * the given end time. If the Source has no appropriate SensorData resources, the index will be
+   * empty (not null). The list will be sorted in order of increasing timestamp values.
    * 
    * @param sourceName The name of the Source whose sensor data is to be returned.
    * @param startTime The earliest Sensor Data to be returned.
