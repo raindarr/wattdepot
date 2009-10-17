@@ -7,6 +7,7 @@ import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
 import static org.wattdepot.server.ServerProperties.PORT_KEY;
 import static org.wattdepot.server.ServerProperties.TEST_INSTALL_KEY;
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
@@ -233,6 +234,14 @@ public class Server extends Application {
           // Source read from the file might have an Owner field that points to a different
           // host URI. We want all defaults normalized to this server, so update it.
           source.setOwner(UserUtils.updateUri(source.getOwner(), this));
+          // Source read from the file might have an Href elements under SubSources that points to
+          // a different host URI. We want all defaults normalized to this server, so update it.
+          if (source.isSetSubSources()) {
+            List<String> hrefs = source.getSubSources().getHref();
+            for (int i = 0; i < hrefs.size(); i++) {
+              hrefs.set(i, SourceUtils.updateUri(hrefs.get(i), this));
+            }
+          }
           if (dbManager.storeSource(source)) {
             logger.info("Loaded source " + source.getName() + " from defaults.");
           }
@@ -246,20 +255,25 @@ public class Server extends Application {
       if (sensorDataDir.isDirectory()) {
         unmarshaller = sensorDataJAXB.createUnmarshaller();
         SensorData data;
+        int dataCount = 0;
+        logger.info("Loading sensor data from defaults.");
         for (File sensorDataFile : sensorDataDir.listFiles()) {
           data = (SensorData) unmarshaller.unmarshal(sensorDataFile);
           // SensorData read from the file might have an Owner field that points to a different
           // host URI. We want all defaults normalized to this server, so update it.
           data.setSource(SourceUtils.updateUri(data.getSource(), this));
           if (dbManager.storeSensorData(data)) {
-            logger.info("Loaded sensor data for source " + data.getSource() + ", time "
-                + data.getTimestamp() + " from defaults.");
+            // Too voluminous to print every sensor data loaded
+//            logger.info("Loaded sensor data for source " + data.getSource() + ", time "
+//                + data.getTimestamp() + " from defaults.");
+            dataCount++;
           }
           else {
             logger.warning("Default resource from file \"" + sensorDataFile.toString()
                 + "\" could not be stored in DB.");
           }
         }
+      logger.info("Loaded " + dataCount + " sensor data objects from defaults.");
       }
     }
     else {

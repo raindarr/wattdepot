@@ -54,6 +54,7 @@ public class OscarRowParser extends RowParser {
    * @return The new SensorData object.
    * @throws RowParseException If there are problems parsing the row.
    */
+  @Override
   public SensorData parseRow(String[] col) throws RowParseException {
     // Example rows from Oscar:
     // Time, Plant, GridMW, OverheadMW, Type

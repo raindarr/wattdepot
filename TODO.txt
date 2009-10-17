@@ -8,6 +8,6 @@ List of things to do:
   - Maybe need to install JAXB via Ivy (though it's a manual download, bletch)
   - Maybe need to add JAXB as library in Eclipse
 - Add more tests for UsersResource once UserResource is fully implemented
-- Add hashCode and equals to User and Source (and downstream stuff), with unit tests
-- Make all list-returning methods in MemoryStorageImplementation sort their lists before returning
-- Make tests to confirm SensorDataIndexes returned are sorted in DbManagerSensorData
+- Add hashCode and equals to User (and downstream stuff), with unit tests
+- Make UserIndex method in MemoryStorageImplementation sort the list before returning
+- Make tests to confirm SensorDataIndexes and SourceIndexes returned are sorted in DbManagerSensorData

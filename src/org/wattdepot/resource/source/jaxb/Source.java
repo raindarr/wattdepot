@@ -5,7 +5,6 @@
 // Generated on: 2009.08.31 at 03:06:32 PM HST 
 //
 
-
 package org.wattdepot.resource.source.jaxb;
 
 import java.io.Serializable;
@@ -16,416 +15,384 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlSchemaType;
 import javax.xml.bind.annotation.XmlType;
 
-
 /**
- * <p>Java class for anonymous complex type.
+ * <p>
+ * Java class for anonymous complex type.
  * 
- * <p>The following schema fragment specifies the expected content contained within this class.
+ * <p>
+ * The following schema fragment specifies the expected content contained within this class.
  * 
  * <pre>
- * &lt;complexType>
- *   &lt;complexContent>
- *     &lt;restriction base="{http://www.w3.org/2001/XMLSchema}anyType">
- *       &lt;sequence>
- *         &lt;element ref="{}Name"/>
- *         &lt;element ref="{}Owner"/>
- *         &lt;element ref="{}Public"/>
- *         &lt;element ref="{}Virtual"/>
- *         &lt;element ref="{}Coordinates"/>
- *         &lt;element ref="{}Location"/>
- *         &lt;element ref="{}Description"/>
- *         &lt;element ref="{}SubSources" minOccurs="0"/>
- *         &lt;element ref="{}Properties" minOccurs="0"/>
- *       &lt;/sequence>
- *     &lt;/restriction>
- *   &lt;/complexContent>
- * &lt;/complexType>
+ * &lt;complexType&gt;
+ *   &lt;complexContent&gt;
+ *     &lt;restriction base=&quot;{http://www.w3.org/2001/XMLSchema}anyType&quot;&gt;
+ *       &lt;sequence&gt;
+ *         &lt;element ref=&quot;{}Name&quot;/&gt;
+ *         &lt;element ref=&quot;{}Owner&quot;/&gt;
+ *         &lt;element ref=&quot;{}Public&quot;/&gt;
+ *         &lt;element ref=&quot;{}Virtual&quot;/&gt;
+ *         &lt;element ref=&quot;{}Coordinates&quot;/&gt;
+ *         &lt;element ref=&quot;{}Location&quot;/&gt;
+ *         &lt;element ref=&quot;{}Description&quot;/&gt;
+ *         &lt;element ref=&quot;{}SubSources&quot; minOccurs=&quot;0&quot;/&gt;
+ *         &lt;element ref=&quot;{}Properties&quot; minOccurs=&quot;0&quot;/&gt;
+ *       &lt;/sequence&gt;
+ *     &lt;/restriction&gt;
+ *   &lt;/complexContent&gt;
+ * &lt;/complexType&gt;
  * </pre>
  * 
  * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "", propOrder = {
-    "name",
-    "owner",
-    "_public",
-    "virtual",
-    "coordinates",
-    "location",
-    "description",
-    "subSources",
-    "properties"
-})
+@XmlType(name = "", propOrder = { "name", "owner", "_public", "virtual", "coordinates", "location",
+    "description", "subSources", "properties" })
 @XmlRootElement(name = "Source")
-public class Source
-    implements Serializable
-{
+public class Source implements Serializable {
 
-    private final static long serialVersionUID = 12343L;
-    @XmlElement(name = "Name", required = true)
-    protected String name;
-    @XmlElement(name = "Owner", required = true)
-    @XmlSchemaType(name = "anyURI")
-    protected String owner;
-    @XmlElement(name = "Public")
-    protected boolean _public;
-    @XmlElement(name = "Virtual")
-    protected boolean virtual;
-    @XmlElement(name = "Coordinates", required = true)
-    protected String coordinates;
-    @XmlElement(name = "Location", required = true)
-    protected String location;
-    @XmlElement(name = "Description", required = true)
-    protected String description;
-    @XmlElement(name = "SubSources")
-    protected SubSources subSources;
-    @XmlElement(name = "Properties")
-    protected Properties properties;
+  private final static long serialVersionUID = 12343L;
+  @XmlElement(name = "Name", required = true)
+  protected String name;
+  @XmlElement(name = "Owner", required = true)
+  @XmlSchemaType(name = "anyURI")
+  protected String owner;
+  @XmlElement(name = "Public")
+  protected boolean _public;
+  @XmlElement(name = "Virtual")
+  protected boolean virtual;
+  @XmlElement(name = "Coordinates", required = true)
+  protected String coordinates;
+  @XmlElement(name = "Location", required = true)
+  protected String location;
+  @XmlElement(name = "Description", required = true)
+  protected String description;
+  @XmlElement(name = "SubSources")
+  protected SubSources subSources;
+  @XmlElement(name = "Properties")
+  protected Properties properties;
 
-    /**
-     * Gets the value of the name property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getName() {
-        return name;
-    }
+  /**
+   * Gets the value of the name property.
+   * 
+   * @return possible object is {@link String }
+   * 
+   */
+  public String getName() {
+    return name;
+  }
 
-    /**
-     * Sets the value of the name property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setName(String value) {
-        this.name = value;
-    }
+  /**
+   * Sets the value of the name property.
+   * 
+   * @param value allowed object is {@link String }
+   * 
+   */
+  public void setName(String value) {
+    this.name = value;
+  }
 
-    public boolean isSetName() {
-        return (this.name!= null);
-    }
+  public boolean isSetName() {
+    return (this.name != null);
+  }
 
-    /**
-     * Gets the value of the owner property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getOwner() {
-        return owner;
-    }
+  /**
+   * Gets the value of the owner property.
+   * 
+   * @return possible object is {@link String }
+   * 
+   */
+  public String getOwner() {
+    return owner;
+  }
 
-    /**
-     * Sets the value of the owner property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setOwner(String value) {
-        this.owner = value;
-    }
+  /**
+   * Sets the value of the owner property.
+   * 
+   * @param value allowed object is {@link String }
+   * 
+   */
+  public void setOwner(String value) {
+    this.owner = value;
+  }
 
-    public boolean isSetOwner() {
-        return (this.owner!= null);
-    }
+  public boolean isSetOwner() {
+    return (this.owner != null);
+  }
 
-    /**
-     * Gets the value of the public property.
-     * 
-     */
-    public boolean isPublic() {
-        return _public;
-    }
+  /**
+   * Gets the value of the public property.
+   * 
+   */
+  public boolean isPublic() {
+    return _public;
+  }
 
-    /**
-     * Sets the value of the public property.
-     * 
-     */
-    public void setPublic(boolean value) {
-        this._public = value;
-    }
+  /**
+   * Sets the value of the public property.
+   * 
+   */
+  public void setPublic(boolean value) {
+    this._public = value;
+  }
 
-    public boolean isSetPublic() {
-        return true;
-    }
+  public boolean isSetPublic() {
+    return true;
+  }
 
-    /**
-     * Gets the value of the virtual property.
-     * 
-     */
-    public boolean isVirtual() {
-        return virtual;
-    }
+  /**
+   * Gets the value of the virtual property.
+   * 
+   */
+  public boolean isVirtual() {
+    return virtual;
+  }
 
-    /**
-     * Sets the value of the virtual property.
-     * 
-     */
-    public void setVirtual(boolean value) {
-        this.virtual = value;
-    }
+  /**
+   * Sets the value of the virtual property.
+   * 
+   */
+  public void setVirtual(boolean value) {
+    this.virtual = value;
+  }
 
-    public boolean isSetVirtual() {
-        return true;
-    }
+  public boolean isSetVirtual() {
+    return true;
+  }
 
-    /**
-     * Gets the value of the coordinates property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getCoordinates() {
-        return coordinates;
-    }
+  /**
+   * Gets the value of the coordinates property.
+   * 
+   * @return possible object is {@link String }
+   * 
+   */
+  public String getCoordinates() {
+    return coordinates;
+  }
 
-    /**
-     * Sets the value of the coordinates property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setCoordinates(String value) {
-        this.coordinates = value;
-    }
+  /**
+   * Sets the value of the coordinates property.
+   * 
+   * @param value allowed object is {@link String }
+   * 
+   */
+  public void setCoordinates(String value) {
+    this.coordinates = value;
+  }
 
-    public boolean isSetCoordinates() {
-        return (this.coordinates!= null);
-    }
+  public boolean isSetCoordinates() {
+    return (this.coordinates != null);
+  }
 
-    /**
-     * Gets the value of the location property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getLocation() {
-        return location;
-    }
+  /**
+   * Gets the value of the location property.
+   * 
+   * @return possible object is {@link String }
+   * 
+   */
+  public String getLocation() {
+    return location;
+  }
 
-    /**
-     * Sets the value of the location property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setLocation(String value) {
-        this.location = value;
-    }
+  /**
+   * Sets the value of the location property.
+   * 
+   * @param value allowed object is {@link String }
+   * 
+   */
+  public void setLocation(String value) {
+    this.location = value;
+  }
 
-    public boolean isSetLocation() {
-        return (this.location!= null);
-    }
+  public boolean isSetLocation() {
+    return (this.location != null);
+  }
 
-    /**
-     * Gets the value of the description property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link String }
-     *     
-     */
-    public String getDescription() {
-        return description;
-    }
+  /**
+   * Gets the value of the description property.
+   * 
+   * @return possible object is {@link String }
+   * 
+   */
+  public String getDescription() {
+    return description;
+  }
 
-    /**
-     * Sets the value of the description property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link String }
-     *     
-     */
-    public void setDescription(String value) {
-        this.description = value;
-    }
+  /**
+   * Sets the value of the description property.
+   * 
+   * @param value allowed object is {@link String }
+   * 
+   */
+  public void setDescription(String value) {
+    this.description = value;
+  }
 
-    public boolean isSetDescription() {
-        return (this.description!= null);
-    }
+  public boolean isSetDescription() {
+    return (this.description != null);
+  }
 
-    /**
-     * Gets the value of the subSources property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link SubSources }
-     *     
-     */
-    public SubSources getSubSources() {
-        return subSources;
-    }
+  /**
+   * Gets the value of the subSources property.
+   * 
+   * @return possible object is {@link SubSources }
+   * 
+   */
+  public SubSources getSubSources() {
+    return subSources;
+  }
 
-    /**
-     * Sets the value of the subSources property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link SubSources }
-     *     
-     */
-    public void setSubSources(SubSources value) {
-        this.subSources = value;
-    }
+  /**
+   * Sets the value of the subSources property.
+   * 
+   * @param value allowed object is {@link SubSources }
+   * 
+   */
+  public void setSubSources(SubSources value) {
+    this.subSources = value;
+  }
 
-    public boolean isSetSubSources() {
-        return (this.subSources!= null);
-    }
+  public boolean isSetSubSources() {
+    return (this.subSources != null);
+  }
 
-    /**
-     * Gets the value of the properties property.
-     * 
-     * @return
-     *     possible object is
-     *     {@link Properties }
-     *     
-     */
-    public Properties getProperties() {
-        return properties;
-    }
+  /**
+   * Gets the value of the properties property.
+   * 
+   * @return possible object is {@link Properties }
+   * 
+   */
+  public Properties getProperties() {
+    return properties;
+  }
 
-    /**
-     * Sets the value of the properties property.
-     * 
-     * @param value
-     *     allowed object is
-     *     {@link Properties }
-     *     
-     */
-    public void setProperties(Properties value) {
-        this.properties = value;
-    }
+  /**
+   * Sets the value of the properties property.
+   * 
+   * @param value allowed object is {@link Properties }
+   * 
+   */
+  public void setProperties(Properties value) {
+    this.properties = value;
+  }
 
-    public boolean isSetProperties() {
-        return (this.properties!= null);
-    }
+  public boolean isSetProperties() {
+    return (this.properties != null);
+  }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#hashCode()
-     */
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + (_public ? 1231 : 1237);
-      result = prime * result + ((coordinates == null) ? 0 : coordinates.hashCode());
-      result = prime * result + ((description == null) ? 0 : description.hashCode());
-      result = prime * result + ((location == null) ? 0 : location.hashCode());
-      result = prime * result + ((name == null) ? 0 : name.hashCode());
-      result = prime * result + ((owner == null) ? 0 : owner.hashCode());
-      result = prime * result + ((properties == null) ? 0 : properties.hashCode());
-      result = prime * result + ((subSources == null) ? 0 : subSources.hashCode());
-      result = prime * result + (virtual ? 1231 : 1237);
-      return result;
-    }
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#hashCode()
+   */
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + (_public ? 1231 : 1237);
+    result = prime * result + ((coordinates == null) ? 0 : coordinates.hashCode());
+    result = prime * result + ((description == null) ? 0 : description.hashCode());
+    result = prime * result + ((location == null) ? 0 : location.hashCode());
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+    result = prime * result + ((properties == null) ? 0 : properties.hashCode());
+    result = prime * result + ((subSources == null) ? 0 : subSources.hashCode());
+    result = prime * result + (virtual ? 1231 : 1237);
+    return result;
+  }
 
-    /* (non-Javadoc)
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-      Source other = (Source) obj;
-      if (_public != other._public) {
-        return false;
-      }
-      if (coordinates == null) {
-        if (other.coordinates != null) {
-          return false;
-        }
-      }
-      else if (!coordinates.equals(other.coordinates)) {
-        return false;
-      }
-      if (description == null) {
-        if (other.description != null) {
-          return false;
-        }
-      }
-      else if (!description.equals(other.description)) {
-        return false;
-      }
-      if (location == null) {
-        if (other.location != null) {
-          return false;
-        }
-      }
-      else if (!location.equals(other.location)) {
-        return false;
-      }
-      if (name == null) {
-        if (other.name != null) {
-          return false;
-        }
-      }
-      else if (!name.equals(other.name)) {
-        return false;
-      }
-      if (owner == null) {
-        if (other.owner != null) {
-          return false;
-        }
-      }
-      else if (!owner.equals(other.owner)) {
-        return false;
-      }
-      if (properties == null) {
-        if (other.properties != null) {
-          return false;
-        }
-      }
-      else if (!properties.equals(other.properties)) {
-        return false;
-      }
-      if (subSources == null) {
-        if (other.subSources != null) {
-          return false;
-        }
-      }
-      else if (!subSources.equals(other.subSources)) {
-        return false;
-      }
-      if (virtual != other.virtual) {
-        return false;
-      }
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
     }
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#toString()
-     */
-    @Override
-    public String toString() {
-      return "Source [public=" + _public + ", coordinates=(" + coordinates + "), description="
-          + description + ", location=" + location + ", name=" + name + ", owner=" + owner
-          + ", properties=" + properties + ", subSources=" + subSources + ", virtual=" + virtual
-          + "]";
+    if (obj == null) {
+      return false;
     }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    Source other = (Source) obj;
+    if (_public != other._public) {
+      return false;
+    }
+    if (coordinates == null) {
+      if (other.coordinates != null) {
+        return false;
+      }
+    }
+    else if (!coordinates.equals(other.coordinates)) {
+      return false;
+    }
+    if (description == null) {
+      if (other.description != null) {
+        return false;
+      }
+    }
+    else if (!description.equals(other.description)) {
+      return false;
+    }
+    if (location == null) {
+      if (other.location != null) {
+        return false;
+      }
+    }
+    else if (!location.equals(other.location)) {
+      return false;
+    }
+    if (name == null) {
+      if (other.name != null) {
+        return false;
+      }
+    }
+    else if (!name.equals(other.name)) {
+      return false;
+    }
+    if (owner == null) {
+      if (other.owner != null) {
+        return false;
+      }
+    }
+    else if (!owner.equals(other.owner)) {
+      return false;
+    }
+    if (properties == null) {
+      if (other.properties != null) {
+        return false;
+      }
+    }
+    else if (!properties.equals(other.properties)) {
+      return false;
+    }
+    if (subSources == null) {
+      if (other.subSources != null) {
+        return false;
+      }
+    }
+    else if (!subSources.equals(other.subSources)) {
+      return false;
+    }
+    if (virtual != other.virtual) {
+      return false;
+    }
+    return true;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+    return "Source [name=" + name + ", public=" + _public + ", coordinates=(" + coordinates
+        + "), description=" + description + ", location=" + location + ", owner=" + owner
+        + ", properties=" + properties + ", subSources=" + subSources + ", virtual=" + virtual
+        + "]";
+  }
 
 }

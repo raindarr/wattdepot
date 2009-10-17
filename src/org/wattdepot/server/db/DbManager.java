@@ -113,6 +113,7 @@ public class DbManager {
    * @return True if the default data could be created, or false otherwise.
    */
   public boolean createDefaultData() {
+    // Always want there to be an admin user
     ServerProperties serverProps =
         (ServerProperties) server.getContext().getAttributes().get("ServerProperties");
     String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
@@ -121,6 +122,7 @@ public class DbManager {
     User adminUser = makeUser(adminUsername, adminPassword, true, null);
     // stick admin user into database
     if (!this.storeUser(adminUser)) {
+//      server.getLogger().severe("Unable to create admin user from properties!");
       return false;
     }
     // create a non-admin user that owns a source for testing

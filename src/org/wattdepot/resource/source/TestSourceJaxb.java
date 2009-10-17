@@ -122,8 +122,8 @@ public class TestSourceJaxb {
     SubSources subSources1 = new SubSources();
     Source source1;
     String expectedOutput =
-        "Source [public=true, coordinates=(0, 0, 0),"
-            + " description=The fabulous foo meter, location=Some dank corner of a closet, name=foo-source,"
+        "Source [name=foo-source, public=true, coordinates=(0, 0, 0),"
+            + " description=The fabulous foo meter, location=Some dank corner of a closet,"
             + " owner=http://localhost:8183/wattdepot/users/foo@example.com,"
             + " properties=[Property [key=foo-key, value=foo], Property [key=bar-key, value=bar]],"
             + " subSources=[http://localhost:8183/wattdepot/sources/sub1, http://localhost:8183/wattdepot/sources/sub2], virtual=true]";

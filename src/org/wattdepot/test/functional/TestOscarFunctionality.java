@@ -18,6 +18,7 @@ import org.wattdepot.datainput.OscarRowParser;
 import org.wattdepot.datainput.RowParseException;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.server.db.DbException;
 import org.wattdepot.server.db.DbManager;
@@ -32,6 +33,8 @@ import org.wattdepot.util.UriUtils;
  * @author Robert Brewer
  */
 public class TestOscarFunctionality extends ServerTestHelper {
+
+  private static final String lineSep = System.getProperty("line.separator");
 
   /**
    * Programmatically loads some Oscar data needed by the rest of the tests.
@@ -244,9 +247,80 @@ public class TestOscarFunctionality extends ServerTestHelper {
                 + "<Location>To be looked up later</Location>"
                 + "<Description>Waiau 10 is a HECO plant on Oahu's grid that uses diesel as its fuel.</Description>"
                 + "<Properties>" + " <Property>" + "  <Key>carbonIntensity</Key>"
-                + "  <Value>2400</Value>" + " </Property>" + "</Properties>" + "</Source>" };
+                + "  <Value>2400</Value>" + " </Property>" + "</Properties>" + "</Source>",
+            "<?xml version=\"1.0\"?>"
+                + "<Source>"
+                + "<Name>SIM_KAHE</Name>"
+                + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
+                + "<Public>true</Public>" + "<Virtual>true</Virtual>"
+                + "<Coordinates>0,0,0</Coordinates>" + "<Location>To be looked up later</Location>"
+                + "<Description>Virtual resource for all Kahe power plants.</Description>"
+                + "<SubSources>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_1</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_2</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_3</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_4</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_5</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_6</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_7</Href>"
+                + "</SubSources>" + "</Source>",
+            "<?xml version=\"1.0\"?>"
+                + "<Source>"
+                + "<Name>SIM_WAIAU</Name>"
+                + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
+                + "<Public>true</Public>" + "<Virtual>true</Virtual>"
+                + "<Coordinates>0,0,0</Coordinates>" + "<Location>To be looked up later</Location>"
+                + "<Description>Virtual resource for all Waiau power plants.</Description>"
+                + "<SubSources>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_5</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_6</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_7</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_8</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_9</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_10</Href>"
+                + "</SubSources>" + "</Source>",
+            "<?xml version=\"1.0\"?>"
+                + "<Source>"
+                + "<Name>SIM_HONOLULU</Name>"
+                + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
+                + "<Public>true</Public>" + "<Virtual>true</Virtual>"
+                + "<Coordinates>21.306278,-157.863997,0</Coordinates>"
+                + "<Location>To be looked up later</Location>"
+                + "<Description>Virtual resource for all Honolulu power plants.</Description>"
+                + "<SubSources>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_HONOLULU_8</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_HONOLULU_9</Href>"
+                + "</SubSources>" + "</Source>",
+            "<?xml version=\"1.0\"?>"
+                + "<Source>"
+                + "<Name>SIM_IPP</Name>"
+                + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
+                + "<Public>true</Public>"
+                + "<Virtual>true</Virtual>"
+                + "<Coordinates>0,0,0</Coordinates>"
+                + "<Location>To be looked up later</Location>"
+                + "<Description>Virtual resource for all independent power producers (non-HECO).</Description>"
+                + "<SubSources>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_AES</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_HPOWER</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KALAELOA</Href>"
+                + "</SubSources>" + "</Source>",
+            "<?xml version=\"1.0\"?>"
+                + "<Source>"
+                + "<Name>SIM_OAHU_GRID</Name>"
+                + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
+                + "<Public>true</Public>" + "<Virtual>true</Virtual>"
+                + "<Coordinates>0,0,0</Coordinates>" + "<Location>To be looked up later</Location>"
+                + "<Description>Virtual resource for all Oahu power plants.</Description>"
+                + "<SubSources>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_HONOLULU</Href>"
+                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_IPP</Href>"
+                + "</SubSources>" + "</Source>" };
     // Whacking directly on the database here
-    DbManager dbManager = (DbManager) server.getContext().getAttributes().get("DbManager");
+    DbManager dbManager =
+        new DbManager(server, "org.wattdepot.server.db.memory.MemoryStorageImplementation", true);
     JAXBContext sourceJAXB;
     Unmarshaller unmarshaller;
     sourceJAXB = JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
@@ -255,6 +329,14 @@ public class TestOscarFunctionality extends ServerTestHelper {
     // Go through each Source String in XML format, turn it into a Source, and store in DB
     for (String xmlInput : sourceXmlStrings) {
       source = (Source) unmarshaller.unmarshal(new StringReader(xmlInput));
+      // Source read from the file might have an Href elements under SubSources that points to
+      // a different host URI. We want all defaults normalized to this server, so update it.
+      if (source.isSetSubSources()) {
+        List<String> hrefs = source.getSubSources().getHref();
+        for (int i = 0; i < hrefs.size(); i++) {
+          hrefs.set(i, SourceUtils.updateUri(hrefs.get(i), server));
+        }
+      }
       if (!dbManager.storeSource(source)) {
         throw new DbException("Unable to store source from static XML data");
       }
@@ -263,13 +345,106 @@ public class TestOscarFunctionality extends ServerTestHelper {
     for (String row : oscarRows) {
       dbManager.storeSensorData(parser.parseRow(row.split(",")));
     }
+    server.getContext().getAttributes().put("DbManager", dbManager);
   }
 
-  // @Test
-  // public void listSources() {
-  // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-  //
-  // }
+  /**
+   * Fetches the Source list from server, checks which sources are parents to which other sources,
+   * formats as a pretty string. Solves this assignment problem:
+   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.3_list_sources
+   * 
+   * @throws Exception If there are problems retrieving the Source list.
+   */
+  @Test
+  public void listSources() throws Exception {
+    String expectedOutput =
+        "SIM_HONOLULU SIM_OAHU_GRID Virtual resource for all Honolulu power plants."
+            + lineSep
+            + "SIM_HONOLULU_8 SIM_HONOLULU Honolulu 8 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_HONOLULU_9 SIM_HONOLULU Honolulu 9 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_HPOWER SIM_IPP HPOWER is an independent power producer on Oahu's grid that uses municipal waste as its fuel."
+            + lineSep
+            + "SIM_IPP SIM_OAHU_GRID Virtual resource for all independent power producers (non-HECO)."
+            + lineSep
+            + "SIM_KAHE SIM_OAHU_GRID Virtual resource for all Kahe power plants."
+            + lineSep
+            + "SIM_KAHE_1 SIM_KAHE Kahe 1 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_KAHE_2 SIM_KAHE Kahe 2 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_KAHE_3 SIM_KAHE Kahe 3 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_KAHE_4 SIM_KAHE Kahe 4 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_KAHE_5 SIM_KAHE Kahe 5 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_KAHE_6 SIM_KAHE Kahe 6 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_KALAELOA SIM_IPP Kalaeloa is an independent power producer on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_OAHU_GRID  Virtual resource for all Oahu power plants."
+            + lineSep
+            + "SIM_WAIAU SIM_OAHU_GRID Virtual resource for all Waiau power plants."
+            + lineSep
+            + "SIM_WAIAU_10 SIM_WAIAU Waiau 10 is a HECO plant on Oahu's grid that uses diesel as its fuel."
+            + lineSep
+            + "SIM_WAIAU_5 SIM_WAIAU Waiau 5 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_WAIAU_6 SIM_WAIAU Waiau 6 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep
+            + "SIM_WAIAU_9 SIM_WAIAU Waiau 9 is a HECO plant on Oahu's grid that uses diesel as its fuel."
+            + lineSep;
+    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    List<Source> sourceList = client.getSources();
+    StringBuffer outputBuff = new StringBuffer(1000);
+    StringBuffer parentListBuff;
+
+    for (Source source : sourceList) {
+      outputBuff.append(source.getName());
+      outputBuff.append(' ');
+      parentListBuff = new StringBuffer(100);
+      for (Source possibleParent : sourceList) {
+        if (isParent(source, possibleParent)) {
+          if (parentListBuff.length() != 0) {
+            // already have one parent, so add comma
+            parentListBuff.append(", ");
+          }
+          parentListBuff.append(possibleParent.getName());
+        }
+      }
+      if (parentListBuff.length() == 0) {
+        outputBuff.append(' ');
+      }
+      else {
+        outputBuff.append(parentListBuff.toString());
+        outputBuff.append(' ');
+      }
+      outputBuff.append(source.getDescription());
+      outputBuff.append(lineSep);
+    }
+    assertEquals("Generated String doesn't match expected", expectedOutput, outputBuff.toString());
+  }
+
+  /**
+   * Determines whether a source is a parent of another source.
+   *  
+   * @param source the Source being checked.
+   * @param potentialParent the possible parent source.
+   * @return true if the potentialParent is a parent of source, otherwise false.
+   */
+  private boolean isParent(Source source, Source potentialParent) {
+    String sourceUri = SourceUtils.sourceToUri(source, server);
+    if (potentialParent.isSetSubSources()) {
+      for (String subSource : potentialParent.getSubSources().getHref()) {
+        if (sourceUri.equals(subSource)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 
   /**
    * Fetches one SensorData from WattDepot server, and formats it as a nice string, and compares
@@ -321,7 +496,6 @@ public class TestOscarFunctionality extends ServerTestHelper {
     WattDepotClient client = new WattDepotClient(getHostName(), null, null);
     // These are the parameters that would be coming from the command line
     String sourceName = "SIM_KAHE_2", day = "2009-10-12";
-    String lineSep = System.getProperty("line.separator");
     String expectedOutput =
         "2009-10-12T00:00:00.000-10:00 Tool: OscarDataConverter Properties: [Property [key=powerGenerated, value=5.5E7]]"
             + lineSep
