@@ -59,11 +59,11 @@ public abstract class DbImplementation {
 
   /**
    * Returns a list of all Sources in the system. An empty index will be returned if there are no
-   * Sources in the system.
+   * Sources in the system. The list is sorted by source name.
    * 
    * @return a SourceIndex object containing a List of SourceRefs to all Source objects.
    */
-  public abstract SourceIndex getSourceIndex();
+  public abstract SourceIndex getSources();
 
   /**
    * Returns the named Source instance, or null if not found.

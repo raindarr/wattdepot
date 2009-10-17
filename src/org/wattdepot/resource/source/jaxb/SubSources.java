@@ -10,6 +10,7 @@ package org.wattdepot.resource.source.jaxb;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -87,6 +88,57 @@ public class SubSources
 
     public void unsetHref() {
         this.href = null;
+    }
+
+    // Broke down and added these manually to the generated code. It would be better if they were
+    // automatically generated via XJC plugins, but that required a bunch of dependencies that I
+    // was unwilling to deal with right now. If the schema files change, this code will be blown
+    // away, so there are unit tests that confirm that equals and hashCode work to guard against
+    // that.
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((href == null) ? 0 : href.hashCode());
+      return result;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      SubSources other = (SubSources) obj;
+      if (href == null) {
+        if (other.href != null) {
+          return false;
+        }
+      }
+      else if (!href.equals(other.href)) {
+        return false;
+      }
+      return true;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+      return Arrays.toString(href.toArray());
     }
 
 }

@@ -98,7 +98,7 @@ public class DbManagerTestHelper {
       new org.wattdepot.resource.source.jaxb.Properties();
     props.getProperty().add(makeSourceProperty("carbonIntensity", "294"));
     return makeSource("hale-foo", userToUri(makeTestUser1(), server), true, false,
-        "21.30078,-157.819129,41", "Made up location", "Obvius-brand power meter", props);
+        "21.30078,-157.819129,41", "Made up location", "Obvius-brand power meter", props, null);
   }
 
   /**
@@ -111,7 +111,7 @@ public class DbManagerTestHelper {
       new org.wattdepot.resource.source.jaxb.Properties();
     props.getProperty().add(makeSourceProperty("carbonIntensity", "128"));
     return makeSource("hale-bar", userToUri(makeTestUser2(), server), false, false,
-        "31.30078,-157.819129,41", "Made up location 2", "Bogus-brand power meter", props);
+        "31.30078,-157.819129,41", "Made up location 2", "Bogus-brand power meter", props, null);
   }
 
   /**
@@ -120,12 +120,11 @@ public class DbManagerTestHelper {
    * @return The freshly created Source object.
    */
   protected Source makeTestSource3() {
-    Source source3 = makeSource("virtual-hales", userToUri(makeTestUser3(), server), false, true,
-        "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null);
     SubSources subSources = new SubSources();
     subSources.getHref().add(sourceToUri(makeTestSource1(), server));
     subSources.getHref().add(sourceToUri(makeTestSource2(), server));
-    source3.setSubSources(subSources);
+    Source source3 = makeSource("virtual-hales", userToUri(makeTestUser3(), server), false, true,
+        "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null, subSources);
     return source3;
   }
 

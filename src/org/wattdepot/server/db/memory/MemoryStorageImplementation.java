@@ -66,13 +66,14 @@ public class MemoryStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
-  public SourceIndex getSourceIndex() {
+  public SourceIndex getSources() {
     SourceIndex index = new SourceIndex();
     // Loop over all Sources in hash
     for (Source source : this.name2SourceHash.values()) {
       // Convert each Source to SourceRef, add to index
       index.getSourceRef().add(SourceUtils.makeSourceRef(source, this.server));
     }
+    Collections.sort(index.getSourceRef());
     return index;
   }
 

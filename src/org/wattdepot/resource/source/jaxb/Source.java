@@ -318,4 +318,114 @@ public class Source
         return (this.properties!= null);
     }
 
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + (_public ? 1231 : 1237);
+      result = prime * result + ((coordinates == null) ? 0 : coordinates.hashCode());
+      result = prime * result + ((description == null) ? 0 : description.hashCode());
+      result = prime * result + ((location == null) ? 0 : location.hashCode());
+      result = prime * result + ((name == null) ? 0 : name.hashCode());
+      result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+      result = prime * result + ((properties == null) ? 0 : properties.hashCode());
+      result = prime * result + ((subSources == null) ? 0 : subSources.hashCode());
+      result = prime * result + (virtual ? 1231 : 1237);
+      return result;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      Source other = (Source) obj;
+      if (_public != other._public) {
+        return false;
+      }
+      if (coordinates == null) {
+        if (other.coordinates != null) {
+          return false;
+        }
+      }
+      else if (!coordinates.equals(other.coordinates)) {
+        return false;
+      }
+      if (description == null) {
+        if (other.description != null) {
+          return false;
+        }
+      }
+      else if (!description.equals(other.description)) {
+        return false;
+      }
+      if (location == null) {
+        if (other.location != null) {
+          return false;
+        }
+      }
+      else if (!location.equals(other.location)) {
+        return false;
+      }
+      if (name == null) {
+        if (other.name != null) {
+          return false;
+        }
+      }
+      else if (!name.equals(other.name)) {
+        return false;
+      }
+      if (owner == null) {
+        if (other.owner != null) {
+          return false;
+        }
+      }
+      else if (!owner.equals(other.owner)) {
+        return false;
+      }
+      if (properties == null) {
+        if (other.properties != null) {
+          return false;
+        }
+      }
+      else if (!properties.equals(other.properties)) {
+        return false;
+      }
+      if (subSources == null) {
+        if (other.subSources != null) {
+          return false;
+        }
+      }
+      else if (!subSources.equals(other.subSources)) {
+        return false;
+      }
+      if (virtual != other.virtual) {
+        return false;
+      }
+      return true;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+      return "Source [public=" + _public + ", coordinates=(" + coordinates + "), description="
+          + description + ", location=" + location + ", name=" + name + ", owner=" + owner
+          + ", properties=" + properties + ", subSources=" + subSources + ", virtual=" + virtual
+          + "]";
+    }
+
 }

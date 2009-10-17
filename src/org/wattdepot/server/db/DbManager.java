@@ -141,7 +141,7 @@ public class DbManager {
     Source source =
         makeSource(defaultPublicSource, userToUri(ownerUser, this.server), true, false,
             "21.30078,-157.819129,41", "Saunders Hall on the University of Hawaii at Manoa campus",
-            "Obvius-brand power meter", props);
+            "Obvius-brand power meter", props, null);
     // stick public source into database
     if (!this.storeSource(source)) {
       return false;
@@ -151,18 +151,19 @@ public class DbManager {
     props.getProperty().add(makeSourceProperty("carbonIntensity", "128"));
     source =
         makeSource(defaultPrivateSource, userToUri(ownerUser, this.server), false, false,
-            "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", props);
+            "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", props,
+            null);
     return (this.storeSource(source));
   }
 
   /**
    * Returns a list of all Sources in the system. An empty index will be returned if there are no
-   * Sources in the system.
+   * Sources in the system. The list is sorted by source name.
    * 
    * @return a SourceIndex object containing a List of SourceRefs to all Source objects.
    */
   public SourceIndex getSources() {
-    return this.dbImpl.getSourceIndex();
+    return this.dbImpl.getSources();
   }
 
   /**

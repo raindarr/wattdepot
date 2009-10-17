@@ -45,7 +45,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "")
 @XmlRootElement(name = "SourceRef")
 public class SourceRef
-    implements Serializable
+    implements Serializable, Comparable<SourceRef>
 {
 
     private final static long serialVersionUID = 12343L;
@@ -276,4 +276,165 @@ public class SourceRef
         return (this.href!= null);
     }
 
+    // Broke down and added these manually to the generated code. It would be better if they were
+    // automatically generated via XJC plugins, but that required a bunch of dependencies that I
+    // was unwilling to deal with right now. If the schema files change, this code will be blown
+    // away, so there are unit tests that confirm that equals and hashCode work to guard against
+    // that.
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + (_public ? 1231 : 1237);
+      result = prime * result + ((coordinates == null) ? 0 : coordinates.hashCode());
+      result = prime * result + ((description == null) ? 0 : description.hashCode());
+      result = prime * result + ((href == null) ? 0 : href.hashCode());
+      result = prime * result + ((location == null) ? 0 : location.hashCode());
+      result = prime * result + ((name == null) ? 0 : name.hashCode());
+      result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+      result = prime * result + (virtual ? 1231 : 1237);
+      return result;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      SourceRef other = (SourceRef) obj;
+      if (name == null) {
+        if (other.name != null) {
+          return false;
+        }
+      }
+      else if (!name.equals(other.name)) {
+        return false;
+      }
+      if (_public != other._public) {
+        return false;
+      }
+      if (coordinates == null) {
+        if (other.coordinates != null) {
+          return false;
+        }
+      }
+      else if (!coordinates.equals(other.coordinates)) {
+        return false;
+      }
+      if (description == null) {
+        if (other.description != null) {
+          return false;
+        }
+      }
+      else if (!description.equals(other.description)) {
+        return false;
+      }
+      if (href == null) {
+        if (other.href != null) {
+          return false;
+        }
+      }
+      else if (!href.equals(other.href)) {
+        return false;
+      }
+      if (location == null) {
+        if (other.location != null) {
+          return false;
+        }
+      }
+      else if (!location.equals(other.location)) {
+        return false;
+      }
+      if (owner == null) {
+        if (other.owner != null) {
+          return false;
+        }
+      }
+      else if (!owner.equals(other.owner)) {
+        return false;
+      }
+      if (virtual != other.virtual) {
+        return false;
+      }
+      return true;
+    }
+    
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Comparable<T>#compareTo(java.lang.Comparable<T>)
+     */
+    @Override
+    public int compareTo(SourceRef o) {
+      // if o is null, throw NullPointerException, per Comparable JavaDoc
+      if (o == null) {
+        throw new NullPointerException("Tried to compare SourceRef with null");
+      }
+      if (o.equals(this)) {
+        return 0;
+      }
+      // move on to the other fields for comparison
+      int comparison;
+      comparison = name.compareTo(o.getName());
+      if (comparison != 0) {
+        // names differ, so just return the comparison value
+        return comparison;
+      }
+      // names are the same, so check owner field
+      comparison = owner.compareTo(o.getOwner());
+      if (comparison != 0) {
+        // owners differ, so just return the comparison value
+        return comparison;
+      }
+      // Check public flag, ordering true before false
+      if (_public && !o.isPublic()) {
+        return -1;
+      }
+      else if (!_public && o.isPublic()) {
+        return 1;
+      }
+      // Check virtual flag, ordering true before false
+      if (virtual && !o.isVirtual()) {
+        return -1;
+      }
+      else if (!virtual && o.isVirtual()) {
+        return 1;
+      }
+      comparison = coordinates.compareTo(o.getCoordinates());
+      if (comparison != 0) {
+        // coordinates differ, so just return the comparison value
+        return comparison;
+      }
+      comparison = location.compareTo(o.getLocation());
+      if (comparison != 0) {
+        // locations differ, so just return the comparison value
+        return comparison;
+      }
+      comparison = description.compareTo(o.getDescription());
+      if (comparison != 0) {
+        // description differ, so just return the comparison value
+        return comparison;
+      }
+      comparison = href.compareTo(o.getHref());
+      if (comparison != 0) {
+        // hrefs differ, so just return the comparison value
+        return comparison;
+      }
+      // Should never get here, since testing every field individually should have same result as
+      // equals() which we do first. Anyway, give up and say they are the same. 
+        return 0;
+      }
 }

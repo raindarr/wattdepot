@@ -87,4 +87,47 @@ public class SourceIndex
         this.sourceRef = null;
     }
 
+    // Broke down and added these manually to the generated code. It would be better if they were
+    // automatically generated via XJC plugins, but that required a bunch of dependencies that I
+    // was unwilling to deal with right now. If the schema files change, this code will be blown
+    // away, so there are unit tests that confirm that equals and hashCode work to guard against
+    // that.
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((sourceRef == null) ? 0 : sourceRef.hashCode());
+      return result;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      SourceIndex other = (SourceIndex) obj;
+      if (sourceRef == null) {
+        if (other.sourceRef != null) {
+          return false;
+        }
+      }
+      else if (!sourceRef.equals(other.sourceRef)) {
+        return false;
+      }
+      return true;
+    }
+
 }

@@ -24,6 +24,7 @@ import org.wattdepot.resource.gviz.GVisualizationServlet;
 import org.wattdepot.resource.health.HealthResource;
 import org.wattdepot.resource.sensordata.SensorDataResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.source.SourceResource;
 import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.user.UserResource;
@@ -42,6 +43,8 @@ import org.wattdepot.util.logger.WattDepotLogger;
  * @author Philip Johnson
  */
 public class Server extends Application {
+
+  private static final String SOURCE_PARAM = "/{source}";
 
   /** Holds the Restlet Component associated with this Server. */
   private Component component;
@@ -294,11 +297,14 @@ public class Server extends Application {
 
     // Health resource is public, so no Guard
     router.attach("/" + HEALTH_URI, HealthResource.class);
+    // Source does it's own authentication processing, so don't use Guard
+    router.attach("/" + SOURCES_URI, SourceResource.class);
+    router.attach("/" + SOURCES_URI + SOURCE_PARAM, SourceResource.class);
     // SensorData does it's own authentication processing, so don't use Guard
-    router.attach("/" + SOURCES_URI + "/{source}" + "/" + SENSORDATA_URI, SensorDataResource.class);
-    router.attach("/" + SOURCES_URI + "/{source}" + "/" + SENSORDATA_URI
+    router.attach("/" + SOURCES_URI + SOURCE_PARAM + "/" + SENSORDATA_URI, SensorDataResource.class);
+    router.attach("/" + SOURCES_URI + SOURCE_PARAM + "/" + SENSORDATA_URI
         + "/?startTime={startTime}&endTime={endTime}", SensorDataResource.class);
-    router.attach("/" + SOURCES_URI + "/{source}" + "/" + SENSORDATA_URI + "/{timestamp}",
+    router.attach("/" + SOURCES_URI + SOURCE_PARAM + "/" + SENSORDATA_URI + "/{timestamp}",
         SensorDataResource.class);
     // // Google Visualization API resource
     // Route route = router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI,

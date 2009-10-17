@@ -4,6 +4,7 @@ import org.wattdepot.resource.source.jaxb.Properties;
 import org.wattdepot.resource.source.jaxb.Property;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.server.Server;
 
 /**
@@ -25,10 +26,12 @@ public class SourceUtils {
    * @param location The location for the Source.
    * @param description The description of the Source.
    * @param props The properties for the Source.
+   * @param subSources The subsources for the Source.
    * @return The freshly created Source object.
    */
   public static Source makeSource(String name, String owner, boolean publicp, boolean virtualp,
-      String coordinates, String location, String description, Properties props) {
+      String coordinates, String location, String description, Properties props,
+      SubSources subSources) {
     Source source = new Source();
     source.setName(name);
     source.setOwner(owner);
@@ -38,6 +41,13 @@ public class SourceUtils {
     source.setLocation(location);
     source.setDescription(description);
     source.setProperties(props);
+    if (virtualp) {
+      source.setSubSources(subSources);
+    }
+    else if ((virtualp && (subSources == null)) || (!virtualp && (subSources != null))) {
+      // If virtual, need subSources, if not virutal then can't have subSources
+      return null;
+    }
     return source;
   }
 
@@ -77,14 +87,35 @@ public class SourceUtils {
    * @return The new SourceRef object.
    */
   public static SourceRef makeSourceRef(Source source, String uri) {
+    return makeSourceRef(source.getName(), source.getOwner(), source.isPublic(),
+        source.isVirtual(), source.getCoordinates(), source.getLocation(), source.getDescription(),
+        uri);
+  }
+
+  /**
+   * Creates a SourceRef object from the given parameters. Needs to be kept up to date with any
+   * changes to the schema, which is bogus.
+   * 
+   * @param name The name of the Source.
+   * @param owner The owner of the Source.
+   * @param publicp Whether the Source is public.
+   * @param virtualp Whether the Source is virtual.
+   * @param coordinates The coordinates of the Source.
+   * @param location The location of the Source.
+   * @param description The description of the Source.
+   * @param uri The URI where the Source is located.
+   * @return The new SourceRef object.
+   */
+  public static SourceRef makeSourceRef(String name, String owner, boolean publicp,
+      boolean virtualp, String coordinates, String location, String description, String uri) {
     SourceRef ref = new SourceRef();
-    ref.setName(source.getName());
-    ref.setOwner(source.getOwner());
-    ref.setPublic(source.isPublic());
-    ref.setVirtual(source.isVirtual());
-    ref.setCoordinates(source.getCoordinates());
-    ref.setLocation(source.getLocation());
-    ref.setDescription(source.getDescription());
+    ref.setName(name);
+    ref.setOwner(owner);
+    ref.setPublic(publicp);
+    ref.setVirtual(virtualp);
+    ref.setCoordinates(coordinates);
+    ref.setLocation(location);
+    ref.setDescription(description);
     ref.setHref(uri);
     return ref;
   }

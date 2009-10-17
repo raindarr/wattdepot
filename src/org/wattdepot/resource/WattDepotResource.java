@@ -2,6 +2,8 @@ package org.wattdepot.resource;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.List;
+import java.util.ListIterator;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -20,6 +22,8 @@ import org.restlet.resource.Variant;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
@@ -37,6 +41,9 @@ public class WattDepotResource extends Resource {
 
   /** Holds the class-wide User JAXBContext, which is thread-safe. */
   private static JAXBContext userJaxbContext;
+
+  /** Holds the class-wide Source JAXBContext, which is thread-safe. */
+  private static JAXBContext sourceJaxbContext;
 
   /** Holds the class-wide SensorData JAXBContext, which is thread-safe. */
   private static JAXBContext sensorDataJaxbContext;
@@ -68,6 +75,8 @@ public class WattDepotResource extends Resource {
     try {
       userJaxbContext =
           JAXBContext.newInstance(org.wattdepot.resource.user.jaxb.ObjectFactory.class);
+      sourceJaxbContext =
+          JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
       sensorDataJaxbContext =
           JAXBContext.newInstance(org.wattdepot.resource.sensordata.jaxb.ObjectFactory.class);
     }
@@ -152,6 +161,86 @@ public class WattDepotResource extends Resource {
     // // Now remove the processing instruction. This approach seems like a total hack.
     // xmlString = xmlString.substring(xmlString.indexOf('>') + 1);
     // return xmlString;
+  }
+
+  /**
+   * Returns the XML string containing a SourceIndex of SourceRefs for all public Sources.
+   * 
+   * @return The XML string with all the public sources.
+   * @throws JAXBException If there are problems marshalling the SourceIndex.
+   */
+  public String getPublicSources() throws JAXBException {
+    SourceIndex index = this.dbManager.getSources();
+    List<SourceRef> sourceList = index.getSourceRef();
+    ListIterator<SourceRef> iterator = sourceList.listIterator();
+    // Use ListIterator to loop over all SourceRefs, removing those that aren't public
+    while (iterator.hasNext()) {
+      if (!iterator.next().isPublic()) {
+        iterator.remove();
+      }
+    }
+    Marshaller marshaller = sourceJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+
+    marshaller.marshal(index, writer);
+    return writer.toString();
+  }
+
+  /**
+   * Returns the XML string containing a SourceIndex of SourceRefs for all Sources (public and
+   * private). Only appropriate for an admin user.
+   * 
+   * @return The XML string with all sources.
+   * @throws JAXBException If there are problems marshalling the SourceIndex.
+   */
+  public String getAllSources() throws JAXBException {
+    SourceIndex index = this.dbManager.getSources();
+    Marshaller marshaller = sourceJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+
+    marshaller.marshal(index, writer);
+    return writer.toString();
+  }
+
+  /**
+   * Returns the XML string containing a SourceIndex of SourceRefs for all public Sources and any
+   * sources owned by the current authenticated user.
+   * 
+   * @return The XML string with all sources.
+   * @throws JAXBException If there are problems marshalling the SourceIndex.
+   */
+  public String getOwnerSources() throws JAXBException {
+    SourceIndex index = this.dbManager.getSources();
+    List<SourceRef> sourceList = index.getSourceRef();
+    ListIterator<SourceRef> iterator = sourceList.listIterator();
+    // Use ListIterator to loop over all SourceRefs, removing those that aren't public or owned by
+    // current user
+    while (iterator.hasNext()) {
+      SourceRef ref = iterator.next();
+      if (!ref.isPublic() && !isSourceOwner(ref.getName())) {
+        iterator.remove();
+      }
+    }
+    Marshaller marshaller = sourceJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+
+    marshaller.marshal(index, writer);
+    return writer.toString();
+  }
+
+  /**
+   * Returns the XML string containing the Source specified in the URI.
+   * 
+   * @return The XML string of URI-specified Source.
+   * @throws JAXBException If there are problems marshalling the SourceIndex.
+   */
+  public String getSource() throws JAXBException {
+    Source source = this.dbManager.getSource(uriSource);
+    Marshaller marshaller = sourceJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+
+    marshaller.marshal(source, writer);
+    return writer.toString();
   }
 
   /**
@@ -311,7 +400,19 @@ public class WattDepotResource extends Resource {
    * otherwise.
    */
   public boolean isSourceOwner() {
-    Source source = dbManager.getSource(uriSource);
+    return isSourceOwner(uriSource);
+  }
+
+  /**
+   * Returns true if the username provided in the HTTP request is the owner of the given source name
+   * Note, does not check whether the credentials are valid (i.e. the password matches)!
+   * 
+   * @param sourceName The name of the source to check the username against.
+   * @return True if the username in the credentials is the owner of the source name provided, false
+   * otherwise.
+   */
+  public boolean isSourceOwner(String sourceName) {
+    Source source = dbManager.getSource(sourceName);
     User user = dbManager.getUser(authUsername);
     if ((source == null) || (user == null)) {
       return false;

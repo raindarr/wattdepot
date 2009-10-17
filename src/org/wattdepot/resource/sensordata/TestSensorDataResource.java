@@ -75,9 +75,9 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void makeDb() {
     DbManager manager =
         new DbManager(server, "org.wattdepot.server.db.memory.MemoryStorageImplementation", true);
+    // Need to create default data for each fresh DbManager
     assertTrue("Unable to create default data", manager.createDefaultData());
     server.getContext().getAttributes().put("DbManager", manager);
-    // Need to create default data for each fresh DbManager
   }
 
   // Tests for GET {host}/sources/{source}/sensordata
@@ -101,7 +101,7 @@ public class TestSensorDataResource extends ServerTestHelper {
    */
   @Test(expected = NotAuthorizedException.class)
   public void testFullIndexPublicBadAuth() throws WattDepotClientException {
-    // Shouldn't authenticate with no username or password
+    // Shouldn't authenticate with invalid credentials.
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, "foo");
     client.getSensorDataIndex(DbManager.defaultPublicSource);
   }

@@ -28,6 +28,9 @@ import org.restlet.resource.StringRepresentation;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
+import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 import org.wattdepot.util.UriUtils;
@@ -59,8 +62,8 @@ public class WattDepotClient {
   private static final JAXBContext userJAXB;
   /** SensorData JAXBContext. */
   private static final JAXBContext sensorDataJAXB;
-  // /** Source JAXBContext. */
-  // private static final JAXBContext sourceJAXB;
+  /** Source JAXBContext. */
+  private static final JAXBContext sourceJAXB;
 
   // JAXBContexts are thread safe, so we can share them across all instances and threads.
   // https://jaxb.dev.java.net/guide/Performance_and_thread_safety.html
@@ -69,8 +72,7 @@ public class WattDepotClient {
       userJAXB = JAXBContext.newInstance(org.wattdepot.resource.user.jaxb.ObjectFactory.class);
       sensorDataJAXB =
           JAXBContext.newInstance(org.wattdepot.resource.sensordata.jaxb.ObjectFactory.class);
-      // sourceJAXB =
-      // JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
+      sourceJAXB = JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
     }
     catch (Exception e) {
       throw new RuntimeException("Couldn't create JAXB context instances.", e);
@@ -555,6 +557,135 @@ public class WattDepotClient {
     catch (IOException e) {
       return null;
     }
+  }
+
+  /**
+   * Returns the SourceIndex containing all Sources accessible to the authenticated user on the
+   * server.
+   * 
+   * @return The SourceIndex for the server.
+   * @throws NotAuthorizedException If the client's credentials are bad.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public SourceIndex getSourceIndex() throws NotAuthorizedException, BadXmlException,
+      MiscClientException {
+    Response response = makeRequest(Method.GET, Server.SOURCES_URI, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // User credentials are invalid
+      throw new NotAuthorizedException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sourceJAXB.createUnmarshaller();
+        return (SourceIndex) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Requests a List of Sources representing all Sources accessible to the authenticated user on the
+   * server. Currently just a convenience method, but if the REST API is extended to support getting
+   * Sources directly without going through a SourceIndex, this method will use that more efficient
+   * API call.
+   * 
+   * @return The List of Sources accessible to the user.
+   * @throws NotAuthorizedException If the client's credentials are bad.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public List<Source> getSources() throws NotAuthorizedException, BadXmlException,
+      MiscClientException {
+    List<Source> sourceList = new ArrayList<Source>();
+    SourceIndex index = getSourceIndex();
+    for (SourceRef ref : index.getSourceRef()) {
+      try {
+        sourceList.add(getSource(ref));
+      }
+      catch (ResourceNotFoundException e) {
+        // We got the SourceIndex already, so we know the source exists. this should never happen
+        throw new MiscClientException("SourceRef from Source index had non-existent source name", e);
+      }
+    }
+    return sourceList;
+  }
+
+  /**
+   * Requests the Source with the given name from the server.
+   * 
+   * @param source The name of the Source.
+   * @return The Source.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the Source.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public Source getSource(String source) throws NotAuthorizedException, ResourceNotFoundException,
+      BadXmlException, MiscClientException {
+    Response response = makeRequest(Method.GET, Server.SOURCES_URI + "/" + source, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sourceJAXB.createUnmarshaller();
+        return (Source) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Convenience method for retrieving a Source given its SourceRef.
+   * 
+   * @param ref The SourceRef of the desired Source.
+   * @return The Source.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the Source.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public Source getSource(SourceRef ref) throws NotAuthorizedException, ResourceNotFoundException,
+      BadXmlException, MiscClientException {
+    return getSource(ref.getName());
   }
 
   /**

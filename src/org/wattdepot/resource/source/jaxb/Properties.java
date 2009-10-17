@@ -10,6 +10,7 @@ package org.wattdepot.resource.source.jaxb;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -85,6 +86,57 @@ public class Properties
 
     public void unsetProperty() {
         this.property = null;
+    }
+
+    // Broke down and added these manually to the generated code. It would be better if they were
+    // automatically generated via XJC plugins, but that required a bunch of dependencies that I
+    // was unwilling to deal with right now. If the schema files change, this code will be blown
+    // away, so there are unit tests that confirm that equals and hashCode work to guard against
+    // that.
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((property == null) ? 0 : property.hashCode());
+      return result;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      Properties other = (Properties) obj;
+      if (property == null) {
+        if (other.property != null) {
+          return false;
+        }
+      }
+      else if (!property.equals(other.property)) {
+        return false;
+      }
+      return true;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+      return Arrays.toString(property.toArray());
     }
 
 }

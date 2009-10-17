@@ -192,6 +192,14 @@ public class SensorDataRef implements Serializable, Comparable<SensorDataRef> {
       return false;
     }
     SensorDataRef other = (SensorDataRef) obj;
+    if (timestamp == null) {
+      if (other.timestamp != null) {
+        return false;
+      }
+    }
+    else if (!timestamp.equals(other.timestamp)) {
+      return false;
+    }
     if (href == null) {
       if (other.href != null) {
         return false;
@@ -208,14 +216,6 @@ public class SensorDataRef implements Serializable, Comparable<SensorDataRef> {
     else if (!source.equals(other.source)) {
       return false;
     }
-    if (timestamp == null) {
-      if (other.timestamp != null) {
-        return false;
-      }
-    }
-    else if (!timestamp.equals(other.timestamp)) {
-      return false;
-    }
     if (tool == null) {
       if (other.tool != null) {
         return false;
@@ -227,6 +227,11 @@ public class SensorDataRef implements Serializable, Comparable<SensorDataRef> {
     return true;
   }
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Comparable<T>#compareTo(java.lang.Comparable<T>)
+   */
   @Override
   public int compareTo(SensorDataRef o) {
     // if o is null, throw NullPointerException, per Comparable JavaDoc
@@ -245,38 +250,27 @@ public class SensorDataRef implements Serializable, Comparable<SensorDataRef> {
       // this is later than o
       return 1;
     }
-    else if ((timestampCompare == DatatypeConstants.EQUAL)
-        || (timestampCompare == DatatypeConstants.INDETERMINATE)) {
-      // move on to the other fields for comparison
-      int sourceCompare = source.compareTo(o.getSource());
-      if (sourceCompare == 0) {
-        // sources are the same, so check tool field
-        int toolCompare = tool.compareTo(o.getTool());
-        if (toolCompare == 0) {
-          // tools are the same, so check href field
-          int hrefCompare = href.compareTo(o.getHref());
-          if (hrefCompare == 0) {
-            // timestamps must be incomparable, since we tested equals at the start, yet we have
-            // found all the other fields to be equal. Just give up and say they are the same.
-            return 0;
-          }
-          else {
-            // tools differ, so just return the comparison value
-            return hrefCompare;
-          }
-        }
-        else {
-          // tools differ, so just return the comparison value
-          return toolCompare;
-        }
-      }
-      else {
-        // sources differ, so just return the comparison value
-        return sourceCompare;
-      }
+    // move on to the other fields for comparison
+    int comparison;
+    comparison = source.compareTo(o.getSource());
+    if (comparison != 0) {
+      // sources differ, so just return the comparison value
+      return comparison;
     }
-    else {
-      throw new RuntimeException("XMLGregorianCalendar.compare returned invalid value");
+    // sources are the same, so check tool field
+    comparison = tool.compareTo(o.getTool());
+    if (comparison != 0) {
+      // tools differ, so just return the comparison value
+      return comparison;
     }
+    // tools are the same, so check href field
+    comparison = href.compareTo(o.getHref());
+    if (comparison != 0) {
+      // hrefs differ, so just return the comparison value
+      return comparison;
+    }
+    // timestamps must be incomparable, since we tested equals at the start, yet we have
+    // found all the other fields to be equal. Just give up and say they are the same.
+    return 0;
   }
 }

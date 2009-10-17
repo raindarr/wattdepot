@@ -110,7 +110,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertSame("getSources returned wrong number of SourceRefs", manager.getSources()
         .getSourceRef().size(), 2);
   }
-
+  
   /**
    * Tests the getSource method.
    */

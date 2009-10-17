@@ -33,4 +33,14 @@ public class MiscClientException extends WattDepotClientException {
   public MiscClientException(Status status, Throwable error) {
     super(status, error);
   }
+
+  /**
+   * Thrown when the server indicates an unexpected error status.
+   * 
+   * @param message String indicating the cause of the error.
+   * @param error The previous error.
+   */
+  public MiscClientException(String message, Throwable error) {
+    super(message, error);
+  }
 }
