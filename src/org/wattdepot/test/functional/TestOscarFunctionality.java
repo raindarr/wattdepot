@@ -483,8 +483,34 @@ public class TestOscarFunctionality extends ServerTestHelper {
             + lineSep
             + "Properties: none"
             + lineSep
-            + "Earliest data: none"
-            + lineSep + "Latest data: none" + lineSep + "Total data points: 0" + lineSep;
+            + "Earliest data: 2009-10-12T00:00:00.000-10:00"
+            + lineSep
+            + "Latest data: 2009-10-12T00:30:00.000-10:00"
+            + lineSep
+            + "Total data points: 18"
+            + lineSep;
+    assertEquals("Didn't get expected output", expectedOutput, displaySourceSummary(sourceName));
+
+    sourceName = "SIM_OAHU_GRID";
+    expectedOutput =
+        "Subsources: [http://localhost:8183/wattdepot/sources/SIM_KAHE, http://localhost:8183/wattdepot/sources/SIM_WAIAU, http://localhost:8183/wattdepot/sources/SIM_HONOLULU, http://localhost:8183/wattdepot/sources/SIM_IPP]"
+            + lineSep
+            + "Description: Virtual resource for all Oahu power plants."
+            + lineSep
+            + "Owner: oscar@wattdepot.org"
+            + lineSep
+            + "Location: To be looked up later"
+            + lineSep
+            + "Coordinates: 0,0,0"
+            + lineSep
+            + "Properties: none"
+            + lineSep
+            + "Earliest data: 2009-10-12T00:00:00.000-10:00"
+            + lineSep
+            + "Latest data: 2009-10-12T00:30:00.000-10:00"
+            + lineSep
+            + "Total data points: 42"
+            + lineSep;
     assertEquals("Didn't get expected output", expectedOutput, displaySourceSummary(sourceName));
   }
 
@@ -535,6 +561,27 @@ public class TestOscarFunctionality extends ServerTestHelper {
     System.out.println(buff.toString());
     return buff.toString();
   }
+
+  // @Test
+  // public void testVirtualThingie() {
+  // DbManager dbManager = (DbManager) server.getContext().getAttributes().get("DbManager");
+  //
+  // String sourceName;
+  // Source baseSource;
+  // List<Source> sourceList;
+  // sourceName = "SIM_KAHE_1";
+  // baseSource = dbManager.getSource(sourceName);
+  // sourceList = dbManager.getAllNonVirtualSubSources(baseSource);
+  // System.out.println(Arrays.toString(sourceList.toArray()));
+  // sourceName = "SIM_KAHE";
+  // baseSource = dbManager.getSource(sourceName);
+  // sourceList = dbManager.getAllNonVirtualSubSources(baseSource);
+  // System.out.println(Arrays.toString(sourceList.toArray()));
+  // sourceName = "SIM_OAHU_GRID";
+  // baseSource = dbManager.getSource(sourceName);
+  // sourceList = dbManager.getAllNonVirtualSubSources(baseSource);
+  // System.out.println(Arrays.toString(sourceList.toArray()));
+  // }
 
   /**
    * Fetches one SensorData from WattDepot server, and formats it as a nice string, and compares

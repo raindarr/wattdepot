@@ -1,6 +1,8 @@
 package org.wattdepot.server.db.memory;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.xml.datatype.DatatypeConstants;
@@ -18,6 +20,7 @@ import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbImplementation;
+import org.wattdepot.util.UriUtils;
 
 /**
  * An in-memory storage implementation for WattDepot. <b>Note:</b> this class persists data
@@ -92,33 +95,37 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public SourceSummary getSourceSummary(String sourceName) {
-    if ((sourceName == null) || (this.name2SourceHash.get(sourceName) == null)) {
+    if (sourceName == null) {
       // null or non-existent source name
       return null;
     }
-    else {
-      SourceSummary summary = new SourceSummary();
-      summary.setHref(SourceUtils.sourceToUri(sourceName, this.server.getHostName()));
+    Source baseSource = this.name2SourceHash.get(sourceName);
+    if (baseSource == null) {
+      return null;
+    }
+    SourceSummary summary = new SourceSummary();
+    summary.setHref(SourceUtils.sourceToUri(sourceName, this.server.getHostName()));
+    summary.setTotalSensorDatas(0);
+    // Want to go through sensordata for base source, and all subsources recursively
+    List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null, dataTimestamp;
+    long dataCount = 0;
+    for (Source subSource : sourceList) {
+      String subSourceName = subSource.getName();
       // Retrieve this Source's map of timestamps to SensorData
       ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
-          this.source2SensorDatasHash.get(sourceName);
-      if (sensorDataMap == null) {
-        // no sensordata for this source
-        summary.setTotalSensorDatas(0);
-      }
-      else {
-        XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null, dataTimestamp;
-        long dataCount = 0;
+          this.source2SensorDatasHash.get(subSourceName);
+      if (sensorDataMap != null) {
         // Loop over all SensorData in hash
         for (SensorData data : sensorDataMap.values()) {
           dataCount++;
+          dataTimestamp = data.getTimestamp();
           if (firstTimestamp == null) {
-            firstTimestamp = data.getTimestamp();
+            firstTimestamp = dataTimestamp;
           }
           if (lastTimestamp == null) {
-            lastTimestamp = data.getTimestamp();
+            lastTimestamp = dataTimestamp;
           }
-          dataTimestamp = data.getTimestamp();
           if (dataTimestamp.compare(firstTimestamp) == DatatypeConstants.LESSER) {
             firstTimestamp = dataTimestamp;
           }
@@ -126,11 +133,55 @@ public class MemoryStorageImplementation extends DbImplementation {
             lastTimestamp = dataTimestamp;
           }
         }
-        summary.setFirstSensorData(firstTimestamp);
-        summary.setLastSensorData(lastTimestamp);
-        summary.setTotalSensorDatas(dataCount);
       }
-      return summary;
+    }
+    summary.setFirstSensorData(firstTimestamp);
+    summary.setLastSensorData(lastTimestamp);
+    summary.setTotalSensorDatas(dataCount);
+    return summary;
+  }
+
+  /**
+   * Given a base Source, return a list of all non-virtual Sources that are subsources of the base
+   * Source. This is done recursively, so virtual sources can point to other virtual sources.
+   * 
+   * @param baseSource The Source to start from.
+   * @return A list of all non-virtual Sources that are subsources of the base Source.
+   */
+  private List<Source> getAllNonVirtualSubSources(Source baseSource) {
+    List<Source> sourceList = new ArrayList<Source>();
+    if (baseSource.isVirtual()) {
+      List<Source> subSources = getAllSubSources(baseSource);
+      for (Source subSource : subSources) {
+        sourceList.addAll(getAllNonVirtualSubSources(subSource));
+      }
+      return sourceList;
+    }
+    else {
+      sourceList.add(baseSource);
+      return sourceList;
+    }
+  }
+
+  /**
+   * Given a Source, returns a List of Sources corresponding to any subsources of the given Source.
+   * 
+   * @param source The parent Source.
+   * @return A List of Sources that are subsources of the given Source, or null if there are none.
+   */
+  private List<Source> getAllSubSources(Source source) {
+    if (source.isSetSubSources()) {
+      List<Source> sourceList = new ArrayList<Source>();
+      for (String subSourceUri : source.getSubSources().getHref()) {
+        Source subSource = getSource(UriUtils.getUriSuffix(subSourceUri));
+        if (subSource != null) {
+          sourceList.add(subSource);
+        }
+      }
+      return sourceList;
+    }
+    else {
+      return null;
     }
   }
 

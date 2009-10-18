@@ -8,8 +8,11 @@ import static org.junit.Assert.assertTrue;
 import static org.wattdepot.resource.source.SourceUtils.sourceRefEqualsSource;
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.datatype.XMLGregorianCalendar;
+import org.hackystat.utilities.tstamp.Tstamp;
 import org.junit.Before;
 import org.junit.Test;
+import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -149,7 +152,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertEquals(SOURCE_DOES_NOT_MATCH, source3, manager.getSource(source3.getName()));
 
     // case #5: retrieve empty Source name
-    assertNull("Able to retrieve ficticiously-named Source", manager.getSource(""));
+    assertNull("Able to retrieve empty-named Source", manager.getSource(""));
 
     // case #6: retrieve null Source name
     assertNull("Able to retrieve from null Source", manager.getSource(null));
@@ -173,6 +176,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data2));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data3));
 
+    // retrieve summary for stored Source
     SourceSummary expectedSummary = new SourceSummary();
     expectedSummary.setHref(SourceUtils.sourceToUri(this.source1, server));
     expectedSummary.setFirstSensorData(data1.getTimestamp());
@@ -180,6 +184,38 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     expectedSummary.setTotalSensorDatas(3);
     SourceSummary retreivedSummary = manager.getSourceSummary(this.source1.getName());
     assertEquals("SourceSummary does not match expected value", expectedSummary, retreivedSummary);
+
+    // retrieve summary for virtual source that contains two real sources with data
+    XMLGregorianCalendar earlyTimestamp = Tstamp.makeTimestamp("2009-07-27T09:00:00.000-10:00");
+    XMLGregorianCalendar lateTimestamp = Tstamp.makeTimestamp("2009-07-30T09:00:00.000-10:00");
+
+    assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source2));
+    assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source3));
+    SensorData data4 =
+        SensorDataUtils.makeSensorData(earlyTimestamp, "JUnit", SourceUtils.sourceToUri(
+            this.source2, server), null);
+    SensorData data5 =
+        SensorDataUtils.makeSensorData(lateTimestamp, "JUnit", SourceUtils.sourceToUri(
+            this.source2, server), null);
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data4));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data5));
+    retreivedSummary = manager.getSourceSummary(this.source3.getName());
+    assertEquals("Number of sensordata in summary for virtual source is wrong", 5, retreivedSummary
+        .getTotalSensorDatas());
+    assertEquals("First sensordata in summary for virtual source is wrong", earlyTimestamp,
+        retreivedSummary.getFirstSensorData());
+    assertEquals("Last sensordata in summary for virtual source is wrong", lateTimestamp,
+        retreivedSummary.getLastSensorData());
+
+    // retrieve summary for unknown Source name
+    assertNull("Able to retrieve ficticiously-named Source", manager
+        .getSourceSummary("bogus-source"));
+
+    // retrieve summary for empty Source name
+    assertNull("Able to retrieve empty-named Source", manager.getSourceSummary(""));
+
+    // retrieve summary for null Source name
+    assertNull("Able to retrieve from null Source", manager.getSourceSummary(null));
   }
 
   /**
