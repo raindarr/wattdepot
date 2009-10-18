@@ -20,6 +20,7 @@ import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.server.db.DbException;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.test.ServerTestHelper;
@@ -429,7 +430,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
 
   /**
    * Determines whether a source is a parent of another source.
-   *  
+   * 
    * @param source the Source being checked.
    * @param potentialParent the possible parent source.
    * @return true if the potentialParent is a parent of source, otherwise false.
@@ -444,6 +445,95 @@ public class TestOscarFunctionality extends ServerTestHelper {
       }
     }
     return false;
+  }
+
+  /**
+   * Tests displaySourceSummary with some different parameters.
+   * 
+   * @throws Exception If there are problems retrieving the Source list.
+   */
+  @Test
+  public void testDisplaySourceSummary() throws Exception {
+    // Parameter that would come from the command line
+    String sourceName;
+    String expectedOutput;
+    sourceName = "SIM_KAHE_1";
+    expectedOutput =
+        "Subsources: none" + lineSep
+            + "Description: Kahe 1 is a HECO plant on Oahu's grid that uses LSFO as its fuel."
+            + lineSep + "Owner: oscar@wattdepot.org" + lineSep + "Location: To be looked up later"
+            + lineSep + "Coordinates: 0,0,0" + lineSep
+            + "Properties: [Property [key=carbonIntensity, value=1744]]" + lineSep
+            + "Earliest data: 2009-10-12T00:00:00.000-10:00" + lineSep
+            + "Latest data: 2009-10-12T00:30:00.000-10:00" + lineSep + "Total data points: 3"
+            + lineSep;
+    assertEquals("Didn't get expected output", expectedOutput, displaySourceSummary(sourceName));
+
+    sourceName = "SIM_KAHE";
+    expectedOutput =
+        "Subsources: [http://localhost:8183/wattdepot/sources/SIM_KAHE_1, http://localhost:8183/wattdepot/sources/SIM_KAHE_2, http://localhost:8183/wattdepot/sources/SIM_KAHE_3, http://localhost:8183/wattdepot/sources/SIM_KAHE_4, http://localhost:8183/wattdepot/sources/SIM_KAHE_5, http://localhost:8183/wattdepot/sources/SIM_KAHE_6, http://localhost:8183/wattdepot/sources/SIM_KAHE_7]"
+            + lineSep
+            + "Description: Virtual resource for all Kahe power plants."
+            + lineSep
+            + "Owner: oscar@wattdepot.org"
+            + lineSep
+            + "Location: To be looked up later"
+            + lineSep
+            + "Coordinates: 0,0,0"
+            + lineSep
+            + "Properties: none"
+            + lineSep
+            + "Earliest data: none"
+            + lineSep + "Latest data: none" + lineSep + "Total data points: 0" + lineSep;
+    assertEquals("Didn't get expected output", expectedOutput, displaySourceSummary(sourceName));
+  }
+
+  /**
+   * Fetches a Source and SourceSummary from server and produces a pretty summary string. Solves
+   * this assignment problem:
+   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.4_list_summary_{source}
+   * 
+   * @param sourceName The name of the Source.
+   * @return A formatted String summarizing the Source.
+   * @throws Exception If there are problems retrieving the Source list.
+   */
+  public String displaySourceSummary(String sourceName) throws Exception {
+    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    Source source = client.getSource(sourceName);
+    SourceSummary summary = client.getSourceSummary(sourceName);
+    StringBuffer buff = new StringBuffer(1000);
+
+    if (source.isSetSubSources()) {
+      buff.append(String.format("Subsources: %s%n", source.getSubSources().toString()));
+    }
+    else {
+      buff.append(String.format("Subsources: none%n"));
+    }
+    buff.append(String.format("Description: %s%n", source.getDescription()));
+    buff.append(String.format("Owner: %s%n", UriUtils.getUriSuffix(source.getOwner())));
+    buff.append(String.format("Location: %s%n", source.getLocation()));
+    buff.append(String.format("Coordinates: %s%n", source.getCoordinates()));
+    if (source.isSetProperties()) {
+      buff.append(String.format("Properties: %s%n", source.getProperties().toString()));
+    }
+    else {
+      buff.append(String.format("Properties: none%n"));
+    }
+    if (summary.isSetFirstSensorData()) {
+      buff.append(String.format("Earliest data: %s%n", summary.getFirstSensorData().toString()));
+    }
+    else {
+      buff.append(String.format("Earliest data: none%n"));
+    }
+    if (summary.isSetLastSensorData()) {
+      buff.append(String.format("Latest data: %s%n", summary.getLastSensorData().toString()));
+    }
+    else {
+      buff.append(String.format("Latest data: none%n"));
+    }
+    buff.append(String.format("Total data points: %d%n", summary.getTotalSensorDatas()));
+    System.out.println(buff.toString());
+    return buff.toString();
   }
 
   /**
