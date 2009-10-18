@@ -24,6 +24,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
@@ -44,6 +45,9 @@ public class WattDepotResource extends Resource {
 
   /** Holds the class-wide Source JAXBContext, which is thread-safe. */
   private static JAXBContext sourceJaxbContext;
+
+  /** Holds the class-wide SourceSummary JAXBContext, which is thread-safe. */
+  private static JAXBContext sourceSummaryJaxbContext;
 
   /** Holds the class-wide SensorData JAXBContext, which is thread-safe. */
   private static JAXBContext sensorDataJaxbContext;
@@ -77,6 +81,8 @@ public class WattDepotResource extends Resource {
           JAXBContext.newInstance(org.wattdepot.resource.user.jaxb.ObjectFactory.class);
       sourceJaxbContext =
           JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
+      sourceSummaryJaxbContext =
+        JAXBContext.newInstance(org.wattdepot.resource.source.summary.jaxb.ObjectFactory.class);
       sensorDataJaxbContext =
           JAXBContext.newInstance(org.wattdepot.resource.sensordata.jaxb.ObjectFactory.class);
     }
@@ -232,7 +238,7 @@ public class WattDepotResource extends Resource {
    * Returns the XML string containing the Source specified in the URI.
    * 
    * @return The XML string of URI-specified Source.
-   * @throws JAXBException If there are problems marshalling the SourceIndex.
+   * @throws JAXBException If there are problems marshalling the Source.
    */
   public String getSource() throws JAXBException {
     Source source = this.dbManager.getSource(uriSource);
@@ -240,6 +246,21 @@ public class WattDepotResource extends Resource {
     StringWriter writer = new StringWriter();
 
     marshaller.marshal(source, writer);
+    return writer.toString();
+  }
+
+  /**
+   * Returns the XML string containing the SourceSummary specified in the URI.
+   * 
+   * @return The XML string for the SourceSummar of the URI-specified Source.
+   * @throws JAXBException If there are problems marshalling the SourceSummary.
+   */
+  public String getSourceSummary() throws JAXBException {
+    SourceSummary summary = this.dbManager.getSourceSummary(uriSource);
+    Marshaller marshaller = sourceSummaryJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+
+    marshaller.marshal(summary, writer);
     return writer.toString();
   }
 

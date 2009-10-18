@@ -31,6 +31,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 import org.wattdepot.util.UriUtils;
@@ -64,6 +65,8 @@ public class WattDepotClient {
   private static final JAXBContext sensorDataJAXB;
   /** Source JAXBContext. */
   private static final JAXBContext sourceJAXB;
+  /** SourceSummary JAXBContext. */
+  private static final JAXBContext sourceSummaryJAXB;
 
   // JAXBContexts are thread safe, so we can share them across all instances and threads.
   // https://jaxb.dev.java.net/guide/Performance_and_thread_safety.html
@@ -73,6 +76,8 @@ public class WattDepotClient {
       sensorDataJAXB =
           JAXBContext.newInstance(org.wattdepot.resource.sensordata.jaxb.ObjectFactory.class);
       sourceJAXB = JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
+      sourceSummaryJAXB =
+          JAXBContext.newInstance(org.wattdepot.resource.source.summary.jaxb.ObjectFactory.class);
     }
     catch (Exception e) {
       throw new RuntimeException("Couldn't create JAXB context instances.", e);
@@ -686,6 +691,53 @@ public class WattDepotClient {
   public Source getSource(SourceRef ref) throws NotAuthorizedException, ResourceNotFoundException,
       BadXmlException, MiscClientException {
     return getSource(ref.getName());
+  }
+
+  /**
+   * Requests the SourceSummary for the Source with the given name from the server.
+   * 
+   * @param source The name of the Source.
+   * @return The SourceSummary.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SourceSummary.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public SourceSummary getSourceSummary(String source) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    Response response =
+        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SUMMARY_URI,
+            XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sourceSummaryJAXB.createUnmarshaller();
+        return (SourceSummary) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
   }
 
   /**

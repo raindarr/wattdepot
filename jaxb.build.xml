@@ -28,6 +28,9 @@
     <xjc schema="${basedir}/xml/schema/source.xsd" extension="true" destdir="src" package="org.wattdepot.resource.source.jaxb">
       <produces dir="${src.dir}/org/wattdepot/resource/source/jaxb" includes="*" />
     </xjc>
+    <xjc schema="${basedir}/xml/schema/source-summary.xsd" extension="true" destdir="src" package="org.wattdepot.resource.source.summary.jaxb">
+      <produces dir="${src.dir}/org/wattdepot/resource/source/summary/jaxb" includes="*" />
+    </xjc>
     <xjc schema="${basedir}/xml/schema/user.xsd" extension="true" destdir="src" package="org.wattdepot.resource.user.jaxb">
       <produces dir="${src.dir}/org/wattdepot/resource/user/jaxb" includes="*" />
     </xjc>

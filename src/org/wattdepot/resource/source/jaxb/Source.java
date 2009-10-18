@@ -300,6 +300,12 @@ public class Source implements Serializable {
     return result;
   }
 
+  // Broke down and added these manually to the generated code. It would be better if they were
+  // automatically generated via XJC plugins, but that required a bunch of dependencies that I
+  // was unwilling to deal with right now. If the schema files change, this code will be blown
+  // away, so there are unit tests that confirm that equals and hashCode work to guard against
+  // that.
+
   /*
    * (non-Javadoc)
    * 

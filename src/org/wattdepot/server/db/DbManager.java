@@ -12,6 +12,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
@@ -176,6 +177,16 @@ public class DbManager {
    */
   public Source getSource(String sourceName) {
     return this.dbImpl.getSource(sourceName);
+  }
+
+  /**
+   * Returns a SourceSummary for the named Source instance, or null if not found.
+   * 
+   * @param sourceName The name of the Source.
+   * @return The requested SourceSummary, or null.
+   */
+  public SourceSummary getSourceSummary(String sourceName) {
+    return this.dbImpl.getSourceSummary(sourceName);
   }
 
   /**

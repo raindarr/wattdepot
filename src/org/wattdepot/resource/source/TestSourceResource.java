@@ -16,7 +16,7 @@ import org.wattdepot.server.db.DbManager;
 import org.wattdepot.test.ServerTestHelper;
 
 /**
- * Tests the SensorData resource API at the HTTP level using WattDepotClient.
+ * Tests the Source resource API at the HTTP level using WattDepotClient.
  * 
  * @author Robert Brewer
  */
@@ -225,7 +225,7 @@ public class TestSourceResource extends ServerTestHelper {
   }
 
   /**
-   * Tests retrieval of public Source. Type: valid non-owner credentials.
+   * Tests retrieval of private Source. Type: valid non-owner credentials.
    * 
    * @throws WattDepotClientException If problems are encountered
    */

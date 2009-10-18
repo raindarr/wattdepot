@@ -10,8 +10,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
+import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 
 /**
@@ -34,6 +37,9 @@ public class TestDbManagerSources extends DbManagerTestHelper {
   /** Make PMD happy. */
   private static final String SOURCE_DOES_NOT_MATCH =
       "Retrieved Source does not match original stored Source";
+
+  /** Make PMD happy. */
+  private static final String UNABLE_TO_STORE_DATA = "Unable to store SensorData";
 
   /**
    * Adds Users that own test Sources. Currently the DB level doesn't check that Owners for Sources
@@ -105,12 +111,14 @@ public class TestDbManagerSources extends DbManagerTestHelper {
       assertSame("SourceRefs from getSources do not match input Sources", found, 1);
     }
 
+    // TODO Should test that SourceRefs come in sorted order
+
     // case #4: deleting a Source should leave two SourceRefs in SourceIndex
     assertTrue("Unable to delete source1", manager.deleteSource(this.source1.getName()));
     assertSame("getSources returned wrong number of SourceRefs", manager.getSources()
         .getSourceRef().size(), 2);
   }
-  
+
   /**
    * Tests the getSource method.
    */
@@ -145,6 +153,33 @@ public class TestDbManagerSources extends DbManagerTestHelper {
 
     // case #6: retrieve null Source name
     assertNull("Able to retrieve from null Source", manager.getSource(null));
+  }
+
+  /**
+   * Tests the getSourceSummary method.
+   * 
+   * @throws Exception if there are problems creating test data.
+   */
+  @Test
+  public void testGetSourceSummary() throws Exception {
+    // Add Users that own test Sources.
+    storeTestUsers();
+
+    assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source1));
+    SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
+        makeTestSensorData3();
+
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data3));
+
+    SourceSummary expectedSummary = new SourceSummary();
+    expectedSummary.setHref(SourceUtils.sourceToUri(this.source1, server));
+    expectedSummary.setFirstSensorData(data1.getTimestamp());
+    expectedSummary.setLastSensorData(data3.getTimestamp());
+    expectedSummary.setTotalSensorDatas(3);
+    SourceSummary retreivedSummary = manager.getSourceSummary(this.source1.getName());
+    assertEquals("SourceSummary does not match expected value", expectedSummary, retreivedSummary);
   }
 
   /**

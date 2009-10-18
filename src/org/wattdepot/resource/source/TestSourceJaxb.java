@@ -1,13 +1,17 @@
 package org.wattdepot.resource.source;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
+import javax.xml.datatype.XMLGregorianCalendar;
+import org.hackystat.utilities.tstamp.Tstamp;
 import org.junit.Test;
 import org.wattdepot.resource.source.jaxb.Properties;
 import org.wattdepot.resource.source.jaxb.Property;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.source.jaxb.SubSources;
 
 /**
@@ -114,7 +118,7 @@ public class TestSourceJaxb {
    * Tests toString for the Source type.
    */
   @Test
-  public void testToString() {
+  public void testSourceToString() {
     String key1 = "foo-key", value1 = "foo", key2 = "bar-key", value2 = "bar";
     Property prop1 = SourceUtils.makeSourceProperty(key1, value1);
     Property prop2 = SourceUtils.makeSourceProperty(key2, value2);
@@ -145,6 +149,61 @@ public class TestSourceJaxb {
         SourceUtils.makeSource(sourceName, owner, publicp, virtualp, coordinates, location,
             description, props1, subSources1);
     assertEquals("Source did not create expected toString", expectedOutput, source1.toString());
+  }
+
+  /**
+   * Tests equals and hashCode for the SourceSummary type.
+   * 
+   * @throws Exception If there are problems creating a timestamp.
+   */
+  @Test
+  public void testSourceSummary() throws Exception {
+    String sourceUri = "http://localhost:8183/wattdepot/sources/foo";
+    XMLGregorianCalendar firstTimestamp = Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00");
+    XMLGregorianCalendar lastTimestamp = Tstamp.makeTimestamp("2009-08-28T09:00:00.000-10:00");
+    long dataCount = 2880L;
+    SourceSummary summary1 = new SourceSummary();
+    summary1.setHref(sourceUri);
+    summary1.setFirstSensorData(firstTimestamp);
+    summary1.setLastSensorData(lastTimestamp);
+    summary1.setTotalSensorDatas(dataCount);
+    SourceSummary summary2 = new SourceSummary();
+    summary2.setHref(sourceUri);
+    summary2.setFirstSensorData(firstTimestamp);
+    summary2.setLastSensorData(lastTimestamp);
+    summary2.setTotalSensorDatas(dataCount);
+
+    assertNotSame("Two newly created SourceSummaries are the same object", summary1, summary2);
+    assertEquals("Two SourceSummary objects with identical fields are not equal", summary1,
+        summary2);
+    assertEquals("Two SourceSummary objects with identical fields have different hashCodes",
+        summary1.hashCode(), summary2.hashCode());
+    summary2.setFirstSensorData(lastTimestamp);
+    assertFalse("Different SourceSummaries are equal.", summary1.equals(summary2));
+  }
+
+  /**
+   * Tests equals and hashCode for the SourceSummary type.
+   * 
+   * @throws Exception If there are problems creating a timestamp.
+   */
+  @Test
+  public void testSourceSummaryToString() throws Exception {
+    String expectedOutput =
+        "SourceSummary [href=http://localhost:8183/wattdepot/sources/foo,"
+            + " firstSensorData=2009-07-28T09:00:00.000-10:00,"
+            + " lastSensorData=2009-08-28T09:00:00.000-10:00," + " totalSensorDatas=2880]";
+    String sourceUri = "http://localhost:8183/wattdepot/sources/foo";
+    XMLGregorianCalendar firstTimestamp = Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00");
+    XMLGregorianCalendar lastTimestamp = Tstamp.makeTimestamp("2009-08-28T09:00:00.000-10:00");
+    long dataCount = 2880L;
+    SourceSummary summary1 = new SourceSummary();
+    summary1.setHref(sourceUri);
+    summary1.setFirstSensorData(firstTimestamp);
+    summary1.setLastSensorData(lastTimestamp);
+    summary1.setTotalSensorDatas(dataCount);
+    assertEquals("SourceSummary did not create expected toString", expectedOutput, summary1
+        .toString());
   }
 
   /**

@@ -6,6 +6,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
@@ -72,6 +73,14 @@ public abstract class DbImplementation {
    * @return The requested Source, or null.
    */
   public abstract Source getSource(String sourceName);
+
+  /**
+   * Returns a SourceSummary for the named Source instance, or null if not found.
+   * 
+   * @param sourceName The name of the Source.
+   * @return The requested SourceSummary, or null.
+   */
+  public abstract SourceSummary getSourceSummary(String sourceName);
 
   /**
    * Persists a Source instance. If a Source with this name already exists in the storage system, no

@@ -11,6 +11,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
@@ -85,6 +86,51 @@ public class MemoryStorageImplementation extends DbImplementation {
     }
     else {
       return this.name2SourceHash.get(sourceName);
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SourceSummary getSourceSummary(String sourceName) {
+    if ((sourceName == null) || (this.name2SourceHash.get(sourceName) == null)) {
+      // null or non-existent source name
+      return null;
+    }
+    else {
+      SourceSummary summary = new SourceSummary();
+      summary.setHref(SourceUtils.sourceToUri(sourceName, this.server.getHostName()));
+      // Retrieve this Source's map of timestamps to SensorData
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+          this.source2SensorDatasHash.get(sourceName);
+      if (sensorDataMap == null) {
+        // no sensordata for this source
+        summary.setTotalSensorDatas(0);
+      }
+      else {
+        XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null, dataTimestamp;
+        long dataCount = 0;
+        // Loop over all SensorData in hash
+        for (SensorData data : sensorDataMap.values()) {
+          dataCount++;
+          if (firstTimestamp == null) {
+            firstTimestamp = data.getTimestamp();
+          }
+          if (lastTimestamp == null) {
+            lastTimestamp = data.getTimestamp();
+          }
+          dataTimestamp = data.getTimestamp();
+          if (dataTimestamp.compare(firstTimestamp) == DatatypeConstants.LESSER) {
+            firstTimestamp = dataTimestamp;
+          }
+          if (dataTimestamp.compare(lastTimestamp) == DatatypeConstants.GREATER) {
+            lastTimestamp = dataTimestamp;
+          }
+        }
+        summary.setFirstSensorData(firstTimestamp);
+        summary.setLastSensorData(lastTimestamp);
+        summary.setTotalSensorDatas(dataCount);
+      }
+      return summary;
     }
   }
 

@@ -28,6 +28,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.SourceResource;
 import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.resource.source.summary.SourceSummaryResource;
 import org.wattdepot.resource.user.UserResource;
 import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.UsersResource;
@@ -44,8 +45,6 @@ import org.wattdepot.util.logger.WattDepotLogger;
  * @author Philip Johnson
  */
 public class Server extends Application {
-
-  private static final String SOURCE_PARAM = "/{source}";
 
   /** Holds the Restlet Component associated with this Server. */
   private Component component;
@@ -76,6 +75,12 @@ public class Server extends Application {
 
   /** The URI used for the users resource. */
   public static final String GVIZ_URI = "gviz";
+
+  /** URI fragment for source summary. */
+  public static final String SUMMARY_URI = "summary";
+
+  /** URI parameter for source name. */
+  private static final String SOURCE_PARAM = "{source}";
 
   /** Users JAXBContext. */
   private static final JAXBContext userJAXB;
@@ -264,8 +269,8 @@ public class Server extends Application {
           data.setSource(SourceUtils.updateUri(data.getSource(), this));
           if (dbManager.storeSensorData(data)) {
             // Too voluminous to print every sensor data loaded
-//            logger.info("Loaded sensor data for source " + data.getSource() + ", time "
-//                + data.getTimestamp() + " from defaults.");
+            // logger.info("Loaded sensor data for source " + data.getSource() + ", time "
+            // + data.getTimestamp() + " from defaults.");
             dataCount++;
           }
           else {
@@ -273,7 +278,7 @@ public class Server extends Application {
                 + "\" could not be stored in DB.");
           }
         }
-      logger.info("Loaded " + dataCount + " sensor data objects from defaults.");
+        logger.info("Loaded " + dataCount + " sensor data objects from defaults.");
       }
     }
     else {
@@ -311,14 +316,17 @@ public class Server extends Application {
 
     // Health resource is public, so no Guard
     router.attach("/" + HEALTH_URI, HealthResource.class);
-    // Source does it's own authentication processing, so don't use Guard
+    // Source does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI, SourceResource.class);
-    router.attach("/" + SOURCES_URI + SOURCE_PARAM, SourceResource.class);
-    // SensorData does it's own authentication processing, so don't use Guard
-    router.attach("/" + SOURCES_URI + SOURCE_PARAM + "/" + SENSORDATA_URI, SensorDataResource.class);
-    router.attach("/" + SOURCES_URI + SOURCE_PARAM + "/" + SENSORDATA_URI
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM, SourceResource.class);
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SUMMARY_URI,
+        SourceSummaryResource.class);
+    // SensorData does its own authentication processing, so don't use Guard
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI,
+        SensorDataResource.class);
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI
         + "/?startTime={startTime}&endTime={endTime}", SensorDataResource.class);
-    router.attach("/" + SOURCES_URI + SOURCE_PARAM + "/" + SENSORDATA_URI + "/{timestamp}",
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/{timestamp}",
         SensorDataResource.class);
     // // Google Visualization API resource
     // Route route = router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI,
