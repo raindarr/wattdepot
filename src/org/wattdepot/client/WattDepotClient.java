@@ -25,6 +25,7 @@ import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.StringRepresentation;
+import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -390,6 +391,125 @@ public class WattDepotClient {
       // Some totally unexpected non-success status code, just throw generic client exception
       throw new MiscClientException(status);
     }
+  }
+
+  /**
+   * Requests the power in SensorData format from a given Source corresponding to the given
+   * timestamp.
+   * 
+   * @param source The name of the Source.
+   * @param timestamp The timestamp of the desired power reading.
+   * @return The SensorData.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SensorData.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public SensorData getPower(String source, XMLGregorianCalendar timestamp)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
+    Response response =
+        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.POWER_URI + "/"
+            + timestamp.toXMLFormat(), XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad timestamp provided in URI
+      throw new BadXmlException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
+        return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Requests the power from a given Source corresponding to the given timestamp, and extracts the
+   * provided property key, converts it to double and returns the value.
+   * 
+   * @param source The name of the Source.
+   * @param timestamp The timestamp of the desired power reading.
+   * @param key The property key to search for.
+   * @return A double representing the the property at the given timestamp, or 0 if there is no
+   * data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  private double getPowerValue(String source, XMLGregorianCalendar timestamp, String key)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
+    SensorData data = getPower(source, timestamp);
+    for (Property prop : data.getProperties().getProperty()) {
+      if (key.equals(prop.getKey())) {
+        return Double.valueOf(prop.getValue());
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Requests the power generated from a given Source corresponding to the given timestamp.
+   * 
+   * @param source The name of the Source.
+   * @param timestamp The timestamp of the desired power reading.
+   * @return A double representing the power generated at the given timestamp, or 0 if there is no
+   * data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public double getPowerGenerated(String source, XMLGregorianCalendar timestamp)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
+    return getPowerValue(source, timestamp, "powerGenerated");
+  }
+
+  /**
+   * Requests the power consumed by a given Source corresponding to the given timestamp.
+   * 
+   * @param source The name of the Source.
+   * @param timestamp The timestamp of the desired power reading.
+   * @return A double representing the power consumed at the given timestamp, or 0 if there is no
+   * data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public double getPowerConsumed(String source, XMLGregorianCalendar timestamp)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
+    return getPowerValue(source, timestamp, "powerConsumed");
   }
 
   /**

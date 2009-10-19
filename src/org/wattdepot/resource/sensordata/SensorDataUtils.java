@@ -56,6 +56,24 @@ public class SensorDataUtils {
   }
 
   /**
+   * Returns the value of a property with a particular key from a SensorData object. Only the first
+   * property with the given key is returned.
+   * 
+   * @param data The SensorData object.
+   * @param key The property key.
+   * @return The value of that key, or null if no property with that key exists.
+   */
+  public static String getPropertyValue(SensorData data, String key) {
+    List<Property> props = data.getProperties().getProperty();
+    for (Property prop : props) {
+      if (key.equals(prop.getKey())) {
+        return prop.getValue();
+      }
+    }
+    return null;
+  }
+
+  /**
    * Creates a SensorDataRef object from a SensorData object. The Server argument is required to
    * build the URI in the SensorDataRef pointing to the full SensorData resource. Needs to be kept
    * up to date with any changes to the schema, which is bogus.
@@ -77,7 +95,7 @@ public class SensorDataUtils {
   /**
    * Creates a SensorDataRef object from the given parameters. Note that no parameter is needed for
    * the Href field, as it can be constructed from the source and timestamp.
-   *
+   * 
    * @param timestamp The timestamp for the new object.
    * @param tool The tool for the new object.
    * @param source The URI of the source for the new object.

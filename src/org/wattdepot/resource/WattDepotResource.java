@@ -19,6 +19,7 @@ import org.restlet.data.Status;
 import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
+import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -82,7 +83,7 @@ public class WattDepotResource extends Resource {
       sourceJaxbContext =
           JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
       sourceSummaryJaxbContext =
-        JAXBContext.newInstance(org.wattdepot.resource.source.summary.jaxb.ObjectFactory.class);
+          JAXBContext.newInstance(org.wattdepot.resource.source.summary.jaxb.ObjectFactory.class);
       sensorDataJaxbContext =
           JAXBContext.newInstance(org.wattdepot.resource.sensordata.jaxb.ObjectFactory.class);
     }
@@ -345,6 +346,33 @@ public class WattDepotResource extends Resource {
   public SensorData makeSensorData(String xmlString) throws JAXBException {
     Unmarshaller unmarshaller = sensorDataJaxbContext.createUnmarshaller();
     return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
+  }
+
+  /**
+   * Returns the XML string containing the power in SensorData format for the Source name given in
+   * the URI and the given timestamp, or null if no power data exists.
+   * 
+   * @param timestamp The timestamp requested.
+   * @return The XML string representing the requested power in SensorData format, or null if it
+   * cannot be found/calculated.
+   * @throws JAXBException If there are problems mashalling the SensorData.
+   */
+  public String getPower(XMLGregorianCalendar timestamp) throws JAXBException {
+    Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+    SensorDataStraddle straddle = this.dbManager.getSensorDataStraddle(this.uriSource, timestamp);
+    if (straddle == null) {
+      return null;
+    }
+    SensorData powerData = straddle.getPower();
+    if (powerData == null) {
+      // This shouldn't happen, getPower should always return a valid SensorData
+      return null;
+    }
+    else {
+      marshaller.marshal(powerData, writer);
+      return writer.toString();
+    }
   }
 
   /**

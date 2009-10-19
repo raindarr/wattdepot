@@ -3,6 +3,8 @@ List of things to do:
 - Write DbManager test to check if deleting User deletes Source and SensorData
 - Write DbManager test to check if deleting Source deletes SensorData
 - Use JAXB plugin to get real equals() and hashCode()
+- Normalize all JAXB code to use a centralized Property/Properties class
+- Merge the Utility class code into the appropriate JAXB class, and refactor all the calls
 - Resolve persistent errors in Eclipse wrt Ant build files
   - Maybe need to run Eclipse under Java 1.6 (requires downloading 64bit Eclipse version?)
   - Maybe need to install JAXB via Ivy (though it's a manual download, bletch)
@@ -11,3 +13,7 @@ List of things to do:
 - Add hashCode and equals to User (and downstream stuff), with unit tests
 - Make UserIndex method in MemoryStorageImplementation sort the list before returning
 - Make tests to confirm SensorDataIndexes and SourceIndexes returned are sorted in DbManagerSensorData
+- Write a subclass of Guard that looks at the URI and authentication credentials and determines
+whether to allow access, rather than doing it inside each resource. Resources will have to make
+some decisions (like only putting public Sources in an index if the client is anonymous), but that
+can be based off of a status field (ANON, ADMIN, OWNER).

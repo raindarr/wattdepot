@@ -23,6 +23,7 @@ import org.restlet.Router;
 import org.restlet.data.Protocol;
 import org.wattdepot.resource.gviz.GVisualizationServlet;
 import org.wattdepot.resource.health.HealthResource;
+import org.wattdepot.resource.power.PowerResource;
 import org.wattdepot.resource.sensordata.SensorDataResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.SourceResource;
@@ -78,6 +79,9 @@ public class Server extends Application {
 
   /** URI fragment for source summary. */
   public static final String SUMMARY_URI = "summary";
+
+  /** URI fragment for source summary. */
+  public static final String POWER_URI = "power";
 
   /** URI parameter for source name. */
   private static final String SOURCE_PARAM = "{source}";
@@ -328,6 +332,10 @@ public class Server extends Application {
         + "/?startTime={startTime}&endTime={endTime}", SensorDataResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/{timestamp}",
         SensorDataResource.class);
+    // Power does its own authentication processing, so don't use Guard
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + POWER_URI + "/{timestamp}",
+        PowerResource.class);
+    
     // // Google Visualization API resource
     // Route route = router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI,
     // GVisualizationResource.class);
