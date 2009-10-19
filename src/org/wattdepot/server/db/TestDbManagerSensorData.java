@@ -7,15 +7,19 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.compareSensorDataRefsToSensorDatas;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.sensorDataRefEqualsSensorData;
+import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.hackystat.utilities.tstamp.Tstamp;
 import org.junit.Test;
+import org.wattdepot.resource.sensordata.SensorDataStraddle;
+import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.user.jaxb.User;
+import org.wattdepot.util.UriUtils;
 
 /**
  * Instantiates a DbManager and tests the database methods related to SensorData resources.
@@ -108,7 +112,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         origData));
 
     // TODO Should test that SensorDataIndex is sorted in increasing timestamp order
-    
+
     // case #4: deleting a SensorData should leave two SensorDataRefs in SensorDataIndex
     assertTrue("Unable to delete data1", manager.deleteSensorData(this.source1.getName(), data1
         .getTimestamp()));
@@ -137,7 +141,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     createTestData();
 
     XMLGregorianCalendar start = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00"), end =
-        Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00");
+        Tstamp.makeTimestamp("2009-07-28T11:00:00.000-10:00");
 
     // Add data to source
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
@@ -483,5 +487,201 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     // case #9: no more SensorData after all SensorData has been deleted
     assertTrue("After deleting all known SensorData for Source, SensorData remains in DB", manager
         .getSensorDataIndex(this.source1.getName()).getSensorDataRef().isEmpty());
+  }
+
+  /**
+   * Tests that after sensor data is added to a non-virtual source, getSensorDataStraddle returns
+   * the correct straddles, or null as appropriate.
+   * 
+   * @throws Exception If there are problems making timestamps.
+   */
+  @Test
+  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
+  public void testGetSensorDataStraddle() throws Exception {
+    // Set up test data
+    createTestData();
+
+    XMLGregorianCalendar beforeAll = Tstamp.makeTimestamp("2009-07-27T09:00:00.000-10:00");
+    XMLGregorianCalendar source1Time1 = Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00");
+    XMLGregorianCalendar source1Time1_2 = Tstamp.makeTimestamp("2009-07-28T09:07:00.000-10:00");
+    XMLGregorianCalendar source1Time2 = Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00");
+    // XMLGregorianCalendar source1Time2_3 = Tstamp.makeTimestamp("2009-07-28T09:22:00.000-10:00");
+    XMLGregorianCalendar source1Time3 = Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00");
+    // XMLGregorianCalendar source1Time3_4 = Tstamp.makeTimestamp("2009-07-28T09:37:00.000-10:00");
+    XMLGregorianCalendar source1Time4 = Tstamp.makeTimestamp("2009-07-28T09:45:00.000-10:00");
+    XMLGregorianCalendar source1Time4_5 = Tstamp.makeTimestamp("2009-07-28T09:52:00.000-10:00");
+    XMLGregorianCalendar source1Time5 = Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00");
+    XMLGregorianCalendar afterAll = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
+
+    String tool = "JUnit";
+    String source1 = UriUtils.getUriSuffix(sourceToUri(makeTestSource1(), server));
+    // String source2 = UriUtils.getUriSuffix(sourceToUri(makeTestSource2(), server));
+    String virtualSource = UriUtils.getUriSuffix(sourceToUri(makeTestSource3(), server));
+
+    SensorData data1 = SensorDataUtils.makeSensorData(source1Time1, tool, source1, null);
+    SensorData data2 = SensorDataUtils.makeSensorData(source1Time2, tool, source1, null);
+    SensorData data3 = SensorDataUtils.makeSensorData(source1Time3, tool, source1, null);
+    SensorData data4 = SensorDataUtils.makeSensorData(source1Time4, tool, source1, null);
+    SensorData data5 = SensorDataUtils.makeSensorData(source1Time5, tool, source1, null);
+    SensorDataStraddle straddle;
+
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data1));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data2));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data3));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data4));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data5));
+
+    // unknown Source name
+    assertNull("Could getSensorDataStraddle with unknown source name", this.manager
+        .getSensorDataStraddle("bogus-source-5", beforeAll));
+    // null source name
+    assertNull("Could getSensorDataStraddle with null source name", this.manager
+        .getSensorDataStraddle(null, beforeAll));
+    // empty source name
+    assertNull("Could getSensorDataStraddle with empty source name", this.manager
+        .getSensorDataStraddle("", beforeAll));
+    // virtual source
+    assertNull("Could getSensorDataStraddle on virtual source", this.manager.getSensorDataStraddle(
+        virtualSource, beforeAll));
+    // timestamp before stored data
+    assertNull("Could getSensorDataStraddle where timestamp is before all stored data",
+        this.manager.getSensorDataStraddle(source1, beforeAll));
+    // timestamp after stored data
+    assertNull("Could getSensorDataStraddle where timestamp is after all stored data", this.manager
+        .getSensorDataStraddle(source1, afterAll));
+    // timestamp equal to stored data
+    straddle = this.manager.getSensorDataStraddle(source1, source1Time2);
+    assertEquals("timestamp equal to sensorData, but beforeData not set correctly", straddle
+        .getBeforeData(), data2);
+    assertEquals("timestamp equal to beforeData, but afterData not set correctly", straddle
+        .getBeforeData(), straddle.getAfterData());
+    // timestamp between data1 & data2
+    straddle = this.manager.getSensorDataStraddle(source1, source1Time1_2);
+    assertEquals("beforeData not set correctly", straddle.getBeforeData(), data1);
+    assertEquals("afterData not set correctly", straddle.getAfterData(), data2);
+    // timestamp between data4 & data5
+    straddle = this.manager.getSensorDataStraddle(source1, source1Time4_5);
+    assertEquals("beforeData not set correctly", straddle.getBeforeData(), data4);
+    assertEquals("afterData not set correctly", straddle.getAfterData(), data5);
+  }
+
+  /**
+   * Tests that after sensor data is added two non-virtual sources, with a virtual source that
+   * includes both non-virtual sources, getSensorDataStraddleList for the virtual returns the
+   * correct straddles, or null as appropriate.
+   * 
+   * @throws Exception If there are problems making timestamps.
+   */
+  @Test
+  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
+  public void testGetSensorDataStraddleList() throws Exception {
+    // Set up test data
+    createTestData();
+
+    // Three sets of timestamps: source1 is every 15 minutes on the hour, source2 is every 30
+    // minutes starting 5 minutes after the hour, and some interleaved timestamps to straddle
+    XMLGregorianCalendar beforeAll = Tstamp.makeTimestamp("2009-07-27T09:00:00.000-10:00");
+    XMLGregorianCalendar source1Time1 = Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00");
+    XMLGregorianCalendar source2Time1 = Tstamp.makeTimestamp("2009-07-28T09:05:00.000-10:00");
+    XMLGregorianCalendar source1Time1_2 = Tstamp.makeTimestamp("2009-07-28T09:07:00.000-10:00");
+    XMLGregorianCalendar source1Time2 = Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00");
+    XMLGregorianCalendar source1Time2_3 = Tstamp.makeTimestamp("2009-07-28T09:22:00.000-10:00");
+    XMLGregorianCalendar source1Time3 = Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00");
+    XMLGregorianCalendar source2Time2 = Tstamp.makeTimestamp("2009-07-28T09:35:00.000-10:00");
+    XMLGregorianCalendar source1Time3_4 = Tstamp.makeTimestamp("2009-07-28T09:37:00.000-10:00");
+    XMLGregorianCalendar source1Time4 = Tstamp.makeTimestamp("2009-07-28T09:45:00.000-10:00");
+    XMLGregorianCalendar source1Time5 = Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00");
+    XMLGregorianCalendar source2Time2_3 = Tstamp.makeTimestamp("2009-07-28T10:02:00.000-10:00");
+    XMLGregorianCalendar source2Time3 = Tstamp.makeTimestamp("2009-07-28T10:05:00.000-10:00");
+    XMLGregorianCalendar afterAll = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
+
+    String tool = "JUnit";
+    String source1 = UriUtils.getUriSuffix(sourceToUri(makeTestSource1(), server));
+    String source2 = UriUtils.getUriSuffix(sourceToUri(makeTestSource2(), server));
+    String virtualSource = UriUtils.getUriSuffix(sourceToUri(makeTestSource3(), server));
+
+    SensorData source1Data1 = SensorDataUtils.makeSensorData(source1Time1, tool, source1, null);
+    SensorData source1Data2 = SensorDataUtils.makeSensorData(source1Time2, tool, source1, null);
+    SensorData source1Data3 = SensorDataUtils.makeSensorData(source1Time3, tool, source1, null);
+    SensorData source1Data4 = SensorDataUtils.makeSensorData(source1Time4, tool, source1, null);
+    SensorData source1Data5 = SensorDataUtils.makeSensorData(source1Time5, tool, source1, null);
+    SensorData source2Data1 = SensorDataUtils.makeSensorData(source2Time1, tool, source2, null);
+    SensorData source2Data2 = SensorDataUtils.makeSensorData(source2Time2, tool, source2, null);
+    SensorData source2Data3 = SensorDataUtils.makeSensorData(source2Time3, tool, source2, null);
+    List<SensorDataStraddle> straddleList;
+
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data1));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data2));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data3));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data4));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data5));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data1));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data2));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data3));
+
+    // unknown Source name
+    assertNull("Could getSensorDataStraddleList with unknown source name", this.manager
+        .getSensorDataStraddleList("bogus-source-5", beforeAll));
+    // null source name
+    assertNull("Could getSensorDataStraddleList with null source name", this.manager
+        .getSensorDataStraddleList(null, beforeAll));
+    // empty source name
+    assertNull("Could getSensorDataStraddleList with empty source name", this.manager
+        .getSensorDataStraddleList("", beforeAll));
+    // timestamp before stored data
+    assertNull("Could getSensorDataStraddleList where timestamp is before all stored data",
+        this.manager.getSensorDataStraddle(virtualSource, beforeAll));
+    // timestamp after stored data
+    assertNull("Could getSensorDataStraddleLiat where timestamp is after all stored data",
+        this.manager.getSensorDataStraddle(virtualSource, afterAll));
+    // timestamp equal to data from source1
+    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source1Time2);
+    assertEquals("timestamp equal to data from source1, but beforeData not set correctly",
+        straddleList.get(0).getBeforeData(), source1Data2);
+    assertEquals("timestamp equal to data from source1, but afterData not set correctly",
+        straddleList.get(0).getAfterData(), source1Data2);
+    assertEquals(
+        "timestamp equal to data from source1, but straddle from source2 beforeData not set correctly",
+        straddleList.get(1).getBeforeData(), source2Data1);
+    assertEquals(
+        "timestamp equal to data from source1, but straddle from source2 afterData not set correctly",
+        straddleList.get(1).getAfterData(), source2Data2);
+    // timestamp = source1Time1_2
+    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source1Time1_2);
+    assertEquals("source1 straddle beforeData not set correctly", straddleList.get(0)
+        .getBeforeData(), source1Data1);
+    assertEquals("source1 straddle afterData not set correctly",
+        straddleList.get(0).getAfterData(), source1Data2);
+    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(1)
+        .getBeforeData(), source2Data1);
+    assertEquals("source2 straddle afterData not set correctly",
+        straddleList.get(1).getAfterData(), source2Data2);
+    // timestamp = source1Time2_3
+    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source1Time2_3);
+    assertEquals("source1 straddle beforeData not set correctly", straddleList.get(0)
+        .getBeforeData(), source1Data2);
+    assertEquals("source1 straddle afterData not set correctly",
+        straddleList.get(0).getAfterData(), source1Data3);
+    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(1)
+        .getBeforeData(), source2Data1);
+    assertEquals("source2 straddle afterData not set correctly",
+        straddleList.get(1).getAfterData(), source2Data2);
+    // timestamp = source1Time3_4
+    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source1Time3_4);
+    assertEquals("source1 straddle beforeData not set correctly", straddleList.get(0)
+        .getBeforeData(), source1Data3);
+    assertEquals("source1 straddle afterData not set correctly",
+        straddleList.get(0).getAfterData(), source1Data4);
+    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(1)
+        .getBeforeData(), source2Data2);
+    assertEquals("source2 straddle afterData not set correctly",
+        straddleList.get(1).getAfterData(), source2Data3);
+    // timestamp = source2Time2_3, outside source1's range so should only have one element in list
+    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source2Time2_3);
+    assertEquals("straddle list had more than 1 element", straddleList.size(), 1);
+    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(0)
+        .getBeforeData(), source2Data2);
+    assertEquals("source2 straddle afterData not set correctly",
+        straddleList.get(0).getAfterData(), source2Data3);
   }
 }

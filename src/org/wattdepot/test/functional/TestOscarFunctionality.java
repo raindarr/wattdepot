@@ -558,7 +558,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
       buff.append(String.format("Latest data: none%n"));
     }
     buff.append(String.format("Total data points: %d%n", summary.getTotalSensorDatas()));
-    System.out.println(buff.toString());
+//    System.out.println(buff.toString());
     return buff.toString();
   }
 

@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
+import org.hackystat.utilities.tstamp.Tstamp;
+import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
@@ -373,6 +375,128 @@ public class MemoryStorageImplementation extends DbImplementation {
       // Delete the hash of sensor data for this Source. If the source doesn't exist or there is no
       // sensor data, we'll get a null.
       return (this.source2SensorDatasHash.remove(sourceName) != null);
+    }
+  }
+
+  /**
+   * Returns a SensorDataStraddle that straddles the given timestamp, using SensorData from the
+   * given source. Note that a virtual source contains no SensorData directly, so this method will
+   * always return null if the given sourceName is a virtual source. To obtain a list of
+   * SensorDataStraddles for all the non-virtual subsources of a virtual source, see
+   * getSensorDataStraddleList.
+   * 
+   * If the given timestamp corresponds to an actual SensorData, then return a degenerate
+   * SensorDataStraddle with both ends of the straddle set to the actual SensorData.
+   * 
+   * @param sourceName The name of the source to generate the straddle from.
+   * @param timestamp The timestamp of interest in the straddle.
+   * @return A SensorDataStraddle that straddles the given timestamp. Returns null if: parameters
+   * are null, the source doesn't exist, source has no sensor data, or there is no sensor data that
+   * straddles the timestamp.
+   * @see org.wattdepot.server.db.memory#getSensorDataStraddleList
+   */
+  @Override
+  public SensorDataStraddle getSensorDataStraddle(String sourceName, XMLGregorianCalendar timestamp) {
+    // This is a kludge, create sentinels for times way outside our expected range
+    SensorData beforeSentinel, afterSentinel;
+    try {
+      beforeSentinel =
+          SensorDataUtils.makeSensorData(Tstamp.makeTimestamp("1700-01-01T00:00:00.000-10:00"), "",
+              "", null);
+      afterSentinel =
+          SensorDataUtils.makeSensorData(Tstamp.makeTimestamp("3000-01-01T00:00:00.000-10:00"), "",
+              "", null);
+    }
+    catch (Exception e) {
+      throw new RuntimeException(
+          "Creating timestamp from static string failed. This should never happen", e);
+    }
+    // initialize beforeData & afterData to sentinel values
+    SensorData beforeData = beforeSentinel, afterData = afterSentinel;
+    if ((sourceName == null) || (timestamp == null)) {
+      return null;
+    }
+    Source source = this.name2SourceHash.get(sourceName);
+    if (source == null) {
+      return null;
+    }
+    XMLGregorianCalendar dataTimestamp;
+    int dataTimestampCompare;
+    // Retrieve this Source's map of timestamps to SensorData
+    ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+        this.source2SensorDatasHash.get(sourceName);
+    if (sensorDataMap == null) {
+      return null;
+    }
+    else {
+      // Loop over all SensorData in hash
+      for (SensorData data : sensorDataMap.values()) {
+        dataTimestamp = data.getTimestamp();
+        dataTimestampCompare = dataTimestamp.compare(timestamp);
+        if (dataTimestampCompare == DatatypeConstants.EQUAL) {
+          // There is SensorData for the requested timestamp, so return degenerate
+          // SensorDataStraddle
+          return new SensorDataStraddle(timestamp, data, data);
+        }
+        if ((dataTimestamp.compare(beforeData.getTimestamp()) == DatatypeConstants.GREATER)
+            && (dataTimestampCompare == DatatypeConstants.LESSER)) {
+          // found closer beforeData
+          beforeData = data;
+        }
+        else if ((dataTimestamp.compare(afterData.getTimestamp()) == DatatypeConstants.LESSER)
+            && (dataTimestampCompare == DatatypeConstants.GREATER)) {
+          // found closer afterData
+          afterData = data;
+        }
+      }
+      if (beforeData.equals(beforeSentinel) || afterData.equals(afterSentinel)) {
+        // one of the sentinels never got changed, so no straddle
+        return null;
+      }
+      else {
+        return new SensorDataStraddle(timestamp, beforeData, afterData);
+      }
+    }
+  }
+
+  /**
+   * Returns a list of SensorDataStraddles that straddle the given timestamp, using SensorData from
+   * all non-virtual subsources of the given source. If the given source is non-virtual, then the
+   * result will be a list containing at a single SensorDataStraddle, or null. In the case of a
+   * non-virtual source, you might as well use getSensorDataStraddle.
+   * 
+   * @param sourceName The name of the source to generate the straddle from.
+   * @param timestamp The timestamp of interest in the straddle.
+   * @return A list of SensorDataStraddles that straddle the given timestamp. Returns null if:
+   * parameters are null, the source doesn't exist, or there is no sensor data that straddles the
+   * timestamp.
+   * @see org.wattdepot.server.db.memory#getSensorDataStraddle
+   */
+  @Override
+  public List<SensorDataStraddle> getSensorDataStraddleList(String sourceName,
+      XMLGregorianCalendar timestamp) {
+    if ((sourceName == null) || (timestamp == null)) {
+      return null;
+    }
+    Source baseSource = this.name2SourceHash.get(sourceName);
+    if (baseSource == null) {
+      return null;
+    }
+    // Want to go through sensordata for base source, and all subsources recursively
+    List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>();
+    for (Source subSource : sourceList) {
+      String subSourceName = subSource.getName();
+      SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
+      if (straddle != null) {
+        straddleList.add(straddle);
+      }
+    }
+    if (straddleList.isEmpty()) {
+      return null;
+    }
+    else {
+      return straddleList;
     }
   }
 

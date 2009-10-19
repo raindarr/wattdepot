@@ -1,7 +1,9 @@
 package org.wattdepot.server.db;
 
+import java.util.List;
 import java.util.logging.Logger;
 import javax.xml.datatype.XMLGregorianCalendar;
+import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -176,6 +178,42 @@ public abstract class DbImplementation {
    */
   public abstract boolean deleteSensorData(String sourceName);
 
+  /**
+   * Returns a SensorDataStraddle that straddles the given timestamp, using SensorData from the
+   * given source. Note that a virtual source contains no SensorData directly, so this method will
+   * always return null if the given sourceName is a virtual source. To obtain a list of
+   * SensorDataStraddles for all the non-virtual subsources of a virtual source, see
+   * getSensorDataStraddleList.
+   * 
+   * If the given timestamp corresponds to an actual SensorData, then return a degenerate
+   * SensorDataStraddle with both ends of the straddle set to the actual SensorData.
+   * 
+   * @param sourceName The name of the source to generate the straddle from.
+   * @param timestamp The timestamp of interest in the straddle.
+   * @return A SensorDataStraddle that straddles the given timestamp. Returns null if: parameters
+   * are null, the source doesn't exist, source has no sensor data, or there is no sensor data that
+   * straddles the timestamp.
+   * @see org.wattdepot.server.db.memory#getSensorDataStraddleList
+   */
+  public abstract SensorDataStraddle getSensorDataStraddle(String sourceName,
+      XMLGregorianCalendar timestamp);
+
+  /**
+   * Returns a list of SensorDataStraddles that straddle the given timestamp, using SensorData from
+   * all non-virtual subsources of the given source. If the given source is non-virtual, then the
+   * result will be a list containing at a single SensorDataStraddle, or null. In the case of a
+   * non-virtual source, you might as well use getSensorDataStraddle.
+   * 
+   * @param sourceName The name of the source to generate the straddle from.
+   * @param timestamp The timestamp of interest in the straddle.
+   * @return A list of SensorDataStraddles that straddle the given timestamp. Returns null if:
+   * parameters are null, the source doesn't exist, or there is no sensor data that straddles the
+   * timestamp.
+   * @see org.wattdepot.server.db.memory#getSensorDataStraddle
+   */
+  public abstract List<SensorDataStraddle> getSensorDataStraddleList(String sourceName,
+      XMLGregorianCalendar timestamp);
+  
   /**
    * Returns a UserIndex of all Users in the system.
    * 
