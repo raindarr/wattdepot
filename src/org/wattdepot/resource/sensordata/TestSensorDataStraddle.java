@@ -196,7 +196,7 @@ public class TestSensorDataStraddle {
     straddleList.add(straddle1);
     straddleList.add(straddle1);
     powerData = SensorDataStraddle.getPowerFromList(straddleList, source);
-    System.out.println(powerData);
+//    System.out.println(powerData);
     interpolatedPower =
         SensorDataStraddle.getPropertyAsDouble(powerData.getProperties(), POWER_GENERATED);
     assertEquals("getPower for virtual source on degenerate straddle did not return beforeData",
@@ -248,7 +248,7 @@ public class TestSensorDataStraddle {
     straddleList.add(straddle1);
     straddleList.add(straddle2);
     powerData = SensorDataStraddle.getPowerFromList(straddleList, source);
-    System.out.println(powerData);
+//    System.out.println(powerData);
     interpolatedPower =
         SensorDataStraddle.getPropertyAsDouble(powerData.getProperties(), POWER_GENERATED);
     assertEquals("Interpolated power did not equal expected value", 7.78E7, interpolatedPower, 0.01);

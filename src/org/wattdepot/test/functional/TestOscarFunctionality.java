@@ -12,8 +12,10 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.hackystat.utilities.tstamp.Tstamp;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.wattdepot.client.WattDepotClient;
+import org.wattdepot.client.WattDepotClientException;
 import org.wattdepot.datainput.OscarRowParser;
 import org.wattdepot.datainput.RowParseException;
 import org.wattdepot.resource.sensordata.jaxb.Property;
@@ -33,9 +35,50 @@ import org.wattdepot.util.UriUtils;
  * 
  * @author Robert Brewer
  */
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public class TestOscarFunctionality extends ServerTestHelper {
 
+  /**
+   * Different conceptual types of power that WattDepot can handle.
+   * 
+   * @author Robert Brewer
+   */
+  public enum PowerType {
+
+    /** Represents power generated. */
+    GENERATED,
+    /** Represents power consumed. */
+    CONSUMED
+  };
+
+  /**
+   * Describes which type of statistic is of interest.
+   * 
+   * @author Robert Brewer
+   */
+  private enum StatisticType {
+
+    /** Minimum value desired. */
+    MIN,
+    /** Maximum value desired. */
+    MAX,
+    /** Average value desired. */
+    AVERAGE
+  };
+
+  private WattDepotClient client;
+
   private static final String lineSep = System.getProperty("line.separator");
+
+  private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+
+  /**
+   * Creates the new test object, and makes a client for tests to use.
+   */
+  public TestOscarFunctionality() {
+    super();
+    this.client = new WattDepotClient(getHostName(), null, null);
+  }
 
   /**
    * Programmatically loads some Oscar data needed by the rest of the tests.
@@ -45,7 +88,6 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * @throws DbException If there is a problem storing the test data in the database
    * 
    */
-  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
   // PMD going wild on the test data
   @BeforeClass
   public static void loadOscarData() throws RowParseException, JAXBException, DbException {
@@ -397,8 +439,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
             + lineSep
             + "SIM_WAIAU_9 SIM_WAIAU Waiau 9 is a HECO plant on Oahu's grid that uses diesel as its fuel."
             + lineSep;
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
-    List<Source> sourceList = client.getSources();
+    List<Source> sourceList = this.client.getSources();
     StringBuffer outputBuff = new StringBuffer(1000);
     StringBuffer parentListBuff;
 
@@ -524,9 +565,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * @throws Exception If there are problems retrieving the Source list.
    */
   public String displaySourceSummary(String sourceName) throws Exception {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
-    Source source = client.getSource(sourceName);
-    SourceSummary summary = client.getSourceSummary(sourceName);
+    Source source = this.client.getSource(sourceName);
+    SourceSummary summary = this.client.getSourceSummary(sourceName);
     StringBuffer buff = new StringBuffer(1000);
 
     if (source.isSetSubSources()) {
@@ -558,30 +598,9 @@ public class TestOscarFunctionality extends ServerTestHelper {
       buff.append(String.format("Latest data: none%n"));
     }
     buff.append(String.format("Total data points: %d%n", summary.getTotalSensorDatas()));
-//    System.out.println(buff.toString());
+    // System.out.println(buff.toString());
     return buff.toString();
   }
-
-  // @Test
-  // public void testVirtualThingie() {
-  // DbManager dbManager = (DbManager) server.getContext().getAttributes().get("DbManager");
-  //
-  // String sourceName;
-  // Source baseSource;
-  // List<Source> sourceList;
-  // sourceName = "SIM_KAHE_1";
-  // baseSource = dbManager.getSource(sourceName);
-  // sourceList = dbManager.getAllNonVirtualSubSources(baseSource);
-  // System.out.println(Arrays.toString(sourceList.toArray()));
-  // sourceName = "SIM_KAHE";
-  // baseSource = dbManager.getSource(sourceName);
-  // sourceList = dbManager.getAllNonVirtualSubSources(baseSource);
-  // System.out.println(Arrays.toString(sourceList.toArray()));
-  // sourceName = "SIM_OAHU_GRID";
-  // baseSource = dbManager.getSource(sourceName);
-  // sourceList = dbManager.getAllNonVirtualSubSources(baseSource);
-  // System.out.println(Arrays.toString(sourceList.toArray()));
-  // }
 
   /**
    * Fetches one SensorData from WattDepot server, and formats it as a nice string, and compares
@@ -593,15 +612,13 @@ public class TestOscarFunctionality extends ServerTestHelper {
    */
   @Test
   public void displayOneSensorData() throws Exception {
-    // Anonymous access
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
     // These are the parameters that would be coming from the command line
     String sourceName = "SIM_KAHE_2", timestampString = "2009-10-12T00:15:00.000-10:00";
     SensorData data = null;
     String expectedOutput =
         String
             .format("Tool: OscarDataConverter%nSource: SIM_KAHE_2%nProperties: (powerGenerated : 6.4E7)%n");
-    data = client.getSensorData(sourceName, Tstamp.makeTimestamp(timestampString));
+    data = this.client.getSensorData(sourceName, Tstamp.makeTimestamp(timestampString));
     StringBuffer buff = new StringBuffer(200);
     buff.append(String.format("Tool: %s%n", data.getTool()));
     buff.append(String.format("Source: %s%n", UriUtils.getUriSuffix(data.getSource())));
@@ -629,8 +646,6 @@ public class TestOscarFunctionality extends ServerTestHelper {
    */
   @Test
   public void listOneDaySensorData() throws Exception {
-    // Anonymous access
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
     // These are the parameters that would be coming from the command line
     String sourceName = "SIM_KAHE_2", day = "2009-10-12";
     String expectedOutput =
@@ -640,17 +655,16 @@ public class TestOscarFunctionality extends ServerTestHelper {
             + lineSep
             + "2009-10-12T00:30:00.000-10:00 Tool: OscarDataConverter Properties: [Property [key=powerGenerated, value=5.0E7]]"
             + lineSep;
-    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
     Date startDate;
     XMLGregorianCalendar startTime, endTime;
-    startDate = format.parse(day);
+    startDate = this.dateFormat.parse(day);
     startTime = Tstamp.makeTimestamp(startDate.getTime());
     endTime = Tstamp.incrementDays(startTime, 1);
     // // DEBUG
     // DateFormat formatOutput = DateFormat.getDateTimeInstance();
     // System.out.format("Start time: %s, end time: %s%n", startTime.toString(),
     // endTime.toString());
-    List<SensorData> dataList = client.getSensorDatas(sourceName, startTime, endTime);
+    List<SensorData> dataList = this.client.getSensorDatas(sourceName, startTime, endTime);
     StringBuffer buff = new StringBuffer(1000);
     for (SensorData data : dataList) {
       buff.append(data.getTimestamp() + " Tool: " + data.getTool() + " Properties: ");
@@ -658,5 +672,154 @@ public class TestOscarFunctionality extends ServerTestHelper {
       buff.append(String.format("%n"));
     }
     assertEquals("Generated string doesn't match expected", expectedOutput, buff.toString());
+  }
+
+  /**
+   * Returns a string with the amount of power consumed or generated by the given source at the
+   * given timestamp. Solves assignment problem
+   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#
+   * 2.7_list_power_[generated|consumed]_{source}_timestamp_{timestam
+   * 
+   * @param type Type of power desired.
+   * @param sourceName Name of the source.
+   * @param timestamp Timestamp of interest.
+   * @return Power requested.
+   * @throws WattDepotClientException If there are problems with the client.
+   */
+  public String listPowerForTimestamp(PowerType type, String sourceName,
+      XMLGregorianCalendar timestamp) throws WattDepotClientException {
+    switch (type) {
+    case GENERATED:
+      return Double.toString(client.getPowerGenerated(sourceName, timestamp));
+    case CONSUMED:
+      return Double.toString(client.getPowerConsumed(sourceName, timestamp));
+    default:
+      throw new AssertionError("Unknown type of power encountered");
+    }
+  }
+
+  /**
+   * Tests listPowerForTimestamp.
+   * 
+   * @throws WattDepotClientException If there are problems with the client.
+   * @throws Exception If there are problems creating the timestamp.
+   */
+  @Test
+  public void listPowerForTimestampTest() throws WattDepotClientException, Exception {
+    // Test with non-virtual source
+    assertEquals("Did not get expected power from SIM_KAHE_2", "6.28E7", listPowerForTimestamp(
+        PowerType.GENERATED, "SIM_KAHE_2", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+    // Test with virtual source
+    assertEquals("Did not get expected power from SIM_KAHE", "4.618E8", listPowerForTimestamp(
+        PowerType.GENERATED, "SIM_KAHE", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+    // Test with virtual source that includes other sources
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "5.078E8",
+        listPowerForTimestamp(PowerType.GENERATED, "SIM_OAHU_GRID", Tstamp
+            .makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+    // Test that power consumed is 0 for timestamp
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "0.0", listPowerForTimestamp(
+        PowerType.CONSUMED, "SIM_OAHU_GRID", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+  }
+
+  /**
+   * Returns a string with the amount of power consumed or generated by the given source at the
+   * given timestamp. Solves assignment problem
+   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#
+   * 2.7_list_power_[generated|consumed]_{source}_timestamp_{timestam
+   * 
+   * @param type Type of power desired.
+   * @param sourceName Name of the source.
+   * @param day Day of interest.
+   * @param samplingInterval interval at which to sample, in minutes
+   * @param stat The type of statistic requested.
+   * @return Power requested.
+   * @throws WattDepotClientException If there are problems with the client.
+   */
+  public String listPowerForDay(PowerType type, String sourceName, Date day, int samplingInterval,
+      StatisticType stat) throws WattDepotClientException {
+    XMLGregorianCalendar timestamp = Tstamp.makeTimestamp(day.getTime());
+    int minutesInDay = 60 * 24;
+    double returnValue, power;
+
+    // Initialize returnValue depending on the type of statistic requested.
+    switch (stat) {
+    case MIN:
+      returnValue = Double.MAX_VALUE;
+      break;
+    case MAX:
+      returnValue = Double.MIN_VALUE;
+      break;
+    case AVERAGE:
+      returnValue = 0;
+      break;
+    default:
+      throw new AssertionError("Unknown type of statistic encountered");
+    }
+
+    for (int i = 0; i < minutesInDay; i += samplingInterval, timestamp =
+        Tstamp.incrementMinutes(timestamp, samplingInterval)) {
+      switch (type) {
+      case GENERATED:
+        power = client.getPowerGenerated(sourceName, timestamp);
+        break;
+      case CONSUMED:
+        power = client.getPowerConsumed(sourceName, timestamp);
+        break;
+      default:
+        throw new AssertionError("Unknown type of power encountered");
+      }
+      switch (stat) {
+      case MIN:
+        if (power < returnValue) {
+          returnValue = power;
+        }
+        break;
+      case MAX:
+        if (power > returnValue) {
+          returnValue = power;
+        }
+        break;
+      case AVERAGE:
+        returnValue += power;
+        break;
+      default:
+        throw new AssertionError("Unknown type of statistic encountered");
+      }
+    }
+    // Divide average total number of samples
+    if (stat == StatisticType.AVERAGE) {
+      // use integer division to get number of samples (truncation actually desired here)
+      int numSamples = minutesInDay / samplingInterval;
+      return Double.toString(returnValue / numSamples);
+    }
+    else {
+      return Double.toString(returnValue);
+    }
+  }
+
+  /**
+   * Tests listPowerForDay.
+   * 
+   * @throws WattDepotClientException If there are problems with the client.
+   * @throws Exception If there are problems creating the timestamp.
+   */
+  @Test
+  @Ignore("Needs full day of data to work properly")
+  public void listPowerForDayTest() throws WattDepotClientException, Exception {
+    // Test with non-virtual source
+    assertEquals("Did not get expected power from SIM_KAHE_2", "6.28E7", listPowerForDay(
+        PowerType.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 1,
+        StatisticType.MIN));
+    // Test with virtual source
+    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", listPowerForDay(
+        PowerType.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 1, StatisticType.MIN));
+    // Test with virtual source that includes other sources
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listPowerForDay(
+        PowerType.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
+        StatisticType.MIN));
+    // Test that power consumed is 0
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listPowerForDay(
+        PowerType.CONSUMED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
+        StatisticType.MIN));
   }
 }
