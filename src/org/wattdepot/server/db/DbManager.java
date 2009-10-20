@@ -2,6 +2,7 @@ package org.wattdepot.server.db;
 
 import static org.wattdepot.resource.source.SourceUtils.makeSource;
 import static org.wattdepot.resource.source.SourceUtils.makeSourceProperty;
+import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import static org.wattdepot.resource.user.UserUtils.makeUser;
 import static org.wattdepot.resource.user.UserUtils.userToUri;
 import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
@@ -14,6 +15,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
@@ -40,6 +42,9 @@ public class DbManager {
 
   /** Name of the default private source for demo. */
   public static final String defaultPrivateSource = "secret-place";
+
+  /** Name of the default virtual source for demo. */
+  public static final String defaultVirtualSource = "virtual-source";
 
   /** Username of the default user that owns both default sources for demo. */
   public static final String defaultOwnerUsername = "joebogus@example.com";
@@ -143,22 +148,35 @@ public class DbManager {
         new org.wattdepot.resource.source.jaxb.Properties();
     props.getProperty().add(makeSourceProperty("carbonIntensity", "294"));
     // create public source
-    Source source =
+    Source source1 =
         makeSource(defaultPublicSource, userToUri(ownerUser, this.server), true, false,
             "21.30078,-157.819129,41", "Saunders Hall on the University of Hawaii at Manoa campus",
             "Obvius-brand power meter", props, null);
     // stick public source into database
-    if (!this.storeSource(source)) {
+    if (!this.storeSource(source1)) {
       return false;
     }
 
     props.getProperty().clear();
     props.getProperty().add(makeSourceProperty("carbonIntensity", "128"));
-    source =
+    Source source2 =
         makeSource(defaultPrivateSource, userToUri(ownerUser, this.server), false, false,
             "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", props,
             null);
-    return (this.storeSource(source));
+    // stick public source into database
+    if (!this.storeSource(source2)) {
+      return false;
+    }
+
+    SubSources subSources = new SubSources();
+    subSources.getHref().add(sourceToUri(source1, server));
+    subSources.getHref().add(sourceToUri(source2, server));
+
+    Source virtualSource =
+        makeSource(defaultVirtualSource, userToUri(ownerUser, server), true,
+            true, "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null,
+            subSources);
+    return (this.storeSource(virtualSource));
   }
 
   /**

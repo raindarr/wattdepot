@@ -25,10 +25,10 @@ public class TestSourceResource extends ServerTestHelper {
   private static final String PUBLIC_SOURCE_NOT_FOUND = "Expected public source not found";
 
   /** Holds the default Sources for comparison in test cases. */
-  private Source publicSource, privateSource;
+  private Source publicSource, privateSource, virtualSource;
 
   /** Holds SourceRefs of the default Sources for comparison in test cases. */
-  private SourceRef publicSourceRef, privateSourceRef;
+  private SourceRef publicSourceRef, privateSourceRef, virtualSourceRef;
 
   /**
    * Creates a fresh DbManager for each test. This might prove too expensive for some
@@ -44,6 +44,8 @@ public class TestSourceResource extends ServerTestHelper {
     this.publicSourceRef = SourceUtils.makeSourceRef(this.publicSource, server);
     this.privateSource = manager.getSource(DbManager.defaultPrivateSource);
     this.privateSourceRef = SourceUtils.makeSourceRef(this.privateSource, server);
+    this.virtualSource = manager.getSource(DbManager.defaultVirtualSource);
+    this.virtualSourceRef = SourceUtils.makeSourceRef(this.virtualSource, server);
     server.getContext().getAttributes().put("DbManager", manager);
   }
 
@@ -86,6 +88,7 @@ public class TestSourceResource extends ServerTestHelper {
     SourceIndex index = new SourceIndex();
     index.getSourceRef().add(this.publicSourceRef);
     index.getSourceRef().add(this.privateSourceRef);
+    index.getSourceRef().add(this.virtualSourceRef);
     // We added in sorted order, but just for safety's sake we sort the list
     Collections.sort(index.getSourceRef());
     // Admin should see both sources
@@ -106,6 +109,7 @@ public class TestSourceResource extends ServerTestHelper {
     SourceIndex index = new SourceIndex();
     index.getSourceRef().add(this.publicSourceRef);
     index.getSourceRef().add(this.privateSourceRef);
+    index.getSourceRef().add(this.virtualSourceRef);
     // We added in sorted order, but just for safety's sake we sort the list
     Collections.sort(index.getSourceRef());
     // Owner should see both sources

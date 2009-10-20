@@ -1,5 +1,6 @@
 package org.wattdepot.resource.sensordata;
 
+import java.util.List;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
@@ -26,10 +27,13 @@ public class SensorDataStraddle {
   private XMLGregorianCalendar timestamp;
 
   /** The SensorData that comes before the timestamp. */
-  private SensorData beforeData;
+  private final SensorData beforeData;
 
   /** The SensorData that comes after the timestamp. */
-  private SensorData afterData;
+  private final SensorData afterData;
+
+  /** Whether this straddle is degenerate or not. */
+  private final boolean degenerate;
 
   /**
    * Creates the new SensorDataStraddle with the given parameters.
@@ -54,6 +58,7 @@ public class SensorDataStraddle {
     else {
       this.beforeData = beforeData;
       this.afterData = afterData;
+      this.degenerate = beforeData.equals(afterData);
     }
     if (validateTimestamp(timestamp)) {
       this.timestamp = timestamp;
@@ -129,6 +134,16 @@ public class SensorDataStraddle {
   }
 
   /**
+   * Indicates whether this straddle is the degenerate case where the timestamp was equal to a
+   * sensor data in the source.
+   * 
+   * @return True if timestamp matched sensor data, false otherwise.
+   */
+  public boolean isDegenerate() {
+    return this.degenerate;
+  }
+
+  /**
    * Takes the name of a property, and then returns the output value for the timestamp via linear
    * interpolation between the beforeData and afterData. Assumes that the property key exists in
    * beforeData and afterData, and that the property value can be converted to a double. Also
@@ -188,27 +203,102 @@ public class SensorDataStraddle {
    * @return The SensorData object representing power.
    */
   public SensorData getPower() {
-    if (this.beforeData.equals(this.afterData)) {
-      // degenerate case: timestamp matched actuall sensor data, so just return that sensor data
+    if (isDegenerate()) {
+      // degenerate case: timestamp matched actual sensor data, so just return that sensor data
       return beforeData;
     }
     else {
       double powerGeneratedValue = getPowerGenerated();
       double powerConsumedValue = getPowerConsumed();
 
-      Property generatedProp =
-          SensorDataUtils.makeSensorDataProperty("powerGenerated", Double
-              .toString(powerGeneratedValue));
-      Property consumedProp =
-          SensorDataUtils.makeSensorDataProperty("powerConsumed", Double
-              .toString(powerConsumedValue));
-      Property interpolatedProp = SensorDataUtils.makeSensorDataProperty("interpolated", "true");
-      Properties props = new Properties();
-      props.getProperty().add(generatedProp);
-      props.getProperty().add(consumedProp);
+      return makePowerSensorData(this.timestamp, this.beforeData.getSource(), powerGeneratedValue,
+          powerConsumedValue, true);
+    }
+  }
+
+  /**
+   * Creates an SensorData object that contains the given powerGenerated and powerConsumed values.
+   * 
+   * @param timestamp The timestamp of the SensorData to be created.
+   * @param source The source URI of the SensorData to be created.
+   * @param powerGeneratedValue The amount of power generated.
+   * @param powerConsumedValue The amount of power consumed.
+   * @param interpolated True if the values were determined by interpolation, false otherwise.
+   * @return The new SensorData object.
+   */
+  private static SensorData makePowerSensorData(XMLGregorianCalendar timestamp, String source,
+      double powerGeneratedValue, double powerConsumedValue, boolean interpolated) {
+    Properties props = new Properties();
+    Property generatedProp, consumedProp, interpolatedProp;
+    generatedProp =
+        SensorDataUtils.makeSensorDataProperty("powerGenerated", Double
+            .toString(powerGeneratedValue));
+    consumedProp =
+        SensorDataUtils
+            .makeSensorDataProperty("powerConsumed", Double.toString(powerConsumedValue));
+    props.getProperty().add(generatedProp);
+    props.getProperty().add(consumedProp);
+    if (interpolated) {
+      interpolatedProp = SensorDataUtils.makeSensorDataProperty("interpolated", "true");
       props.getProperty().add(interpolatedProp);
-      return SensorDataUtils.makeSensorData(this.timestamp, "WattDepot Server", beforeData
-          .getSource(), props);
+    }
+    return SensorDataUtils.makeSensorData(timestamp, "WattDepot Server", source, props);
+  }
+
+  /**
+   * Given a Properties object, returns the value of the given key as a double. This should really
+   * be in Properties.class...
+   * 
+   * @param props The Properties.
+   * @param key The key.
+   * @return The key's value as a double.
+   */
+  public static double getPropertyAsDouble(Properties props, String key) {
+    for (Property prop : props.getProperty()) {
+      if (key.equals(prop.getKey())) {
+        return Double.valueOf(prop.getValue());
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Takes a List of SensorDataStraddles, sums up the powerGenerated and powerConsumed properties of
+   * each straddle, and returns a new SensorData object with those sums. Generally used on the
+   * output of DbImplementation.getSensorDataStraddleList().
+   * 
+   * @param straddleList The list of straddles to process.
+   * @param source The URI of the Source (needed to create the SensorData).
+   * @return The newly created SensorData object.
+   */
+  public static SensorData getPowerFromList(List<SensorDataStraddle> straddleList, String source) {
+    if (straddleList == null) {
+      return null;
+    }
+    double powerGenerated = 0, powerConsumed = 0;
+    boolean wasInterpolated = false;
+    XMLGregorianCalendar timestamp;
+    if (straddleList.isEmpty()) {
+      return null;
+    }
+    else {
+      // All timestamps are the same, so we just need one
+      timestamp = straddleList.get(0).getTimestamp();
+      for (SensorDataStraddle straddle : straddleList) {
+        if (straddle.isDegenerate()) {
+          powerGenerated +=
+              getPropertyAsDouble(straddle.getBeforeData().getProperties(), "powerGenerated");
+          powerConsumed +=
+              getPropertyAsDouble(straddle.getBeforeData().getProperties(), "powerConsumed");
+        }
+        else {
+          // If any of the straddles were non-degenerate, then set the whole thing to interpolated
+          wasInterpolated = true;
+          powerGenerated += straddle.getPowerGenerated();
+          powerConsumed += straddle.getPowerConsumed();
+        }
+      }
+      return makePowerSensorData(timestamp, source, powerGenerated, powerConsumed, wasInterpolated);
     }
   }
 }

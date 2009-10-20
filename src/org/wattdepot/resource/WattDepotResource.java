@@ -22,6 +22,7 @@ import org.restlet.resource.Variant;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
+import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
@@ -360,13 +361,22 @@ public class WattDepotResource extends Resource {
   public String getPower(XMLGregorianCalendar timestamp) throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
-    SensorDataStraddle straddle = this.dbManager.getSensorDataStraddle(this.uriSource, timestamp);
-    if (straddle == null) {
-      return null;
+    SensorData powerData;
+    if (this.dbManager.getSource(this.uriSource).isVirtual()) {
+      List<SensorDataStraddle> straddleList =
+          this.dbManager.getSensorDataStraddleList(this.uriSource, timestamp);
+      powerData =
+          SensorDataStraddle.getPowerFromList(straddleList, SourceUtils.sourceToUri(this.uriSource,
+              server));
     }
-    SensorData powerData = straddle.getPower();
+    else {
+      SensorDataStraddle straddle = this.dbManager.getSensorDataStraddle(this.uriSource, timestamp);
+      if (straddle == null) {
+        return null;
+      }
+      powerData = straddle.getPower();
+    }
     if (powerData == null) {
-      // This shouldn't happen, getPower should always return a valid SensorData
       return null;
     }
     else {

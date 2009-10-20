@@ -1,9 +1,12 @@
 package org.wattdepot.resource.sensordata;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.hackystat.utilities.tstamp.Tstamp;
 import org.junit.Test;
@@ -26,7 +29,7 @@ public class TestSensorDataStraddle {
    * @throws Exception If there are problems creating timestamps.
    */
   @Test
-  @SuppressWarnings("PMD.EmptyCatchBlock")
+  @SuppressWarnings( { "PMD.EmptyCatchBlock", "PMD.AvoidDuplicateLiterals" })
   public void testConstructor() throws Exception {
     XMLGregorianCalendar time1 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
     XMLGregorianCalendar time2 = Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00");
@@ -100,6 +103,7 @@ public class TestSensorDataStraddle {
    * @throws Exception If there are problems creating timestamps.
    */
   @Test
+  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
   public void testGetPower() throws Exception {
     XMLGregorianCalendar beforeTime, afterTime, timestamp;
     SensorData beforeData, afterData;
@@ -156,9 +160,97 @@ public class TestSensorDataStraddle {
     straddle = new SensorDataStraddle(timestamp, beforeData, afterData);
     interpolatedPower =
         Double.valueOf(straddle.getPower().getProperties().getProperty().get(0).getValue());
-//    System.out.println(interpolatedPower);
+    // System.out.println(interpolatedPower);
     assertEquals("Interpolated power did not equal expected value", 6.28E7, interpolatedPower, 0.01);
     assertTrue("Interpolated property not found", straddle.getPower().getProperties().getProperty()
         .contains(interpolatedProp));
+  }
+
+  /**
+   * Tests the static method that consolidates results from a list of straddles.
+   * 
+   * @throws Exception If there are problems creating timestamps.
+   */
+  @Test
+  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
+  public void testGetPowerFromList() throws Exception {
+    XMLGregorianCalendar beforeTime, afterTime, timestamp;
+    SensorData beforeData, afterData, powerData;
+    String tool = "JUnit";
+    String source = "http://server.wattdepot.org:1234/wattdepot/sources/foo-source";
+    Properties beforeProps, afterProps;
+    Property beforeProp, afterProp;
+    SensorDataStraddle straddle1, straddle2;
+    double interpolatedPower = -1;
+    Property interpolatedProp = SensorDataUtils.makeSensorDataProperty("interpolated", "true");
+
+    // timestamp == beforeData == afterData for two straddles, getPower should return beforeData * 2
+    beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
+    beforeProp = SensorDataUtils.makeSensorDataProperty(POWER_GENERATED, "100");
+    beforeProps = new Properties();
+    beforeProps.getProperty().add(beforeProp);
+    beforeData = SensorDataUtils.makeSensorData(beforeTime, tool, source, beforeProps);
+    timestamp = beforeTime;
+    straddle1 = new SensorDataStraddle(timestamp, beforeData, beforeData);
+    List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>();
+    straddleList.add(straddle1);
+    straddleList.add(straddle1);
+    powerData = SensorDataStraddle.getPowerFromList(straddleList, source);
+    System.out.println(powerData);
+    interpolatedPower =
+        SensorDataStraddle.getPropertyAsDouble(powerData.getProperties(), POWER_GENERATED);
+    assertEquals("getPower for virtual source on degenerate straddle did not return beforeData",
+        200, interpolatedPower, 0.01);
+    assertFalse("Interpolated property found on non-interpolated data", straddle1.getPower()
+        .getProperties().getProperty().contains(interpolatedProp));
+
+    // Simple, in the middle of interval
+    beforeTime = Tstamp.makeTimestamp("2009-10-12T00:12:35.000-10:00");
+    afterTime = Tstamp.makeTimestamp("2009-10-12T00:13:25.000-10:00");
+    beforeProp = SensorDataUtils.makeSensorDataProperty(POWER_GENERATED, "1.0E7");
+    beforeProps = new Properties();
+    beforeProps.getProperty().add(beforeProp);
+    afterProp = SensorDataUtils.makeSensorDataProperty(POWER_GENERATED, "2.0E7");
+    afterProps = new Properties();
+    afterProps.getProperty().add(afterProp);
+    beforeData = SensorDataUtils.makeSensorData(beforeTime, tool, source, beforeProps);
+    afterData = SensorDataUtils.makeSensorData(afterTime, tool, source, afterProps);
+    timestamp = Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00");
+    straddle1 = new SensorDataStraddle(timestamp, beforeData, afterData);
+    interpolatedPower =
+        Double.valueOf(straddle1.getPower().getProperties().getProperty().get(0).getValue());
+    assertEquals("Interpolated power did not equal expected value", 1.5E7, interpolatedPower, 0.01);
+    assertTrue("Interpolated property not found", straddle1.getPower().getProperties()
+        .getProperty().contains(interpolatedProp));
+
+    // Computed by hand from Oscar data
+    beforeTime = Tstamp.makeTimestamp("2009-10-12T00:00:00.000-10:00");
+    afterTime = Tstamp.makeTimestamp("2009-10-12T00:15:00.000-10:00");
+    beforeProp = SensorDataUtils.makeSensorDataProperty(POWER_GENERATED, "5.5E7");
+    beforeProps = new Properties();
+    beforeProps.getProperty().add(beforeProp);
+    afterProp = SensorDataUtils.makeSensorDataProperty(POWER_GENERATED, "6.4E7");
+    afterProps = new Properties();
+    afterProps.getProperty().add(afterProp);
+    beforeData = SensorDataUtils.makeSensorData(beforeTime, tool, source, beforeProps);
+    afterData = SensorDataUtils.makeSensorData(afterTime, tool, source, afterProps);
+    timestamp = Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00");
+    straddle2 = new SensorDataStraddle(timestamp, beforeData, afterData);
+    interpolatedPower =
+        Double.valueOf(straddle2.getPower().getProperties().getProperty().get(0).getValue());
+    // System.out.println(interpolatedPower);
+    assertEquals("Interpolated power did not equal expected value", 6.28E7, interpolatedPower, 0.01);
+    assertTrue("Interpolated property not found", straddle2.getPower().getProperties()
+        .getProperty().contains(interpolatedProp));
+
+    // Now make list of straddle1 & straddle2 and confirm results are combined
+    straddleList.clear();
+    straddleList.add(straddle1);
+    straddleList.add(straddle2);
+    powerData = SensorDataStraddle.getPowerFromList(straddleList, source);
+    System.out.println(powerData);
+    interpolatedPower =
+        SensorDataStraddle.getPropertyAsDouble(powerData.getProperties(), POWER_GENERATED);
+    assertEquals("Interpolated power did not equal expected value", 7.78E7, interpolatedPower, 0.01);
   }
 }

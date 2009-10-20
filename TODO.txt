@@ -17,3 +17,11 @@ List of things to do:
 whether to allow access, rather than doing it inside each resource. Resources will have to make
 some decisions (like only putting public Sources in an index if the client is anonymous), but that
 can be based off of a status field (ANON, ADMIN, OWNER).
+- Put an end to the resource URI vs. name madness. Either use URIs everywhere, or use names
+everywhere and convert to URIs only for output? 
+- A public virtual source can point to private sources (including ones they don't own!), and
+thereby make the private source data public. This is bogus. Public virtual sources should only be
+allowed to point at public sources, and private virtual sources should only be allowed to point at
+public sources and private sources _that they own_.
+- Remove all traces of hard-coded default data in DbManager, and replace any uses of the default
+data in test cases with data created in the test class. 

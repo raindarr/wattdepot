@@ -65,6 +65,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
         .deleteSource(DbManager.defaultPublicSource));
     assertTrue("Unable to delete default private source", this.manager
         .deleteSource(DbManager.defaultPrivateSource));
+    assertTrue("Unable to delete default virtual source", this.manager
+        .deleteSource(DbManager.defaultVirtualSource));
   }
 
   /**
