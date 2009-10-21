@@ -116,6 +116,16 @@ public class WattDepotClient {
   }
 
   /**
+   * Initializes a new WattDepotClient using anonymous (public) access to the provided server URI.
+   * 
+   * @param hostUri The URI of the WattDepot server, such as 'http://localhost:9876/wattdepot/'.
+   * Must end in "/"
+   */
+  public WattDepotClient(String hostUri) {
+    this(hostUri, null, null);
+  }
+
+  /**
    * Determines whether this client has been configured for anonymous access or not. If no
    * credentials (or partially missing credentials) were provided to the constructor, then it is
    * assumed that the client will only attempt API calls at the Access Control Level of "None".

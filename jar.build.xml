@@ -64,6 +64,16 @@
       </manifest>
     </jar>
 
+    <jar destfile="${build.jar.dir}/wattdepot-oscarconverter.jar" basedir="${tmp.dir}">
+      <manifest>
+        <attribute name="Main-Class" value="org.wattdepot.datainput.OscarDataConverter" />
+        <attribute name="Implementation-Title" value="WattDepot OscarDataConverter" />
+        <attribute name="Implementation-Version" value="${version}" />
+        <attribute name="Implementation-Vendor"
+                   value="Collaborative Software Development Laboratory, University of Hawaii" />
+      </manifest>
+    </jar>
+
     <!-- Unjar the additional libraries required for server -->
     <unjar src="${lib.dir}/commons-lang/commons-lang.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/commons-logging/commons-logging.jar" dest="${tmp.dir}" />
