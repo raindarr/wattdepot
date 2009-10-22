@@ -9,7 +9,7 @@ import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
 import java.lang.reflect.Constructor;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.hackystat.utilities.stacktrace.StackTrace;
+import org.wattdepot.util.StackTrace;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;

@@ -23,9 +23,6 @@
       <fileset dir="${basedir}/build/classes" />
     </copy>
     <!-- Unjar the libraries required for client (subset of those needed for server) -->
-    <unjar src="${lib.dir}/hackystat/utilities/stacktrace.lib.jar" dest="${tmp.dir}" />
-    <unjar src="${lib.dir}/hackystat/utilities/tstamp.lib.jar" dest="${tmp.dir}" />
-    <unjar src="${lib.dir}/hackystat/utilities/time.lib.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/org.simpleframework.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/org.restlet.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/com.noelios.restlet.jar" dest="${tmp.dir}" />

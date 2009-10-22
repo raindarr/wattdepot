@@ -206,22 +206,7 @@
       </fileset>
     </path>
     -->
-
-    <ivy:retrieve module="hackystat"
-                  organisation="org.hackystat"
-                  revision="${hackystat.version}"
-                  pattern="${lib.dir}/hackystat/utilities/[artifact].[ext]"
-                  sync="true"
-                  inline="true"
-                  log="download-only"
-                  conf="utilities"
-                  transitive="false"
-                  type="jar, javadoc, source" />
-    <path id="utilities.path">
-      <fileset dir="${lib.dir}/hackystat/utilities/">
-        <include name="*.jar" />
-      </fileset>
-    </path>
+    
   </target>
 
   <!-- Basic properties for this system. -->
@@ -242,7 +227,6 @@
     <path refid="google-visualization-java.path" />
     <!-- <path refid="catalina.path" /> -->
     <!-- <path refid="derby.path" /> -->
-    <path refid="utilities.path" />
   </path>
 
   <target name="compile" depends="install-ivy, install-libraries" description="Compiles the code.">

@@ -1,7 +1,7 @@
 package org.wattdepot.resource;
 
 import java.util.logging.Logger;
-import org.hackystat.utilities.stacktrace.StackTrace;
+import org.wattdepot.util.StackTrace;
 
 /**
  * Provides standardized strings and formatting for response codes. This class is intended to make
