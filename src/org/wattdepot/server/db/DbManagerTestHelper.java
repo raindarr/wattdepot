@@ -9,7 +9,7 @@ import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import static org.wattdepot.resource.user.UserUtils.makeUser;
 import static org.wattdepot.resource.user.UserUtils.makeUserProperty;
 import static org.wattdepot.resource.user.UserUtils.userToUri;
-import org.hackystat.utilities.tstamp.Tstamp;
+import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;

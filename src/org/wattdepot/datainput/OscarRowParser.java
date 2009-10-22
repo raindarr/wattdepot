@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.hackystat.utilities.tstamp.Tstamp;
+import org.wattdepot.util.tstamp.Tstamp;
 import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;

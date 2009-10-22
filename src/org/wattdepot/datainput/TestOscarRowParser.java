@@ -3,7 +3,7 @@ package org.wattdepot.datainput;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import org.hackystat.utilities.tstamp.Tstamp;
+import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Test;
 import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Properties;

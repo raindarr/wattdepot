@@ -3,7 +3,7 @@ package org.wattdepot.resource.sensordata;
 import java.io.IOException;
 import javax.xml.bind.JAXBException;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.hackystat.utilities.tstamp.Tstamp;
+import org.wattdepot.util.tstamp.Tstamp;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;

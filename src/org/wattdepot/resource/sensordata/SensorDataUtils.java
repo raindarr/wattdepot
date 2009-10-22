@@ -2,7 +2,7 @@ package org.wattdepot.resource.sensordata;
 
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.hackystat.utilities.tstamp.Tstamp;
+import org.wattdepot.util.tstamp.Tstamp;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;

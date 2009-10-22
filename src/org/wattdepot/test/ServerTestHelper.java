@@ -5,7 +5,7 @@ import static org.wattdepot.resource.sensordata.SensorDataUtils.makeSensorDataPr
 import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import static org.wattdepot.server.ServerProperties.ADMIN_EMAIL_KEY;
 import static org.wattdepot.server.ServerProperties.ADMIN_PASSWORD_KEY;
-import org.hackystat.utilities.tstamp.Tstamp;
+import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.BeforeClass;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.server.Server;

@@ -5,7 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.hackystat.utilities.tstamp.Tstamp;
+import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.client.WattDepotClient;
