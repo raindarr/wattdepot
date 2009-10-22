@@ -69,4 +69,25 @@ public final class RestletLoggerUtil {
       }
     }
   }
+
+  /**
+   * Adjusts the Restlet Loggers so that they dump their output rather than sending it to the
+   * console.
+   */
+  public static void removeRestletLoggers() {
+    LogManager logManager = LogManager.getLogManager();
+    for (Enumeration<String> en = logManager.getLoggerNames(); en.hasMoreElements();) {
+      String logName = en.nextElement();
+      if ((logName.startsWith("com.noelios") || logName.startsWith("org.restlet") || "global"
+          .equals(logName))
+          && (logManager.getLogger(logName) != null)) {
+        Logger logger = logManager.getLogger(logName);
+        logger = logger.getParent();
+        Handler[] handlers = logger.getHandlers();
+        for (Handler handler : handlers) {
+          logger.removeHandler(handler);
+        }
+      }
+    }
+  }
 }

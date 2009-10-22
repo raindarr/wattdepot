@@ -36,6 +36,7 @@ import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 import org.wattdepot.util.UriUtils;
+import org.wattdepot.util.logger.RestletLoggerUtil;
 
 /**
  * Provides a high-level interface for Clients wishing to communicate with a WattDepot server.
@@ -110,7 +111,8 @@ public class WattDepotClient {
     this.wattDepotUri = hostUri;
     this.username = username;
     this.password = password;
-
+    // nuke the Restlet loggers
+    RestletLoggerUtil.removeRestletLoggers();
     this.client = new Client(Protocol.HTTP);
     this.client.setConnectTimeout(2000);
   }
