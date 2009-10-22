@@ -140,7 +140,8 @@ public class WattDepotClient {
 
   /**
    * Does the housekeeping for making HTTP requests to WattDepot by a test or admin user, including
-   * authentication if requested.
+   * authentication if requested. It is only public to allow testing of the WattDepot server
+   * in certain cases. It is not intended for client use.
    * 
    * @param method the HTTP method requested.
    * @param requestString A string, such as "users". Do not start the string with a '/' (it is
@@ -150,8 +151,8 @@ public class WattDepotClient {
    * @param entity The representation to be sent with the request, or null if not needed.
    * @return The Response instance returned from the server.
    */
-  public Response makeRequest(Method method, String requestString, Preference<MediaType> mediaPref,
-      Representation entity) {
+  public Response makeRequest(Method method, String requestString,
+      Preference<MediaType> mediaPref, Representation entity) {
     Reference reference = new Reference(this.wattDepotUri + requestString);
     Request request =
         (entity == null) ? new Request(method, reference) : new Request(method, reference, entity);
@@ -267,7 +268,8 @@ public class WattDepotClient {
   /**
    * Requests a SensorDataIndex representing all the SensorData resources for the named Source such
    * that their timestamp is greater than or equal to the given start time and less than or equal to
-   * the given end time from the server.
+   * the given end time from the server. When looking to retrieve all the sensor data objects from
+   * the index, getSensorDatas is preferable to this method.
    * 
    * @param source The name of the Source.
    * @param startTime The start of the range.
@@ -279,6 +281,7 @@ public class WattDepotClient {
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
+   * @see org.wattdepot.client.WattDepotClient#getSensorDatas
    */
   public SensorDataIndex getSensorDataIndex(String source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws NotAuthorizedException, ResourceNotFoundException,
@@ -407,7 +410,8 @@ public class WattDepotClient {
 
   /**
    * Requests the power in SensorData format from a given Source corresponding to the given
-   * timestamp.
+   * timestamp. If you are just looking to retrieve the power values as a double, the
+   * getPowerGenerated and getPowerConsumed methods are preferable to this one.
    * 
    * @param source The name of the Source.
    * @param timestamp The timestamp of the desired power reading.
@@ -417,6 +421,8 @@ public class WattDepotClient {
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
+   * @see org.wattdepot.client.WattDepotClient#getPowerGenerated
+   * @see org.wattdepot.client.WattDepotClient#getPowerConsumed
    */
   public SensorData getPower(String source, XMLGregorianCalendar timestamp)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
@@ -698,13 +704,15 @@ public class WattDepotClient {
 
   /**
    * Returns the SourceIndex containing all Sources accessible to the authenticated user on the
-   * server.
+   * server. When looking to retrieve all the Source objects from the index, getSources is
+   * preferable to this method.
    * 
    * @return The SourceIndex for the server.
    * @throws NotAuthorizedException If the client's credentials are bad.
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
+   * @see org.wattdepot.client.WattDepotClient#getSources
    */
   public SourceIndex getSourceIndex() throws NotAuthorizedException, BadXmlException,
       MiscClientException {
