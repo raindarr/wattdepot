@@ -24,7 +24,7 @@ public class TestUserResource extends ServerTestHelper {
   @Test
   public void testAuthenticationWithNoCredentials() throws WattDepotClientException {
     // Shouldn't authenticate with no username or password
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     assertFalse("Authentication worked with no credentials!!", client.isAuthenticated());
   }
 
@@ -61,7 +61,7 @@ public class TestUserResource extends ServerTestHelper {
    */
   @Test(expected = NotAuthorizedException.class)
   public void testUsersResourceAnonymous() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     assertTrue("Able to retrieve users list anonymously", client.getUserIndex().getUserRef()
         .isEmpty());
   }

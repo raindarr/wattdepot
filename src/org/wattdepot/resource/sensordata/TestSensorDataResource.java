@@ -89,7 +89,7 @@ public class TestSensorDataResource extends ServerTestHelper {
    */
   @Test
   public void testFullIndexPublicWithNoCredentials() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(DbManager.defaultPublicSource)
         .getSensorDataRef());
   }
@@ -156,7 +156,7 @@ public class TestSensorDataResource extends ServerTestHelper {
    */
   @Test(expected = NotAuthorizedException.class)
   public void testFullIndexPrivateWithNoCredentials() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     client.getSensorDataIndex(DbManager.defaultPrivateSource);
   }
 
@@ -221,7 +221,7 @@ public class TestSensorDataResource extends ServerTestHelper {
   @Test(expected = ResourceNotFoundException.class)
   public void testFullIndexBadSourceNameAnon() throws WattDepotClientException {
     // Shouldn't authenticate with no username or password
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     client.getSensorDataIndex("bogus-source-name");
   }
 
@@ -303,7 +303,7 @@ public class TestSensorDataResource extends ServerTestHelper {
     WattDepotClient storeClient =
         new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
             DbManager.defaultOwnerPassword);
-    WattDepotClient getClient = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient getClient = new WattDepotClient(getHostName());
     SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
         makeTestSensorData3();
 
@@ -326,7 +326,7 @@ public class TestSensorDataResource extends ServerTestHelper {
    */
   @Test(expected = ResourceNotFoundException.class)
   public void testGetWithFreshDB() throws Exception {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     assertNull("Able to retrieve SensorData from fresh DB", client.getSensorData(
         DbManager.defaultPublicSource, Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00")));
   }
@@ -339,7 +339,7 @@ public class TestSensorDataResource extends ServerTestHelper {
    */
   @Test
   public void testGetWithBadTimestamp() throws Exception {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
 
     Response response =
         client.makeRequest(Method.GET, Server.SOURCES_URI + "/" + DbManager.defaultPublicSource
@@ -506,7 +506,7 @@ public class TestSensorDataResource extends ServerTestHelper {
    */
   @Test(expected = NotAuthorizedException.class)
   public void testStorePublicWithNoCredentials() throws Exception {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     SensorData data = makeTestSensorData1();
     assertFalse("Able to store SensorData without credentials", client.storeSensorData(data));
   }
@@ -577,7 +577,7 @@ public class TestSensorDataResource extends ServerTestHelper {
    */
   @Test(expected = NotAuthorizedException.class)
   public void testStorePrivateWithNoCredentials() throws Exception {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     SensorData data = makeTestSensorDataPrivateSource();
     assertFalse("Able to store SensorData with no credentials", client.storeSensorData(data));
   }

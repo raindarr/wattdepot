@@ -58,7 +58,7 @@ public class TestSourceResource extends ServerTestHelper {
    */
   @Test
   public void testFullIndexWithNoCredentials() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     // index should just have the public source
     assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSourceIndex().getSourceRef().get(0),
         this.publicSourceRef);
@@ -141,7 +141,7 @@ public class TestSourceResource extends ServerTestHelper {
    */
   @Test
   public void testPublicSourceWithNoCredentials() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSource(publicSource.getName()),
         this.publicSource);
   }
@@ -153,7 +153,7 @@ public class TestSourceResource extends ServerTestHelper {
    */
   @Test(expected = NotAuthorizedException.class)
   public void testPrivateSourceWithNoCredentials() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     client.getSource(privateSource.getName());
     fail("Able to get private Source with no credentials");
   }

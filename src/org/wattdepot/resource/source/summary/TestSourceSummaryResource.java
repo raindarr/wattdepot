@@ -48,7 +48,7 @@ public class TestSourceSummaryResource extends ServerTestHelper {
    */
   @Test
   public void testPublicSourceWithNoCredentials() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     assertEquals(PUBLIC_SUMMARY_NOT_FOUND, client.getSourceSummary(DbManager.defaultPublicSource),
         this.publicSourceSummary);
   }
@@ -60,7 +60,7 @@ public class TestSourceSummaryResource extends ServerTestHelper {
    */
   @Test(expected = NotAuthorizedException.class)
   public void testPrivateSourceWithNoCredentials() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+    WattDepotClient client = new WattDepotClient(getHostName());
     client.getSourceSummary(DbManager.defaultPrivateSource);
     fail("Able to get private SourceSummary with no credentials");
   }

@@ -77,7 +77,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
    */
   public TestOscarFunctionality() {
     super();
-    this.client = new WattDepotClient(getHostName(), null, null);
+    this.client = new WattDepotClient(getHostName());
   }
 
   /**

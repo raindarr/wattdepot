@@ -48,7 +48,7 @@ public class TestPowerResource extends ServerTestHelper {
   // */
   // @Test
   // public void testPowerPublicWithNoCredentials() throws WattDepotClientException {
-  // WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+  // WattDepotClient client = new WattDepotClient(getHostName());
   // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(DbManager.defaultPublicSource)
   // .getSensorDataRef());
   // }
@@ -116,7 +116,7 @@ public class TestPowerResource extends ServerTestHelper {
   // */
   // @Test(expected = NotAuthorizedException.class)
   // public void testFullIndexPrivateWithNoCredentials() throws WattDepotClientException {
-  // WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+  // WattDepotClient client = new WattDepotClient(getHostName());
   // client.getSensorDataIndex(DbManager.defaultPrivateSource);
   // }
   //
@@ -185,7 +185,7 @@ public class TestPowerResource extends ServerTestHelper {
   // @Test(expected = ResourceNotFoundException.class)
   // public void testFullIndexBadSourceNameAnon() throws WattDepotClientException {
   // // Shouldn't authenticate with no username or password
-  // WattDepotClient client = new WattDepotClient(getHostName(), null, null);
+  // WattDepotClient client = new WattDepotClient(getHostName());
   // client.getSensorDataIndex("bogus-source-name");
   // }
   //
