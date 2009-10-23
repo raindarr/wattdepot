@@ -1,30 +1,30 @@
-//package org.wattdepot.resource.gviz;
+package org.wattdepot.resource.gviz;
 //
 //import org.restlet.Context;
 //import org.restlet.data.MediaType;
 //import org.restlet.data.Request;
 //import org.restlet.data.Response;
 //import org.restlet.resource.Representation;
-//import org.restlet.resource.Resource;
+import org.restlet.resource.Resource;
 //import org.restlet.resource.ResourceException;
 //import org.restlet.resource.StringRepresentation;
 //import org.restlet.resource.Variant;
 //
-///**
-// * Provides access to SensorData via the Google Visualization API using the Google Visualization
-// * data source library. The data source library typically wraps its functionality as a servlet,
-// * requiring a servlet container. Since WattDepot is based on Restlet, this class wraps the data
-// * source library as a resource. <b>NOTE:</b> this class is currently unused, as we I decided that
-// * it was easier to just go with the servlet method. I have preserved this class in case I decide
-// * to try to restlet-ify the servlet later.
-// * 
-// * @see <a
-// * href="http://code.google.com/apis/visualization/documentation/dev/implementing_data_source_overview.html">Google
-// * Visualization API</a>
-// * @author Robert Brewer
-// */
-//
-//public class GVisualizationResource extends Resource {
+/**
+ * Provides access to SensorData via the Google Visualization API using the Google Visualization
+ * data source library. The data source library typically wraps its functionality as a servlet,
+ * requiring a servlet container. Since WattDepot is based on Restlet, this class wraps the data
+ * source library as a resource. <b>NOTE:</b> this class is currently unused, as we I decided that
+ * it was easier to just go with the servlet method. I have preserved this class in case I decide to
+ * try to restlet-ify the servlet later.
+ * 
+ * @see <a
+ * href="http://code.google.com/apis/visualization/documentation/dev/implementing_data_source_overview.html">Google
+ * Visualization API</a>
+ * @author Robert Brewer
+ */
+
+public class GVisualizationResource extends Resource {
 //
 //  /** The parameters sent to the data source. */
 //  protected String parameters = null;
@@ -69,4 +69,4 @@
 //    }
 //  }
 //
-//}
+}

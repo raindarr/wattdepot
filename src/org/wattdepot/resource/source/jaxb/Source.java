@@ -92,7 +92,6 @@ public class Source implements Serializable {
    * @param description The description of the Source.
    * @param props The properties for the Source.
    * @param subSources The subsources for the Source.
-   * @return The freshly created Source object.
    */
   public Source(String name, String owner, boolean publicp, boolean virtualp, String coordinates,
       String location, String description, Properties props, SubSources subSources) {

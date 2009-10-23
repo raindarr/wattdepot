@@ -143,7 +143,6 @@ public class Properties
      * Given a Properties object, returns the value of the given key as a double. If the key is
      * not found, it returns 0.
      * 
-     * @param props The Properties.
      * @param key The key.
      * @return The key's value as a double.
      */
