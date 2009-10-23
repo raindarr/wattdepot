@@ -32,23 +32,9 @@ public class SourceUtils {
   public static Source makeSource(String name, String owner, boolean publicp, boolean virtualp,
       String coordinates, String location, String description, Properties props,
       SubSources subSources) {
-    Source source = new Source();
-    source.setName(name);
-    source.setOwner(owner);
-    source.setPublic(publicp);
-    source.setVirtual(virtualp);
-    source.setCoordinates(coordinates);
-    source.setLocation(location);
-    source.setDescription(description);
-    source.setProperties(props);
-    if (virtualp) {
-      source.setSubSources(subSources);
-    }
-    else if ((virtualp && (subSources == null)) || (!virtualp && (subSources != null))) {
-      // If virtual, need subSources, if not virutal then can't have subSources
-      return null;
-    }
-    return source;
+    // TODO Really need to refactor all code using this to start using the constructor!
+    return new Source(name, owner, publicp, virtualp, coordinates, location, description, props,
+        subSources);
   }
 
   /**

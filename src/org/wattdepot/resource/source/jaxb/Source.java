@@ -72,6 +72,52 @@ public class Source implements Serializable {
   protected Properties properties;
 
   /**
+   * Default no-argument constructor, apparently needed by JAXB. Don't use this, use the one with
+   * all the parameters.
+   */
+  public Source() {
+    // Apparently needed by JAXB
+  }
+
+  /**
+   * Returns a new Source object with the provided parameters. Needs to be kept up to date with any
+   * changes to the schema, which is bogus.
+   * 
+   * @param name The name for the Source.
+   * @param owner The owner URI for the Source.
+   * @param publicp Whether the Source is public.
+   * @param virtualp Whether the Source is virtual.
+   * @param coordinates The coordinates for the Source.
+   * @param location The location for the Source.
+   * @param description The description of the Source.
+   * @param props The properties for the Source.
+   * @param subSources The subsources for the Source.
+   * @return The freshly created Source object.
+   */
+  public Source(String name, String owner, boolean publicp, boolean virtualp, String coordinates,
+      String location, String description, Properties props, SubSources subSources) {
+    this.name = name;
+    this.owner = owner;
+    this._public = publicp;
+    this.virtual = virtualp;
+    this.coordinates = coordinates;
+    this.location = location;
+    this.description = description;
+    this.properties = props;
+    if (virtualp) {
+      if (subSources == null) {
+        throw new IllegalArgumentException("Attempted to create virtual source with no subsources");
+      }
+      else {
+        this.subSources = subSources;
+      }
+    }
+    else if (!virtualp && (subSources != null)) {
+      throw new IllegalArgumentException("Attempted to create non-virtual source with subsources");
+    }
+  }
+
+  /**
    * Gets the value of the name property.
    * 
    * @return possible object is {@link String }

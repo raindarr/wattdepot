@@ -41,7 +41,7 @@
     <unjar src="${lib.dir}/commons-cli/commons-cli.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/opencsv/opencsv.jar" dest="${tmp.dir}" />
 
-    <jar destfile="${build.jar.dir}/wattdepot-tabularclient.jar" basedir="${tmp.dir}">
+    <jar destfile="${build.jar.dir}/wattdepot-client-tabular.jar" basedir="${tmp.dir}">
       <manifest>
         <attribute name="Main-Class" value="org.wattdepot.datainput.TabularFileDataInputClient" />
         <attribute name="Implementation-Title" value="WattDepot TabularFileDataInputClient" />
@@ -51,7 +51,7 @@
       </manifest>
     </jar>
 
-    <jar destfile="${build.jar.dir}/wattdepot-bmoclient.jar" basedir="${tmp.dir}">
+    <jar destfile="${build.jar.dir}/wattdepot-client-bmo.jar" basedir="${tmp.dir}">
       <manifest>
         <attribute name="Main-Class" value="org.wattdepot.datainput.BMODataInputClient" />
         <attribute name="Implementation-Title" value="WattDepot BMODataInputClient" />
@@ -61,7 +61,7 @@
       </manifest>
     </jar>
 
-    <jar destfile="${build.jar.dir}/wattdepot-oscarconverter.jar" basedir="${tmp.dir}">
+    <jar destfile="${build.jar.dir}/wattdepot-converter-oscar.jar" basedir="${tmp.dir}">
       <manifest>
         <attribute name="Main-Class" value="org.wattdepot.datainput.OscarDataConverter" />
         <attribute name="Implementation-Title" value="WattDepot OscarDataConverter" />
