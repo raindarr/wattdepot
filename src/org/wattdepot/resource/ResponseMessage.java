@@ -87,6 +87,18 @@ public class ResponseMessage {
   }
 
   /**
+   * The error message for requests where a sampling interval is supplied but is not parseable.
+   * 
+   * @param resource The resource associated with this request.
+   * @param interval The bogus interval.
+   * @return A string describing the problem.
+   */
+  static String badSamplingInterval(WattDepotResource resource, String interval) {
+    return String.format("Bad sampling interval %s:%n  Request: %s %s", interval, resource
+        .getRequest().getMethod().getName(), resource.getRequest().getResourceRef().toString());
+  }
+
+  /**
    * The error message for requests where an interval is specified with a start time that is greater
    * than the end time.
    * 
@@ -97,6 +109,22 @@ public class ResponseMessage {
    */
   static String badInterval(WattDepotResource resource, String startTime, String endTime) {
     return String.format("Bad interval, startTime %s > endTime %s:%n  Request: %s %s", startTime,
+        endTime, resource.getRequest().getMethod().getName(), resource.getRequest()
+            .getResourceRef().toString());
+  }
+
+  /**
+   * The error message for requests where an interval is specified with a start time that is greater
+   * than the end time.
+   * 
+   * @param resource The resource associated with this request.
+   * @param startTime The start time.
+   * @param endTime The end time.
+   * @return A string describing the problem.
+   */
+  static String badRange(WattDepotResource resource, String startTime, String endTime) {
+    return String.format(
+        "Range extends beyond sensor data, startTime %s, endTime %s:%n  Request: %s %s", startTime,
         endTime, resource.getRequest().getMethod().getName(), resource.getRequest()
             .getResourceRef().toString());
   }
@@ -124,8 +152,8 @@ public class ResponseMessage {
    */
   static String resourceOverwrite(WattDepotResource resource, String resourceInstance) {
     return String.format("Attempted to overwrite existing resource %s%n  Request: %s %s",
-        resourceInstance, resource.getRequest().getMethod().getName(), resource
-            .getRequest().getResourceRef().toString());
+        resourceInstance, resource.getRequest().getMethod().getName(), resource.getRequest()
+            .getResourceRef().toString());
   }
 
   /**

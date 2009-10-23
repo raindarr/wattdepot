@@ -362,6 +362,24 @@ public class DbManager {
   }
   
   /**
+   * Given a virtual source name, and a List of timestamps, returns a List (one member for each
+   * non-virtual subsource) that contains Lists of SensorDataStraddles that straddle each of the
+   * given timestamps. If the given source is non-virtual, then the result will be a list containing
+   * a single List of SensorDataStraddles, or null.
+   * 
+   * @param sourceName The name of the source to generate the straddle from.
+   * @param timestampList The list of timestamps of interest in each straddle.
+   * @return A list of lists of SensorDataStraddles that straddle the given timestamp. Returns null
+   * if: parameters are null, the source doesn't exist, or there is no sensor data that straddles
+   * any of the timestamps.
+   * @see org.wattdepot.server.db.memory#getSensorDataStraddle getSensorDataStraddle
+   */
+  public List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(String sourceName,
+      List<XMLGregorianCalendar> timestampList) {
+    return this.dbImpl.getSensorDataStraddleListOfLists(sourceName, timestampList);
+  }
+
+  /**
    * Returns a UserIndex of all Users in the system.
    * 
    * @return a UserIndex object containing a List of UserRef objects for all User resources.

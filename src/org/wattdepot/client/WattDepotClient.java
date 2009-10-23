@@ -25,7 +25,6 @@ import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.StringRepresentation;
-import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -140,8 +139,8 @@ public class WattDepotClient {
 
   /**
    * Does the housekeeping for making HTTP requests to WattDepot by a test or admin user, including
-   * authentication if requested. It is only public to allow testing of the WattDepot server
-   * in certain cases. It is not intended for client use.
+   * authentication if requested. It is only public to allow testing of the WattDepot server in
+   * certain cases. It is not intended for client use.
    * 
    * @param method the HTTP method requested.
    * @param requestString A string, such as "users". Do not start the string with a '/' (it is
@@ -151,8 +150,8 @@ public class WattDepotClient {
    * @param entity The representation to be sent with the request, or null if not needed.
    * @return The Response instance returned from the server.
    */
-  public Response makeRequest(Method method, String requestString,
-      Preference<MediaType> mediaPref, Representation entity) {
+  public Response makeRequest(Method method, String requestString, Preference<MediaType> mediaPref,
+      Representation entity) {
     Reference reference = new Reference(this.wattDepotUri + requestString);
     Request request =
         (entity == null) ? new Request(method, reference) : new Request(method, reference, entity);
@@ -281,7 +280,7 @@ public class WattDepotClient {
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
-   * @see org.wattdepot.client.WattDepotClient#getSensorDatas
+   * @see org.wattdepot.client.WattDepotClient#getSensorDatas getSensorDatas
    */
   public SensorDataIndex getSensorDataIndex(String source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws NotAuthorizedException, ResourceNotFoundException,
@@ -421,8 +420,8 @@ public class WattDepotClient {
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
-   * @see org.wattdepot.client.WattDepotClient#getPowerGenerated
-   * @see org.wattdepot.client.WattDepotClient#getPowerConsumed
+   * @see org.wattdepot.client.WattDepotClient#getPowerGenerated getPowerGenerated
+   * @see org.wattdepot.client.WattDepotClient#getPowerConsumed getPowerConsumed
    */
   public SensorData getPower(String source, XMLGregorianCalendar timestamp)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
@@ -484,12 +483,7 @@ public class WattDepotClient {
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
     SensorData data = getPower(source, timestamp);
-    for (Property prop : data.getProperties().getProperty()) {
-      if (key.equals(prop.getKey())) {
-        return Double.valueOf(prop.getValue());
-      }
-    }
-    return 0;
+    return data.getProperties().getPropertyAsDouble(key);
   }
 
   /**
@@ -528,6 +522,141 @@ public class WattDepotClient {
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
     return getPowerValue(source, timestamp, "powerConsumed");
+  }
+
+  /**
+   * Requests the energy in SensorData format from a given Source corresponding to the given
+   * startTime and endTime and sampling interval in minutes. If you are just looking to retrieve the
+   * energy values as doubles, the getEnergyGenerated and getEnergyConsumed methods are preferable
+   * to this one.
+   * 
+   * @param source The name of the Source.
+   * @param startTime The timestamp of the start of the range.
+   * @param endTime The timestamp of the end of the range.
+   * @param samplingInterval The sampling interval in minutes. A value of 0 tells the server to use
+   * a default interval.
+   * @return The SensorData.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SensorData.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   * @see org.wattdepot.client.WattDepotClient#getEnergyGenerated getEnergyGenerated
+   * @see org.wattdepot.client.WattDepotClient#getEnergyConsumed getEnergyConsumed
+   */
+  public SensorData getEnergy(String source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    String uriString =
+        Server.SOURCES_URI + "/" + source + "/" + Server.ENERGY_URI + "/" + "?startTime="
+            + startTime.toXMLFormat() + "&endTime=" + endTime.toXMLFormat();
+    if (samplingInterval > 0) {
+      // client provided sampling interval, so pass to server
+      uriString = uriString + "&samplingInterval=" + Integer.toString(samplingInterval);
+    }
+    Response response = makeRequest(Method.GET, uriString, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad timestamp provided in URI
+      throw new BadXmlException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
+        return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Requests the energy from a given Source corresponding to the range from startTime to endTime
+   * and sampling interval in minutes, and extracts the provided property key, converts it to double
+   * and returns the value.
+   * 
+   * @param source The name of the Source.
+   * @param startTime The timestamp of the start of the range.
+   * @param endTime The timestamp of the end of the range.
+   * @param samplingInterval The sampling interval in minutes.
+   * @param key The property key to search for.
+   * @return A double representing the property at the given timestamp, or 0 if there is no data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  private double getEnergyValue(String source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int samplingInterval, String key)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
+    SensorData data = getEnergy(source, startTime, endTime, samplingInterval);
+    return data.getProperties().getPropertyAsDouble(key);
+  }
+
+  /**
+   * Requests the energy generated from a given Source corresponding to the range from startTime to
+   * endTime and sampling interval in minutes, and returns the value as a double.
+   * 
+   * @param source The name of the Source.
+   * @param startTime The timestamp of the start of the range.
+   * @param endTime The timestamp of the end of the range.
+   * @param samplingInterval The sampling interval in minutes.
+   * @return A double representing the energy generated over the given range, or 0 if there is no
+   * data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public double getEnergyGenerated(String source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    return getEnergyValue(source, startTime, endTime, samplingInterval, "energyGenerated");
+  }
+
+  /**
+   * Requests the energy consumed by a given Source corresponding to the range from startTime to
+   * endTime and sampling interval in minutes, and returns the value as a double.
+   * 
+   * @param source The name of the Source.
+   * @param startTime The timestamp of the start of the range.
+   * @param endTime The timestamp of the end of the range.
+   * @param samplingInterval The sampling interval in minutes.
+   * @return A double representing the energy consumed over the given range, or 0 if there is no
+   * data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public double getEnergyConsumed(String source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    return getEnergyValue(source, startTime, endTime, samplingInterval, "energyConsumed");
   }
 
   /**
@@ -712,7 +841,7 @@ public class WattDepotClient {
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
-   * @see org.wattdepot.client.WattDepotClient#getSources
+   * @see org.wattdepot.client.WattDepotClient#getSources getSources
    */
   public SourceIndex getSourceIndex() throws NotAuthorizedException, BadXmlException,
       MiscClientException {

@@ -21,6 +21,7 @@ import org.restlet.Guard;
 import org.restlet.Restlet;
 import org.restlet.Router;
 import org.restlet.data.Protocol;
+import org.wattdepot.resource.energy.EnergyResource;
 import org.wattdepot.resource.gviz.GVisualizationServlet;
 import org.wattdepot.resource.health.HealthResource;
 import org.wattdepot.resource.power.PowerResource;
@@ -82,6 +83,9 @@ public class Server extends Application {
 
   /** URI fragment for source summary. */
   public static final String POWER_URI = "power";
+
+  /** URI fragment for source summary. */
+  public static final String ENERGY_URI = "energy";
 
   /** URI parameter for source name. */
   private static final String SOURCE_PARAM = "{source}";
@@ -335,7 +339,13 @@ public class Server extends Application {
     // Power does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + POWER_URI + "/{timestamp}",
         PowerResource.class);
-    
+    // Energy does its own authentication processing, so don't use Guard
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI
+        + "/?startTime={startTime}&endTime={endTime}&samplingInterval={interval}",
+        EnergyResource.class);
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI
+        + "/?startTime={startTime}&endTime={endTime}", EnergyResource.class);
+
     // // Google Visualization API resource
     // Route route = router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI,
     // GVisualizationResource.class);

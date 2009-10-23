@@ -2,6 +2,7 @@ package org.wattdepot.resource;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import javax.xml.bind.JAXBContext;
@@ -19,6 +20,7 @@ import org.restlet.data.Status;
 import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
+import org.wattdepot.resource.energy.Energy;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
@@ -32,6 +34,7 @@ import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbManager;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * An abstract superclass for WattDepot resources, providing initialization and utility functions.
@@ -386,6 +389,78 @@ public class WattDepotResource extends Resource {
   }
 
   /**
+   * Returns the XML string containing the energy in SensorData format for the Source name given in
+   * the URI over the range of time between startTime and endTime, or null if no energy data exists.
+   * 
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The XML string representing the requested energy in SensorData format, or null if it
+   * cannot be found/calculated.
+   * @throws JAXBException If there are problems mashalling the SensorData.
+   */
+  public String getEnergy(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime, int interval)
+      throws JAXBException {
+    Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+    SensorData energyData = null;
+    long intervalMilliseconds;
+    long rangeLength = Tstamp.diff(startTime, endTime);
+    long minutesToMilliseconds = 60L * 1000L;
+
+    if (interval < 0) {
+      setStatusBadSamplingInterval(Integer.toString(interval));
+      // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
+      return null;
+    }
+    else if (interval == 0) {
+      // use default interval
+      intervalMilliseconds = rangeLength / 10;
+    }
+    else if ((interval * minutesToMilliseconds) > rangeLength) {
+      setStatusBadSamplingInterval(Integer.toString(interval));
+      // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
+      return null;
+    }
+    else {
+      // got a good interval
+      intervalMilliseconds = interval * minutesToMilliseconds;
+    }
+    // DEBUG
+//    System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
+//        intervalMilliseconds / minutesToMilliseconds);
+
+    // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
+    List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
+    XMLGregorianCalendar timestamp = startTime;
+    while (Tstamp.lessThan(timestamp, endTime)) {
+      timestampList.add(timestamp);
+//      System.out.format("timestamp=%s%n", timestamp);
+      timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
+    }
+    // add endTime to cover the last runt interval which is <= intervalMilliseconds
+    timestampList.add(endTime);
+//    System.out.format("timestamp=%s%n", endTime);
+    List<List<SensorDataStraddle>> masterList =
+        this.dbManager.getSensorDataStraddleListOfLists(this.uriSource, timestampList);
+    if (masterList.isEmpty()) {
+      return null;
+    }
+    else {
+      energyData =
+          Energy.getEnergyFromListOfLists(masterList, SourceUtils.sourceToUri(this.uriSource,
+              server));
+    }
+    if (energyData == null) {
+      return null;
+    }
+    else {
+      marshaller.marshal(energyData, writer);
+      return writer.toString();
+    }
+  }
+
+  /**
    * Returns true if the source name present in the URI is valid, i.e. it exists in the database.
    * Otherwise sets the Response status and returns false.
    * 
@@ -535,6 +610,17 @@ public class WattDepotResource extends Resource {
   }
 
   /**
+   * Called when a bad sampling interval is found while processing a request. Just sets the response
+   * code.
+   * 
+   * @param interval The sampling interval that could not be parsed.
+   */
+  protected void setStatusBadSamplingInterval(String interval) {
+    this.responseMsg = ResponseMessage.badSamplingInterval(this, interval);
+    getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, removeNewLines(this.responseMsg));
+  }
+
+  /**
    * Called when an bad interval (startTime > endTime) is encountered while processing a request.
    * Just sets the response code.
    * 
@@ -552,19 +638,19 @@ public class WattDepotResource extends Resource {
    * @param timestamp The timestamp provided.
    */
   protected void setStatusTimestampNotFound(String timestamp) {
-    this.responseMsg = ResponseMessage.badInterval(this, this.uriSource, timestamp);
+    this.responseMsg = ResponseMessage.timestampNotFound(this, this.uriSource, timestamp);
     getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, removeNewLines(this.responseMsg));
   }
 
   /**
-   * Called when an bad interval (startTime > endTime) while processing a request. Just sets the
-   * response code.
+   * Called when range specified by a startTime & endTime extends beyond a Source's sensor data
+   * while processing a request. Just sets the response code.
    * 
    * @param startTime The start time provided.
    * @param endTime The end time provided.
    */
-  protected void setStatusBadParameters(String startTime, String endTime) {
-    this.responseMsg = ResponseMessage.badInterval(this, startTime, endTime);
+  protected void setStatusBadRange(String startTime, String endTime) {
+    this.responseMsg = ResponseMessage.badRange(this, startTime, endTime);
     getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, removeNewLines(this.responseMsg));
   }
 

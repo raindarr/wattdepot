@@ -502,6 +502,39 @@ public class MemoryStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
+  public List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(String sourceName,
+      List<XMLGregorianCalendar> timestampList) {
+    List<List<SensorDataStraddle>> masterList = new ArrayList<List<SensorDataStraddle>>();
+    if ((sourceName == null) || (timestampList == null)) {
+      return null;
+    }
+    Source baseSource = this.name2SourceHash.get(sourceName);
+    if (baseSource == null) {
+      return null;
+    }
+    // Want to go through sensordata for base source, and all subsources recursively
+    List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    for (Source subSource : sourceList) {
+      List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>();
+      String subSourceName = subSource.getName();
+      for (XMLGregorianCalendar timestamp : timestampList) {
+        SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
+        if (straddle != null) {
+          straddleList.add(straddle);
+        }
+      }
+      masterList.add(straddleList);
+    }
+    if (masterList.isEmpty()) {
+      return null;
+    }
+    else {
+      return masterList;
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public UserIndex getUsers() {
     UserIndex index = new UserIndex();
     // Loop over all Users in hash
