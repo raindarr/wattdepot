@@ -43,7 +43,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * 
    * @author Robert Brewer
    */
-  public enum PowerType {
+  public enum Direction {
 
     /** Represents power generated. */
     GENERATED,
@@ -680,21 +680,21 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#
    * 2.7_list_power_[generated|consumed]_{source}_timestamp_{timestam
    * 
-   * @param type Type of power desired.
+   * @param dir Type of power desired.
    * @param sourceName Name of the source.
    * @param timestamp Timestamp of interest.
    * @return Power requested.
    * @throws WattDepotClientException If there are problems with the client.
    */
-  public String listPowerForTimestamp(PowerType type, String sourceName,
+  public String listPowerForTimestamp(Direction dir, String sourceName,
       XMLGregorianCalendar timestamp) throws WattDepotClientException {
-    switch (type) {
+    switch (dir) {
     case GENERATED:
       return Double.toString(client.getPowerGenerated(sourceName, timestamp));
     case CONSUMED:
       return Double.toString(client.getPowerConsumed(sourceName, timestamp));
     default:
-      throw new AssertionError("Unknown type of power encountered");
+      throw new AssertionError("Unknown dir of power encountered");
     }
   }
 
@@ -708,17 +708,17 @@ public class TestOscarFunctionality extends ServerTestHelper {
   public void listPowerForTimestampTest() throws WattDepotClientException, Exception {
     // Test with non-virtual source
     assertEquals("Did not get expected power from SIM_KAHE_2", "6.28E7", listPowerForTimestamp(
-        PowerType.GENERATED, "SIM_KAHE_2", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+        Direction.GENERATED, "SIM_KAHE_2", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
     // Test with virtual source
     assertEquals("Did not get expected power from SIM_KAHE", "4.618E8", listPowerForTimestamp(
-        PowerType.GENERATED, "SIM_KAHE", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+        Direction.GENERATED, "SIM_KAHE", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
     // Test with virtual source that includes other sources
     assertEquals("Did not get expected power from SIM_OAHU_GRID", "5.078E8",
-        listPowerForTimestamp(PowerType.GENERATED, "SIM_OAHU_GRID", Tstamp
+        listPowerForTimestamp(Direction.GENERATED, "SIM_OAHU_GRID", Tstamp
             .makeTimestamp("2009-10-12T00:13:00.000-10:00")));
     // Test that power consumed is 0 for timestamp
     assertEquals("Did not get expected power from SIM_OAHU_GRID", "0.0", listPowerForTimestamp(
-        PowerType.CONSUMED, "SIM_OAHU_GRID", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+        Direction.CONSUMED, "SIM_OAHU_GRID", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
   }
 
   /**
@@ -726,7 +726,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * day. Solves assignment problem http://code.google.com/p/wattdepot/wiki/WattDepotCLI#
    * 2.7_list_power_[generated|consumed]_{source}_timestamp_{timestam
    * 
-   * @param type Type of power desired.
+   * @param dir Type of power desired.
    * @param sourceName Name of the source.
    * @param day Day of interest.
    * @param samplingInterval interval at which to sample, in minutes
@@ -734,7 +734,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * @return Power requested.
    * @throws WattDepotClientException If there are problems with the client.
    */
-  public String listPowerForDay(PowerType type, String sourceName, Date day, int samplingInterval,
+  public String listPowerForDay(Direction dir, String sourceName, Date day, int samplingInterval,
       StatisticType stat) throws WattDepotClientException {
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp(day.getTime());
     int minutesInDay = 60 * 24;
@@ -757,7 +757,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
 
     for (int i = 0; i < minutesInDay; i += samplingInterval, timestamp =
         Tstamp.incrementMinutes(timestamp, samplingInterval)) {
-      switch (type) {
+      switch (dir) {
       case GENERATED:
         power = client.getPowerGenerated(sourceName, timestamp);
         break;
@@ -807,18 +807,184 @@ public class TestOscarFunctionality extends ServerTestHelper {
   public void listPowerForDayTest() throws WattDepotClientException, Exception {
     // Test with non-virtual source
     assertEquals("Did not get expected power from SIM_KAHE_2", "6.28E7", listPowerForDay(
-        PowerType.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 1,
+        Direction.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 1,
         StatisticType.MIN));
     // Test with virtual source
     assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", listPowerForDay(
-        PowerType.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 1, StatisticType.MIN));
+        Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 1, StatisticType.MIN));
     // Test with virtual source that includes other sources
     assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listPowerForDay(
-        PowerType.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
+        Direction.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
         StatisticType.MIN));
     // Test that power consumed is 0
     assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listPowerForDay(
-        PowerType.CONSUMED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
+        Direction.CONSUMED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
         StatisticType.MIN));
+  }
+
+  /**
+   * Returns a string with the amount of energy produced or consumed by the given source for one
+   * day. Solves assignment problem
+   * http://code.google.com/p/wattdepot-cli/wiki/CommandSpecification#
+   * 2.9_list_total_[carbon|energy]_[generated|consumed]_{source}_day
+   * 
+   * @param dir Type of power desired.
+   * @param sourceName Name of the source.
+   * @param day Day of interest.
+   * @param samplingInterval interval at which to sample, in minutes
+   * @return Energy requested.
+   * @throws WattDepotClientException If there are problems with the client.
+   */
+  public String listEnergyForDay(Direction dir, String sourceName, Date day, int samplingInterval)
+      throws WattDepotClientException {
+    XMLGregorianCalendar startTime, endTime;
+    startTime = Tstamp.makeTimestamp(day.getTime());
+    endTime = Tstamp.incrementDays(startTime, 1);
+    double output;
+
+    if (dir == Direction.CONSUMED) {
+      output = client.getEnergyConsumed(sourceName, startTime, endTime, samplingInterval);
+    }
+    else if (dir == Direction.GENERATED) {
+      output = client.getEnergyGenerated(sourceName, startTime, endTime, samplingInterval);
+    }
+    else {
+      // Unknown direction, so abort
+      return null;
+    }
+    return Double.toString(output);
+  }
+
+  /**
+   * Tests listEnergyForDay.
+   * 
+   * @throws Exception If there are problems creating the timestamp or the client.
+   */
+  @Test
+  @Ignore("Needs full day of data to work properly")
+  public void listEnergyForDayTest() throws Exception {
+    // Test with non-virtual source
+    assertEquals("Did not get expected energy from SIM_KAHE_2", "6.28E7", listEnergyForDay(
+        Direction.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 15));
+    // Test with virtual source
+    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", listEnergyForDay(
+        Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 1));
+    // Test with virtual source that includes other sources
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listEnergyForDay(
+        Direction.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
+    // Test that power consumed is 0
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listEnergyForDay(
+        Direction.CONSUMED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
+  }
+
+  /**
+   * Returns a string with the amount of carbon emitted by the given source for one day. Solves
+   * assignment problem http://code.google.com/p/wattdepot-cli/wiki/CommandSpecification#
+   * 2.9_list_total_[carbon|energy]_[generated|consumed]_{source}_day
+   * 
+   * @param sourceName Name of the source.
+   * @param day Day of interest.
+   * @param samplingInterval interval at which to sample, in minutes
+   * @return Carbon requested.
+   * @throws WattDepotClientException If there are problems with the client.
+   */
+  public String listCarbonForDay(String sourceName, Date day, int samplingInterval)
+      throws WattDepotClientException {
+    XMLGregorianCalendar startTime, endTime;
+    startTime = Tstamp.makeTimestamp(day.getTime());
+    endTime = Tstamp.incrementDays(startTime, 1);
+    double output;
+
+    output = client.getCarbonEmitted(sourceName, startTime, endTime, samplingInterval);
+    return Double.toString(output);
+  }
+
+  /**
+   * Tests listEnergyForDay.
+   * 
+   * @throws Exception If there are problems creating the timestamp or the client.
+   */
+  @Test
+  @Ignore("Needs full day of data to work properly")
+  public void listCarbonForDayTest() throws Exception {
+    // Test with non-virtual source
+    assertEquals("Did not get expected energy from SIM_KAHE_2", "6.28E7", listCarbonForDay(
+        "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 15));
+    // Test with virtual source
+    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", listCarbonForDay("SIM_KAHE",
+        this.dateFormat.parse("2009-10-12"), 1));
+    // Test with virtual source that includes other sources
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listCarbonForDay(
+        "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
+    // Test that power consumed is 0
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listCarbonForDay(
+        "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
+  }
+
+  /**
+   * Returns a URL that displays the power for the given range of days, sampled at the given
+   * interval, in the given direction.
+   * 
+   * @param dir Type of power desired.
+   * @param sourceName Name of the source.
+   * @param startDay The starting day.
+   * @param endDay The starting day.
+   * @param samplingInterval interval at which to sample, in minutes
+   * @return A String containing the URI for Google Chart API
+   * @throws WattDepotClientException If there are problems with the client.
+   */
+  public String chartPowerForDay(Direction dir, String sourceName, Date startDay, Date endDay,
+      int samplingInterval) throws WattDepotClientException {
+    double power = 0, minPower = Double.MAX_VALUE, maxPower = Double.MIN_VALUE;
+    XMLGregorianCalendar startTime = null, endTime = null, timestamp;
+    int maxUriLength = 2048;
+    StringBuffer chartUri = new StringBuffer(maxUriLength);
+
+    startTime = Tstamp.makeTimestamp(startDay.getTime());
+    endTime = Tstamp.makeTimestamp(endDay.getTime());
+
+    chartUri.append("http://chart.apis.google.com/chart?chs=250x100&cht=lc&chd=t:");
+    timestamp = startTime;
+    while (Tstamp.lessThan(timestamp, endTime)) {
+      // Convert to megawatts
+      power = client.getPowerGenerated("SIM_OAHU_GRID", timestamp) / 1000000;
+      chartUri.append(String.format("%.1f,", power));
+      if (power < minPower) {
+        minPower = power;
+      }
+      if (power > maxPower) {
+        maxPower = power;
+      }
+      timestamp = Tstamp.incrementMinutes(timestamp, samplingInterval);
+    }
+    // Delete trailing ','
+    chartUri.deleteCharAt(chartUri.length() - 1);
+    chartUri.append(String.format("&chds=%.1f,%.1f&chxt=y&chxr=0,%.1f,%.1f", minPower, maxPower,
+        minPower, maxPower));
+    return String.format("Google Charts URI:%n%s%n", chartUri);
+  }
+
+  /**
+   * Tests listEnergyForDay.
+   * 
+   * @throws Exception If there are problems creating the timestamp or the client.
+   */
+  @Test
+  @Ignore("Needs full day of data to work properly")
+  public void chartPowerForDayTest() throws Exception {
+    Date startDay = this.dateFormat.parse("2009-10-30");
+    Date endDay = this.dateFormat.parse("2009-11-04");
+    // Test with non-virtual source
+    assertEquals("Did not get expected energy from SIM_KAHE_2", "6.28E7", chartPowerForDay(
+        Direction.GENERATED, "SIM_KAHE_2", startDay, endDay, 15));
+    // Test with virtual source
+    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", chartPowerForDay(
+        Direction.GENERATED, "SIM_KAHE", startDay, endDay, 1));
+    // Test with virtual source that includes other sources
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", chartPowerForDay(
+        Direction.GENERATED, "SIM_OAHU_GRID", startDay, endDay, 1));
+    // Test that power consumed is 0
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", chartPowerForDay(
+        Direction.CONSUMED, "SIM_OAHU_GRID", startDay, endDay, 1));
   }
 }
