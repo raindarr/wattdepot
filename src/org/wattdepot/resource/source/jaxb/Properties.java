@@ -17,6 +17,7 @@ import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import org.wattdepot.resource.source.jaxb.Property;
 
 
 /**
@@ -139,4 +140,19 @@ public class Properties
       return Arrays.toString(property.toArray());
     }
 
+    /**
+     * Given a Properties object, returns the value of the given key as a double. If the key is
+     * not found, it returns 0.
+     * 
+     * @param key The key.
+     * @return The key's value as a double.
+     */
+    public double getPropertyAsDouble(String key) {
+      for (Property prop : this.property) {
+        if (key.equals(prop.getKey())) {
+          return Double.valueOf(prop.getValue());
+        }
+      }
+      return 0;
+    }
 }

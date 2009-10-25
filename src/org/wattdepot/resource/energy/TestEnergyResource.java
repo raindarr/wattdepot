@@ -250,7 +250,7 @@ public class TestEnergyResource extends ServerTestHelper {
   // compareSensorDataRefsToSensorDatas(index, origData));
   // }
 
-  // Tests for GET {host}/sources/{source}/power/{timestamp}
+  // Tests for GET {host}/sources/{source}/energy/{timestamp}
 
   /**
    * Tests the energy resource on a non-virtual source.
@@ -288,6 +288,16 @@ public class TestEnergyResource extends ServerTestHelper {
     try {
       client.getEnergyGenerated(sourceName, beforeTime, afterTime, 61);
       fail("getEnergy worked with interval longer than range");
+    }
+    catch (BadXmlException e) { // NOPMD
+      // Expected in this case
+    }
+    // Try with range that extends beyond sensor data
+    XMLGregorianCalendar tooEarly = Tstamp.makeTimestamp("2008-07-28T08:00:00.000-10:00");
+    XMLGregorianCalendar tooLate = Tstamp.makeTimestamp("2010-07-28T08:00:00.000-10:00");
+    try {
+      client.getCarbonEmitted(sourceName, tooEarly, tooLate, 0);
+      fail("getCarbon worked with range outside sensor data");
     }
     catch (BadXmlException e) { // NOPMD
       // Expected in this case
@@ -433,7 +443,7 @@ public class TestEnergyResource extends ServerTestHelper {
     // Virtual source should get the sum of the two previous power values
     assertEquals("energy for virtual source did not equal expected value", 7.448E7, client
         .getEnergyGenerated(virtualSourceName, timestamp1, timestamp2, 0), 0.01);
-    assertTrue("Interpolated property not found", client.getEnergy(virtualSourceName, beforeTime,
-        afterTime, 0).getProperties().getProperty().contains(interpolatedProp));
+    assertTrue("Interpolated property not found", client.getEnergy(virtualSourceName, timestamp1,
+        timestamp2, 0).getProperties().getProperty().contains(interpolatedProp));
   }
 }

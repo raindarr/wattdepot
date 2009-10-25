@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.logging.Logger;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
+import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -213,7 +214,23 @@ public abstract class DbImplementation {
    */
   public abstract List<SensorDataStraddle> getSensorDataStraddleList(String sourceName,
       XMLGregorianCalendar timestamp);
- 
+
+  /**
+   * Returns a list of StraddleLists each of which corresponds to the straddles from source (or
+   * subsources of the source) for the given list of timestamps. If the given source is non-virtual,
+   * then the result will be a list containing at a single StraddleList, or null. In the case of a
+   * virtual source, the result is a list of StraddleLists, one for each non-virtual subsource
+   * (determined recursively).
+   * 
+   * @param sourceName The name of the source to generate the straddle from.
+   * @param timestampList The list of timestamps of interest in each straddle.
+   * @return A list of StraddleLists. Returns null if: parameters are null, the source doesn't
+   * exist, or there is no sensor data that straddles any of the timestamps.
+   * @see org.wattdepot.server.db.memory#getSensorDataStraddle
+   */
+  public abstract List<StraddleList> getStraddleLists(String sourceName,
+      List<XMLGregorianCalendar> timestampList);
+
   /**
    * Given a virtual source name, and a List of timestamps, returns a List (one member for each
    * non-virtual subsource) that contains Lists of SensorDataStraddles that straddle each of the
@@ -227,9 +244,9 @@ public abstract class DbImplementation {
    * any of the timestamps.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle getSensorDataStraddle
    */
-  public abstract List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(String sourceName,
-      List<XMLGregorianCalendar> timestampList);
-  
+  public abstract List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(
+      String sourceName, List<XMLGregorianCalendar> timestampList);
+
   /**
    * Returns a UserIndex of all Users in the system.
    * 

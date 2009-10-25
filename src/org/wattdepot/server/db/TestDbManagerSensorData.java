@@ -678,10 +678,6 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         straddleList.get(1).getAfterData(), source2Data3);
     // timestamp = source2Time2_3, outside source1's range so should only have one element in list
     straddleList = this.manager.getSensorDataStraddleList(virtualSource, source2Time2_3);
-    assertEquals("straddle list had more than 1 element", straddleList.size(), 1);
-    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(0)
-        .getBeforeData(), source2Data2);
-    assertEquals("source2 straddle afterData not set correctly",
-        straddleList.get(0).getAfterData(), source2Data3);
+    assertNull("straddle list was not null despite timestamp outside sensor data", straddleList);
   }
 }

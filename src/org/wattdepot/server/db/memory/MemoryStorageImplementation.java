@@ -10,6 +10,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.util.tstamp.Tstamp;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.SensorDataUtils;
+import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.SourceUtils;
@@ -488,7 +489,11 @@ public class MemoryStorageImplementation extends DbImplementation {
     for (Source subSource : sourceList) {
       String subSourceName = subSource.getName();
       SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
-      if (straddle != null) {
+      if (straddle == null) {
+        // No straddle for this timestamp on this source, abort
+        return null;
+      }
+      else {
         straddleList.add(straddle);
       }
     }
@@ -498,6 +503,44 @@ public class MemoryStorageImplementation extends DbImplementation {
     else {
       return straddleList;
     }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<StraddleList> getStraddleLists(String sourceName,
+      List<XMLGregorianCalendar> timestampList) {
+    if ((sourceName == null) || (timestampList == null)) {
+      return null;
+    }
+    Source baseSource = this.name2SourceHash.get(sourceName);
+    if (baseSource == null) {
+      return null;
+    }
+    // Want to go through sensordata for base source, and all subsources recursively
+    List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    List<StraddleList> masterList = new ArrayList<StraddleList>();
+    List<SensorDataStraddle> straddleList;
+    for (Source subSource : sourceList) {
+      straddleList = new ArrayList<SensorDataStraddle>();
+      String subSourceName = subSource.getName();
+      for (XMLGregorianCalendar timestamp : timestampList) {
+        SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
+        if (straddle == null) {
+          // No straddle for this timestamp on this source, abort
+          return null;
+        }
+        else {
+          straddleList.add(straddle);
+        }
+      }
+      if (straddleList.isEmpty()) {
+        return null;
+      }
+      else {
+        masterList.add(new StraddleList(subSource, straddleList));
+      }
+    }
+    return masterList;
   }
 
   /** {@inheritDoc} */
@@ -519,7 +562,11 @@ public class MemoryStorageImplementation extends DbImplementation {
       String subSourceName = subSource.getName();
       for (XMLGregorianCalendar timestamp : timestampList) {
         SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
-        if (straddle != null) {
+        if (straddle == null) {
+          // No straddle for this timestamp on this source, abort
+          return null;
+        }
+        else {
           straddleList.add(straddle);
         }
       }

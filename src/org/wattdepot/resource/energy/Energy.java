@@ -18,10 +18,10 @@ import org.wattdepot.util.tstamp.Tstamp;
 public class Energy {
 
   /** Contains the starting straddle. */
-  private SensorDataStraddle startStraddle;
+  protected SensorDataStraddle startStraddle;
 
   /** Contains the ending straddle. */
-  private SensorDataStraddle endStraddle;
+  protected SensorDataStraddle endStraddle;
 
   private static final double SECONDS_PER_HOUR = 60 * 60;
 
@@ -87,7 +87,7 @@ public class Energy {
   /**
    * Returns a SensorData object representing the energy between the straddles.
    * 
-   * @return The SensorData object representing power.
+   * @return The SensorData object representing energy.
    */
   public SensorData getEnergy() {
     double energyGeneratedValue = getEnergyGenerated();

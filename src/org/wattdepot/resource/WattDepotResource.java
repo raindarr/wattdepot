@@ -20,8 +20,10 @@ import org.restlet.data.Status;
 import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
+import org.wattdepot.resource.carbon.Carbon;
 import org.wattdepot.resource.energy.Energy;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
+import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.SourceUtils;
@@ -427,23 +429,23 @@ public class WattDepotResource extends Resource {
       intervalMilliseconds = interval * minutesToMilliseconds;
     }
     // DEBUG
-//    System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
-//        intervalMilliseconds / minutesToMilliseconds);
+    // System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
+    // intervalMilliseconds / minutesToMilliseconds);
 
     // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
     List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
     XMLGregorianCalendar timestamp = startTime;
     while (Tstamp.lessThan(timestamp, endTime)) {
       timestampList.add(timestamp);
-//      System.out.format("timestamp=%s%n", timestamp);
+      // System.out.format("timestamp=%s%n", timestamp);
       timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
     }
     // add endTime to cover the last runt interval which is <= intervalMilliseconds
     timestampList.add(endTime);
-//    System.out.format("timestamp=%s%n", endTime);
+    // System.out.format("timestamp=%s%n", endTime);
     List<List<SensorDataStraddle>> masterList =
         this.dbManager.getSensorDataStraddleListOfLists(this.uriSource, timestampList);
-    if (masterList.isEmpty()) {
+    if ((masterList == null) || (masterList.isEmpty())) {
       return null;
     }
     else {
@@ -456,6 +458,72 @@ public class WattDepotResource extends Resource {
     }
     else {
       marshaller.marshal(energyData, writer);
+      return writer.toString();
+    }
+  }
+
+  /**
+   * Returns the XML string containing the carbon in SensorData format for the Source name given in
+   * the URI over the range of time between startTime and endTime, or null if no carbon data exists.
+   * 
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The XML string representing the requested carbon in SensorData format, or null if it
+   * cannot be found/calculated.
+   * @throws JAXBException If there are problems mashalling the SensorData.
+   */
+  public String getCarbon(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime, int interval)
+      throws JAXBException {
+    Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+    SensorData carbonData = null;
+    long intervalMilliseconds;
+    long rangeLength = Tstamp.diff(startTime, endTime);
+    long minutesToMilliseconds = 60L * 1000L;
+
+    if (interval < 0) {
+      setStatusBadSamplingInterval(Integer.toString(interval));
+      // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
+      return null;
+    }
+    else if (interval == 0) {
+      // use default interval
+      intervalMilliseconds = rangeLength / 10;
+    }
+    else if ((interval * minutesToMilliseconds) > rangeLength) {
+      setStatusBadSamplingInterval(Integer.toString(interval));
+      // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
+      return null;
+    }
+    else {
+      // got a good interval
+      intervalMilliseconds = interval * minutesToMilliseconds;
+    }
+    // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
+    List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
+    XMLGregorianCalendar timestamp = startTime;
+    while (Tstamp.lessThan(timestamp, endTime)) {
+      timestampList.add(timestamp);
+      timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
+    }
+    // add endTime to cover the last runt interval which is <= intervalMilliseconds
+    timestampList.add(endTime);
+    List<StraddleList> masterList = this.dbManager.getStraddleLists(this.uriSource, timestampList);
+    if ((masterList == null) || (masterList.isEmpty())) {
+      return null;
+    }
+    else {
+      // Make list of carbon intensities, one from each source
+      carbonData =
+          Carbon.getCarbonFromStraddleList(masterList, SourceUtils.sourceToUri(this.uriSource,
+              server));
+    }
+    if (carbonData == null) {
+      return null;
+    }
+    else {
+      marshaller.marshal(carbonData, writer);
       return writer.toString();
     }
   }

@@ -11,6 +11,7 @@ import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.util.StackTrace;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
+import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -130,7 +131,7 @@ public class DbManager {
     User adminUser = makeUser(adminUsername, adminPassword, true, null);
     // stick admin user into database
     if (!this.storeUser(adminUser)) {
-//      server.getLogger().severe("Unable to create admin user from properties!");
+      // server.getLogger().severe("Unable to create admin user from properties!");
       return false;
     }
     // create a non-admin user that owns a source for testing
@@ -146,7 +147,7 @@ public class DbManager {
 
     org.wattdepot.resource.source.jaxb.Properties props =
         new org.wattdepot.resource.source.jaxb.Properties();
-    props.getProperty().add(makeSourceProperty("carbonIntensity", "294"));
+    props.getProperty().add(makeSourceProperty("carbonIntensity", "1000"));
     // create public source
     Source source1 =
         makeSource(defaultPublicSource, userToUri(ownerUser, this.server), true, false,
@@ -157,8 +158,8 @@ public class DbManager {
       return false;
     }
 
-    props.getProperty().clear();
-    props.getProperty().add(makeSourceProperty("carbonIntensity", "128"));
+    props = new org.wattdepot.resource.source.jaxb.Properties();
+    props.getProperty().add(makeSourceProperty("carbonIntensity", "3000"));
     Source source2 =
         makeSource(defaultPrivateSource, userToUri(ownerUser, this.server), false, false,
             "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", props,
@@ -173,9 +174,8 @@ public class DbManager {
     subSources.getHref().add(sourceToUri(source2, server));
 
     Source virtualSource =
-        makeSource(defaultVirtualSource, userToUri(ownerUser, server), true,
-            true, "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null,
-            subSources);
+        makeSource(defaultVirtualSource, userToUri(ownerUser, server), true, true,
+            "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null, subSources);
     return (this.storeSource(virtualSource));
   }
 
@@ -338,8 +338,7 @@ public class DbManager {
    * straddles the timestamp.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddleList
    */
-  public SensorDataStraddle getSensorDataStraddle(String sourceName,
-      XMLGregorianCalendar timestamp) {
+  public SensorDataStraddle getSensorDataStraddle(String sourceName, XMLGregorianCalendar timestamp) {
     return this.dbImpl.getSensorDataStraddle(sourceName, timestamp);
   }
 
@@ -360,7 +359,25 @@ public class DbManager {
       XMLGregorianCalendar timestamp) {
     return this.dbImpl.getSensorDataStraddleList(sourceName, timestamp);
   }
-  
+
+  /**
+   * Returns a list of StraddleLists each of which corresponds to the straddles from source (or
+   * subsources of the source) for the given list of timestamps. If the given source is non-virtual,
+   * then the result will be a list containing at a single StraddleList, or null. In the case of a
+   * virtual source, the result is a list of StraddleLists, one for each non-virtual subsource
+   * (determined recursively).
+   * 
+   * @param sourceName The name of the source to generate the straddle from.
+   * @param timestampList The list of timestamps of interest in each straddle.
+   * @return A list of StraddleLists. Returns null if: parameters are null, the source doesn't
+   * exist, or there is no sensor data that straddles any of the timestamps.
+   * @see org.wattdepot.server.db.memory#getSensorDataStraddle
+   */
+  public List<StraddleList> getStraddleLists(String sourceName,
+      List<XMLGregorianCalendar> timestampList) {
+    return this.dbImpl.getStraddleLists(sourceName, timestampList);
+  }
+
   /**
    * Given a virtual source name, and a List of timestamps, returns a List (one member for each
    * non-virtual subsource) that contains Lists of SensorDataStraddles that straddle each of the
