@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
+import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
@@ -449,4 +450,46 @@ public class TestPowerResource extends ServerTestHelper {
     assertEquals("Interpolated power did not equal expected value", 7.78E7, client
         .getPowerGenerated(virtualSourceName, timestamp), 0.01);
   }
+  
+  /**
+   * Tests the power resource on a virtual source at the endpoints of sensor data.
+   * 
+   * @throws Exception If there are problems creating timestamps, or if the client has problems.
+   */
+  @Test
+  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
+  public void testGetVirtualPowerEndpoint() throws Exception {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
+            DbManager.defaultOwnerPassword);
+
+    XMLGregorianCalendar beforeTime, timestamp;
+    SensorData beforeData, powerData;
+    String source1Name = DbManager.defaultPublicSource;
+    String source2Name = DbManager.defaultPrivateSource;
+    String virtualSourceName = DbManager.defaultVirtualSource;
+    String source1 = sourceToUri(source1Name, server);
+    String source2 = sourceToUri(source2Name, server);
+    double interpolatedPower = -1;
+    Property interpolatedProp = SensorDataUtils.makeSensorDataProperty("interpolated", "true");
+
+    // timestamp == beforeData == afterData on both sources, getPower should return beforeData * 2
+    beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
+    beforeData = SensorDataStraddle.makePowerSensorData(beforeTime, source1, 100, 0, false);
+    client.storeSensorData(beforeData);
+    // data for source2
+    beforeData = SensorDataStraddle.makePowerSensorData(beforeTime, source2, 100, 0, false);
+    client.storeSensorData(beforeData);
+    timestamp = beforeTime;
+    powerData = client.getPower(virtualSourceName, timestamp);
+    interpolatedPower = powerData.getProperties().getPropertyAsDouble(POWER_GENERATED);
+    assertEquals("getPower for virtual source on degenerate straddle did not return beforeData",
+        200, interpolatedPower, 0.1);
+    assertFalse("Interpolated property found on non-interpolated data", powerData.getProperties()
+        .getProperty().contains(interpolatedProp));
+    // Delete sensordata for next test
+    client.deleteSensorData(source1Name, beforeData.getTimestamp());
+    client.deleteSensorData(source2Name, beforeData.getTimestamp());
+  }
+  
 }

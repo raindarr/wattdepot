@@ -56,7 +56,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * 
    * @author Robert Brewer
    */
-  private enum StatisticType {
+  public enum StatisticType {
 
     /** Minimum value desired. */
     MIN,
@@ -399,7 +399,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * @throws Exception If there are problems retrieving the Source list.
    */
   @Test
-  public void listSources() throws Exception {
+  public void testListSources() throws Exception {
     String expectedOutput =
         "SIM_HONOLULU SIM_OAHU_GRID Virtual resource for all Honolulu power plants."
             + lineSep
@@ -468,6 +468,43 @@ public class TestOscarFunctionality extends ServerTestHelper {
     }
     assertEquals("Generated String doesn't match expected", expectedOutput, outputBuff.toString());
   }
+
+//  /**
+//   * Fetches the Source list from server, checks which sources are parents to which other sources,
+//   * formats as a pretty string. Solves this assignment problem:
+//   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.3_list_sources
+//   * 
+//   * @throws Exception If there are problems retrieving the Source list.
+//   */
+//  public void listSources() throws Exception {
+//    List<Source> sourceList = this.client.getSources();
+//    StringBuffer outputBuff = new StringBuffer(1000);
+//    StringBuffer parentListBuff;
+//
+//    for (Source source : sourceList) {
+//      outputBuff.append(source.getName());
+//      outputBuff.append(' ');
+//      parentListBuff = new StringBuffer(100);
+//      for (Source possibleParent : sourceList) {
+//        if (isParent(source, possibleParent)) {
+//          if (parentListBuff.length() != 0) {
+//            // already have one parent, so add comma
+//            parentListBuff.append(", ");
+//          }
+//          parentListBuff.append(possibleParent.getName());
+//        }
+//      }
+//      if (parentListBuff.length() == 0) {
+//        outputBuff.append(' ');
+//      }
+//      else {
+//        outputBuff.append(parentListBuff.toString());
+//        outputBuff.append(' ');
+//      }
+//      outputBuff.append(source.getDescription());
+//      outputBuff.append(lineSep);
+//    }
+//  }
 
   /**
    * Determines whether a source is a parent of another source.
@@ -811,7 +848,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
         StatisticType.MIN));
     // Test with virtual source
     assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", listPowerForDay(
-        Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 1, StatisticType.MIN));
+        Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 30, StatisticType.MIN));
     // Test with virtual source that includes other sources
     assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listPowerForDay(
         Direction.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
@@ -867,14 +904,14 @@ public class TestOscarFunctionality extends ServerTestHelper {
     assertEquals("Did not get expected energy from SIM_KAHE_2", "6.28E7", listEnergyForDay(
         Direction.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 15));
     // Test with virtual source
-    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", listEnergyForDay(
+    assertEquals("Did not get expected energy from SIM_KAHE", "6.28E7", listEnergyForDay(
         Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 1));
     // Test with virtual source that includes other sources
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listEnergyForDay(
+    assertEquals("Did not get expected energy from SIM_OAHU_GRID", "6.28E7", listEnergyForDay(
         Direction.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
     // Test that power consumed is 0
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listEnergyForDay(
-        Direction.CONSUMED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
+    assertEquals("Did not get expected energy from SIM_OAHU_GRID", "0.0", listEnergyForDay(
+        Direction.CONSUMED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 1));
   }
 
   /**
@@ -900,7 +937,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
   }
 
   /**
-   * Tests listEnergyForDay.
+   * Tests listCarbonForDay.
    * 
    * @throws Exception If there are problems creating the timestamp or the client.
    */
