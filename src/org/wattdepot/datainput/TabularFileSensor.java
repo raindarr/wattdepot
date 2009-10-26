@@ -27,7 +27,7 @@ import au.com.bytecode.opencsv.CSVReader;
  * 
  * @author Robert Brewer
  */
-public class TabularFileDataInputClient {
+public class TabularFileSensor {
 
   /** Name of the file to be input. */
   protected String filename;
@@ -48,13 +48,13 @@ public class TabularFileDataInputClient {
   protected boolean skipFirstRow;
 
   /** Name of the application on the command line. */
-  protected static final String toolName = "TabularFileDataInputClient";
+  protected static final String toolName = "TabularFileSensor";
 
   /** The parser used to turn rows into SensorData objects. */
   protected RowParser parser;
 
   /**
-   * Creates the new TabularFileDataInputClient.
+   * Creates the new TabularFileSensor.
    * 
    * @param filename Name of the file to read data from.
    * @param uri URI of the server to send data to (ending in "/").
@@ -64,7 +64,7 @@ public class TabularFileDataInputClient {
    * @param skipFirstRow If true, indicates that the first row of the file should be ignored (often
    * used for column headers, and not containing data).
    */
-  public TabularFileDataInputClient(String filename, String uri, String sourceName,
+  public TabularFileSensor(String filename, String uri, String sourceName,
       String username, String password, boolean skipFirstRow) {
     this.filename = filename;
     this.serverUri = uri;
@@ -283,8 +283,8 @@ public class TabularFileDataInputClient {
     System.out.println("password: " + password);
     System.out.println("skipFirstLine: " + skipFirstRow);
     // Actually create the input client
-    TabularFileDataInputClient inputClient =
-        new TabularFileDataInputClient(filename, uri, sourceName, username, password, skipFirstRow);
+    TabularFileSensor inputClient =
+        new TabularFileSensor(filename, uri, sourceName, username, password, skipFirstRow);
     // Just do it
     if (inputClient.process()) {
       System.out.println("Successfully input data.");

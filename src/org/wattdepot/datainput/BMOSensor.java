@@ -37,7 +37,7 @@ import au.com.bytecode.opencsv.CSVWriter;
  * 
  * @author Robert Brewer
  */
-public class BMODataInputClient {
+public class BMOSensor {
 
   /** Making PMD happy. */
   private static final String REQUIRED_PARAMETER_ERROR_MSG =
@@ -59,7 +59,7 @@ public class BMODataInputClient {
   protected XMLGregorianCalendar startTimestamp;
 
   /** Name of the application on the command line. */
-  protected static final String toolName = "BMODataInputClient";
+  protected static final String toolName = "BMOSensor";
 
   /** The parser used to turn rows into SensorData objects. */
   protected RowParser parser;
@@ -71,7 +71,7 @@ public class BMODataInputClient {
   protected int interval;
 
   /**
-   * Creates the new BMODataInputClient.
+   * Creates the new BMOSensor.
    * 
    * @param propertyFilename Name of the file to read essential properties from.
    * @param sourceName name of the Source the sensor data should be sent to.
@@ -80,7 +80,7 @@ public class BMODataInputClient {
    * @param interval Interval (in minutes) at which to sample BMO data (sleeping in-between runs).
    * @throws IOException If the property file cannot be found.
    */
-  public BMODataInputClient(String propertyFilename, String sourceName, String meterNumber,
+  public BMOSensor(String propertyFilename, String sourceName, String meterNumber,
       XMLGregorianCalendar startTimestamp, int interval) throws IOException {
     this.properties = new DataInputClientProperties(propertyFilename);
     // DEBUG
@@ -146,8 +146,8 @@ public class BMODataInputClient {
     }
 
     // Use the tabular client to send existing data from file
-    TabularFileDataInputClient tabularClient =
-        new TabularFileDataInputClient(dataFilename, wattDepotURI, this.sourceName,
+    TabularFileSensor tabularClient =
+        new TabularFileSensor(dataFilename, wattDepotURI, this.sourceName,
             wattDepotUsername, wattDepotPassword, false);
     this.client = new WattDepotClient(wattDepotURI, wattDepotUsername, wattDepotPassword);
 
@@ -198,7 +198,7 @@ public class BMODataInputClient {
    * @return The timestamp at which to start new BMO data collection (either the timestamp of the
    * last row of the existing data file, or the timestamp provided on the command line.
    */
-  protected XMLGregorianCalendar processDataFile(TabularFileDataInputClient tabularClient,
+  protected XMLGregorianCalendar processDataFile(TabularFileSensor tabularClient,
       String dataFilename) {
     List<SensorData> list = null;
 
@@ -379,7 +379,7 @@ public class BMODataInputClient {
   }
 
   /**
-   * Processes command line arguments, creates the BMODataInputClient object and starts data input.
+   * Processes command line arguments, creates the BMOSensor object and starts data input.
    * 
    * @param args command line arguments.
    * @throws InterruptedException If some other thread interrupts our sleep.
@@ -480,10 +480,10 @@ public class BMODataInputClient {
     System.out.println("interval: " + interval);
 
     // Actually create the input client
-    BMODataInputClient inputClient = null;
+    BMOSensor inputClient = null;
     try {
       inputClient =
-          new BMODataInputClient(propertyFilename, sourceName, meterNumber, startTimestamp,
+          new BMOSensor(propertyFilename, sourceName, meterNumber, startTimestamp,
               interval);
     }
     catch (IOException e) {
