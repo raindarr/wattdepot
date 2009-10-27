@@ -632,13 +632,13 @@ public class TestOscarFunctionality extends ServerTestHelper {
   }
 
   /**
-   * Fetches one SensorData from WattDepot server, and formats it as a nice string, and compares
-   * that to an expected value. Solves this assignment problem:
-   * http://code.google.com/p/wattdepot/wiki
+   * Fetches one SensorData from WattDepot server, and formats it as a nice string. Solves this
+   * assignment problem: http://code.google.com/p/wattdepot/wiki
    * /WattDepotCLI#2.5_list_sensordata_{source}_timestamp_{timestamp}
    * 
    * @param sourceName The name of the source.
    * @param timestamp The timestamp in question.
+   * @return A string representing the sensor data.
    * @throws Exception If there is a problem with anything.
    */
   public String displayOneSensorData(String sourceName, XMLGregorianCalendar timestamp)
@@ -691,7 +691,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.6_list_sensordata_{source}_day_{day}
    * 
    * @param sourceName The name of the source.
-   * @param timestamp the timestamp desired.
+   * @param day A Date object representing the desired day of data.
+   * @return A string representing the sensor data.
    * @throws Exception If there is a problem with anything.
    */
   public String listOneDaySensorData(String sourceName, Date day) throws Exception {
