@@ -25,6 +25,4 @@ thereby make the private source data public. This is bogus. Public virtual sourc
 allowed to point at public sources, and private virtual sources should only be allowed to point at
 public sources and private sources _that they own_.
 - Remove all traces of hard-coded default data in DbManager, and replace any uses of the default
-data in test cases with data created in the test class. 
-- Rename the input clients "sensors"
-- Create PropertyDictionary
+data in test cases with data created in the test class.

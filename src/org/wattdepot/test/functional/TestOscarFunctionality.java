@@ -439,6 +439,18 @@ public class TestOscarFunctionality extends ServerTestHelper {
             + lineSep
             + "SIM_WAIAU_9 SIM_WAIAU Waiau 9 is a HECO plant on Oahu's grid that uses diesel as its fuel."
             + lineSep;
+    assertEquals("Generated String doesn't match expected", expectedOutput, listSources());
+  }
+
+  /**
+   * Fetches the Source list from server, checks which sources are parents to which other sources,
+   * formats as a pretty string. Solves this assignment problem:
+   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.3_list_sources
+   * 
+   * @return A pretty printed string of the list of sources.
+   * @throws Exception If there are problems retrieving the Source list.
+   */
+  public String listSources() throws Exception {
     List<Source> sourceList = this.client.getSources();
     StringBuffer outputBuff = new StringBuffer(1000);
     StringBuffer parentListBuff;
@@ -466,45 +478,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
       outputBuff.append(source.getDescription());
       outputBuff.append(lineSep);
     }
-    assertEquals("Generated String doesn't match expected", expectedOutput, outputBuff.toString());
+    return outputBuff.toString();
   }
-
-//  /**
-//   * Fetches the Source list from server, checks which sources are parents to which other sources,
-//   * formats as a pretty string. Solves this assignment problem:
-//   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.3_list_sources
-//   * 
-//   * @throws Exception If there are problems retrieving the Source list.
-//   */
-//  public void listSources() throws Exception {
-//    List<Source> sourceList = this.client.getSources();
-//    StringBuffer outputBuff = new StringBuffer(1000);
-//    StringBuffer parentListBuff;
-//
-//    for (Source source : sourceList) {
-//      outputBuff.append(source.getName());
-//      outputBuff.append(' ');
-//      parentListBuff = new StringBuffer(100);
-//      for (Source possibleParent : sourceList) {
-//        if (isParent(source, possibleParent)) {
-//          if (parentListBuff.length() != 0) {
-//            // already have one parent, so add comma
-//            parentListBuff.append(", ");
-//          }
-//          parentListBuff.append(possibleParent.getName());
-//        }
-//      }
-//      if (parentListBuff.length() == 0) {
-//        outputBuff.append(' ');
-//      }
-//      else {
-//        outputBuff.append(parentListBuff.toString());
-//        outputBuff.append(' ');
-//      }
-//      outputBuff.append(source.getDescription());
-//      outputBuff.append(lineSep);
-//    }
-//  }
 
   /**
    * Determines whether a source is a parent of another source.
@@ -640,22 +615,37 @@ public class TestOscarFunctionality extends ServerTestHelper {
   }
 
   /**
+   * Tests the displayOneSensorData method.
+   * 
+   * @throws Exception If there is a problem with anything.
+   */
+  @Test
+  public void testDisplayOneSensorData() throws Exception {
+    // These are the parameters that would be coming from the command line
+    String sourceName = "SIM_KAHE_2";
+    XMLGregorianCalendar timestamp = Tstamp.makeTimestamp("2009-10-12T00:15:00.000-10:00");
+    String expectedOutput =
+        String
+            .format("Tool: OscarDataConverter%nSource: SIM_KAHE_2%nProperties: (powerGenerated : 6.4E7)%n");
+    assertEquals("Generated string doesn't match expected", expectedOutput, displayOneSensorData(
+        sourceName, timestamp));
+  }
+
+  /**
    * Fetches one SensorData from WattDepot server, and formats it as a nice string, and compares
    * that to an expected value. Solves this assignment problem:
    * http://code.google.com/p/wattdepot/wiki
    * /WattDepotCLI#2.5_list_sensordata_{source}_timestamp_{timestamp}
    * 
+   * @param sourceName The name of the source.
+   * @param timestamp The timestamp in question.
    * @throws Exception If there is a problem with anything.
    */
-  @Test
-  public void displayOneSensorData() throws Exception {
+  public String displayOneSensorData(String sourceName, XMLGregorianCalendar timestamp)
+      throws Exception {
     // These are the parameters that would be coming from the command line
-    String sourceName = "SIM_KAHE_2", timestampString = "2009-10-12T00:15:00.000-10:00";
     SensorData data = null;
-    String expectedOutput =
-        String
-            .format("Tool: OscarDataConverter%nSource: SIM_KAHE_2%nProperties: (powerGenerated : 6.4E7)%n");
-    data = this.client.getSensorData(sourceName, Tstamp.makeTimestamp(timestampString));
+    data = this.client.getSensorData(sourceName, timestamp);
     StringBuffer buff = new StringBuffer(200);
     buff.append(String.format("Tool: %s%n", data.getTool()));
     buff.append(String.format("Source: %s%n", UriUtils.getUriSuffix(data.getSource())));
@@ -671,18 +661,16 @@ public class TestOscarFunctionality extends ServerTestHelper {
       buff.append(String.format("(%s : %s)", prop.getKey(), prop.getValue()));
     }
     buff.append(String.format("%n"));
-    assertEquals("Generated string doesn't match expected", expectedOutput, buff.toString());
+    return buff.toString();
   }
 
   /**
-   * Fetches one day of SensorData from WattDepot server, and formats it as series of nice lines,
-   * and compares that to an expected value. Solves this assignment problem:
-   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.6_list_sensordata_{source}_day_{day}
+   * Tests listOneDaySensorData.
    * 
    * @throws Exception If there is a problem with anything.
    */
   @Test
-  public void listOneDaySensorData() throws Exception {
+  public void testListOneDaySensorData() throws Exception {
     // These are the parameters that would be coming from the command line
     String sourceName = "SIM_KAHE_2", day = "2009-10-12";
     String expectedOutput =
@@ -692,15 +680,25 @@ public class TestOscarFunctionality extends ServerTestHelper {
             + lineSep
             + "2009-10-12T00:30:00.000-10:00 Tool: OscarDataConverter Properties: [Property [key=powerGenerated, value=5.0E7]]"
             + lineSep;
-    Date startDate;
+    Date startDate = this.dateFormat.parse(day);
+    assertEquals("Generated string doesn't match expected", expectedOutput, listOneDaySensorData(
+        sourceName, startDate));
+  }
+
+  /**
+   * Fetches one day of SensorData from WattDepot server, and formats it as series of nice lines.
+   * Solves this assignment problem:
+   * http://code.google.com/p/wattdepot/wiki/WattDepotCLI#2.6_list_sensordata_{source}_day_{day}
+   * 
+   * @param sourceName The name of the source.
+   * @param timestamp the timestamp desired.
+   * @throws Exception If there is a problem with anything.
+   */
+  public String listOneDaySensorData(String sourceName, Date day) throws Exception {
+    // These are the parameters that would be coming from the command line
     XMLGregorianCalendar startTime, endTime;
-    startDate = this.dateFormat.parse(day);
-    startTime = Tstamp.makeTimestamp(startDate.getTime());
+    startTime = Tstamp.makeTimestamp(day.getTime());
     endTime = Tstamp.incrementDays(startTime, 1);
-    // // DEBUG
-    // DateFormat formatOutput = DateFormat.getDateTimeInstance();
-    // System.out.format("Start time: %s, end time: %s%n", startTime.toString(),
-    // endTime.toString());
     List<SensorData> dataList = this.client.getSensorDatas(sourceName, startTime, endTime);
     StringBuffer buff = new StringBuffer(1000);
     for (SensorData data : dataList) {
@@ -708,7 +706,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
       buff.append(data.getProperties().toString());
       buff.append(String.format("%n"));
     }
-    assertEquals("Generated string doesn't match expected", expectedOutput, buff.toString());
+    return buff.toString();
   }
 
   /**
@@ -760,8 +758,9 @@ public class TestOscarFunctionality extends ServerTestHelper {
 
   /**
    * Returns a string with the amount of power consumed or generated by the given source for one
-   * day. Solves assignment problem http://code.google.com/p/wattdepot/wiki/WattDepotCLI#
-   * 2.7_list_power_[generated|consumed]_{source}_timestamp_{timestam
+   * day. Solves assignment problem
+   * http://code.google.com/p/wattdepot-cli/wiki/CommandSpecification#
+   * 2.8_list_power_[generated|consumed]_{source}_day_{day}_sampling-
    * 
    * @param dir Type of power desired.
    * @param sourceName Name of the source.
@@ -847,8 +846,9 @@ public class TestOscarFunctionality extends ServerTestHelper {
         Direction.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 1,
         StatisticType.MIN));
     // Test with virtual source
-    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", listPowerForDay(
-        Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 30, StatisticType.MIN));
+    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7",
+        listPowerForDay(Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 30,
+            StatisticType.MIN));
     // Test with virtual source that includes other sources
     assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listPowerForDay(
         Direction.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
