@@ -9,7 +9,7 @@ import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.SourceUtils;
+import org.wattdepot.resource.source.jaxb.Source;
 
 /**
  * Parses the tabular simulated data format sent by OSCAR into SensorData.
@@ -91,7 +91,7 @@ public class OscarRowParser extends RowParser {
 
     Properties props = new Properties();
     props.getProperty().add(prop1);
-    return SensorDataUtils.makeSensorData(timestamp, this.toolName, SourceUtils.sourceToUri(
+    return SensorDataUtils.makeSensorData(timestamp, this.toolName, Source.sourceToUri(
         sourceName, this.serverUri), props);
   }
 }

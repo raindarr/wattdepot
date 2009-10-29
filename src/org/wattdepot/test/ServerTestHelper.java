@@ -2,12 +2,12 @@ package org.wattdepot.test;
 
 import static org.wattdepot.resource.sensordata.SensorDataUtils.makeSensorData;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.makeSensorDataProperty;
-import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import static org.wattdepot.server.ServerProperties.ADMIN_EMAIL_KEY;
 import static org.wattdepot.server.ServerProperties.ADMIN_PASSWORD_KEY;
 import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.BeforeClass;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbManager;
 
@@ -76,7 +76,7 @@ public class ServerTestHelper {
       new org.wattdepot.resource.sensordata.jaxb.Properties();
     props.getProperty().add(makeSensorDataProperty("powerConsumed", "10000"));
     return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00"), "JUnit",
-        sourceToUri(DbManager.defaultPublicSource, server), props);
+        Source.sourceToUri(DbManager.defaultPublicSource, server), props);
   }
   
   /**
@@ -91,7 +91,7 @@ public class ServerTestHelper {
       new org.wattdepot.resource.sensordata.jaxb.Properties();
     props.getProperty().add(makeSensorDataProperty("powerConsumed", "11000"));
     return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00"), "FooTool",
-        sourceToUri(DbManager.defaultPublicSource, server), props);
+        Source.sourceToUri(DbManager.defaultPublicSource, server), props);
   }
 
   /**
@@ -106,7 +106,7 @@ public class ServerTestHelper {
       new org.wattdepot.resource.sensordata.jaxb.Properties();
     props.getProperty().add(makeSensorDataProperty("powerConsumed", "9500"));
     return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00"), "JUnit",
-        sourceToUri(DbManager.defaultPublicSource, server), props);
+        Source.sourceToUri(DbManager.defaultPublicSource, server), props);
   }
 
   /**
@@ -121,6 +121,6 @@ public class ServerTestHelper {
       new org.wattdepot.resource.sensordata.jaxb.Properties();
     props.getProperty().add(makeSensorDataProperty("powerProduced", "3000"));
     return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:40:00.000-10:00"), "JUnit",
-        sourceToUri(DbManager.defaultPrivateSource, server), props);
+        Source.sourceToUri(DbManager.defaultPrivateSource, server), props);
   }
 }

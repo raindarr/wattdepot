@@ -5,20 +5,18 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.wattdepot.resource.source.SourceUtils.sourceRefEqualsSource;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Instantiates a DbManager and tests the database methods related to Source resources.
@@ -91,8 +89,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source1));
     assertSame("getSources returned wrong number of SourceRefs", manager.getSources()
         .getSourceRef().size(), 1);
-    assertTrue("getSources didn't return expected SourceRef", sourceRefEqualsSource(manager
-        .getSources().getSourceRef().get(0), this.source1));
+    SourceRef aRef = manager.getSources().getSourceRef().get(0);
+    assertTrue("getSources didn't return expected SourceRef", aRef.equalsSource(this.source1));
 
     // case #3:after storing three Sources should have SourceIndex with three SourceRefs that match
     // Sources
@@ -109,7 +107,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     for (SourceRef ref : retrievedRefs) {
       int found = 0;
       for (Source source : origSources) {
-        if (sourceRefEqualsSource(ref, source)) {
+        if (ref.equalsSource(source)) {
           found++;
         }
       }
@@ -180,7 +178,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
 
     // retrieve summary for stored Source
     SourceSummary expectedSummary = new SourceSummary();
-    expectedSummary.setHref(SourceUtils.sourceToUri(this.source1, server));
+    expectedSummary.setHref(this.source1.toUri(server));
     expectedSummary.setFirstSensorData(data1.getTimestamp());
     expectedSummary.setLastSensorData(data3.getTimestamp());
     expectedSummary.setTotalSensorDatas(3);
@@ -194,11 +192,9 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source2));
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source3));
     SensorData data4 =
-        SensorDataUtils.makeSensorData(earlyTimestamp, "JUnit", SourceUtils.sourceToUri(
-            this.source2, server), null);
+        SensorDataUtils.makeSensorData(earlyTimestamp, "JUnit", this.source2.toUri(server), null);
     SensorData data5 =
-        SensorDataUtils.makeSensorData(lateTimestamp, "JUnit", SourceUtils.sourceToUri(
-            this.source2, server), null);
+        SensorDataUtils.makeSensorData(lateTimestamp, "JUnit", this.source2.toUri(server), null);
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data4));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data5));
     retreivedSummary = manager.getSourceSummary(this.source3.getName());

@@ -2,16 +2,11 @@ List of things to do:
 
 - Write DbManager test to check if deleting User deletes Source and SensorData
 - Write DbManager test to check if deleting Source deletes SensorData
-- Use JAXB plugin to get real equals() and hashCode()
-- Normalize all JAXB code to use a centralized Property/Properties class
-  - Create constants for all properties defined in PropertyDictionary wiki page, and refactor code
-- Merge the Utility class code into the appropriate JAXB class, and refactor all the calls
 - Resolve persistent errors in Eclipse wrt Ant build files
   - Maybe need to run Eclipse under Java 1.6 (requires downloading 64bit Eclipse version?)
   - Maybe need to install JAXB via Ivy (though it's a manual download, bletch)
   - Maybe need to add JAXB as library in Eclipse
 - Add more tests for UsersResource once UserResource is fully implemented
-- Add hashCode and equals to User (and downstream stuff), with unit tests
 - Make UserIndex method in MemoryStorageImplementation sort the list before returning
 - Make tests to confirm SensorDataIndexes and SourceIndexes returned are sorted in DbManagerSensorData
 - Write a subclass of Guard that looks at the URI and authentication credentials and determines
@@ -24,5 +19,15 @@ everywhere and convert to URIs only for output?
 thereby make the private source data public. This is bogus. Public virtual sources should only be
 allowed to point at public sources, and private virtual sources should only be allowed to point at
 public sources and private sources _that they own_.
+
+Refactoring:
+- Normalize all JAXB code to use a centralized Property/Properties class
+  - Create constants for all properties defined in PropertyDictionary wiki page, and refactor code
+- Merge the Utility class code into the appropriate JAXB class, and refactor all the calls
+- Add hashCode and equals to User (and downstream stuff), with unit tests
+- Figure out superclass for Sensors
+  - Refactor TabularFileSensor class to use new superclass
+  - Refactor BMOSensor class to use new superclass
 - Remove all traces of hard-coded default data in DbManager, and replace any uses of the default
 data in test cases with data created in the test class.
+- Think about new abstraction above SensorDataStraddle to support energy & carbon

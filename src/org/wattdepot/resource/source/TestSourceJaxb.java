@@ -7,8 +7,8 @@ import static org.junit.Assert.assertTrue;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Test;
-import org.wattdepot.resource.source.jaxb.Properties;
-import org.wattdepot.resource.source.jaxb.Property;
+import org.wattdepot.resource.property.jaxb.Properties;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
@@ -30,56 +30,16 @@ public class TestSourceJaxb {
   private static final String DEFAULT_NAME = "foo-source";
 
   /**
-   * Tests equals and hashCode for the Source Property type.
-   */
-  @Test
-  public void testSourceProperty() {
-    String key = "some-key", value = "some-value";
-    Property prop1 = SourceUtils.makeSourceProperty(key, value), prop2 =
-        SourceUtils.makeSourceProperty(key, value);
-
-    assertNotSame("Two newly created Source Property are the same object", prop1, prop2);
-    assertEquals("Two Source Property with identical keys and values are not equal", prop1, prop2);
-    assertEquals("Two Source Property with identical keys and values have different hashCodes",
-        prop1.hashCode(), prop2.hashCode());
-  }
-
-  /**
-   * Tests equals and hashCode for the Source Properties type.
-   */
-  @Test
-  public void testSourceProperties() {
-    String key1 = "some-key", value1 = "some-value", key2 = "foo-key", value2 = "foo-value";
-    // Make two pairs of Property objects that have same keys &values
-    Property prop1 = SourceUtils.makeSourceProperty(key1, value1);
-    Property prop2 = SourceUtils.makeSourceProperty(key2, value2);
-    Property prop3 = SourceUtils.makeSourceProperty(key1, value1);
-    Property prop4 = SourceUtils.makeSourceProperty(key2, value2);
-    Properties props1 = new Properties(), props2 = new Properties();
-
-    props1.getProperty().add(prop1);
-    props1.getProperty().add(prop2);
-    props2.getProperty().add(prop3);
-    props2.getProperty().add(prop4);
-
-    assertNotSame("Two newly created Source Properties are the same object", props1, props2);
-    assertEquals("Two Source Properties with lists of identical Property objects are not equal",
-        props1, props2);
-    assertEquals("Two Source Properties with identical lists have different hashCodes", props1
-        .hashCode(), props2.hashCode());
-  }
-
-  /**
    * Tests equals and hashCode for the Source type.
    */
   @Test
   public void testSource() {
     String key1 = "some-key", value1 = "some-value", key2 = "foo-key", value2 = "foo-value";
     // Make two pairs of Property objects that have same keys &values
-    Property prop1 = SourceUtils.makeSourceProperty(key1, value1);
-    Property prop2 = SourceUtils.makeSourceProperty(key2, value2);
-    Property prop3 = SourceUtils.makeSourceProperty(key1, value1);
-    Property prop4 = SourceUtils.makeSourceProperty(key2, value2);
+    Property prop1 = new Property(key1, value1);
+    Property prop2 = new Property(key2, value2);
+    Property prop3 = new Property(key1, value1);
+    Property prop4 = new Property(key2, value2);
     Properties props1 = new Properties(), props2 = new Properties();
     SubSources subSources1 = new SubSources(), subSources2 = new SubSources();
     Source source1, source2;
@@ -102,11 +62,11 @@ public class TestSourceJaxb {
     String location = "Some dank corner of a closet";
     String description = "The fabulous foo meter";
     source1 =
-        SourceUtils.makeSource(sourceName, owner, publicp, virtualp, coordinates, location,
-            description, props1, subSources1);
+        new Source(sourceName, owner, publicp, virtualp, coordinates, location, description,
+            props1, subSources1);
     source2 =
-        SourceUtils.makeSource(sourceName, owner, publicp, virtualp, coordinates, location,
-            description, props2, subSources2);
+        new Source(sourceName, owner, publicp, virtualp, coordinates, location, description,
+            props2, subSources2);
 
     assertNotSame("Two newly created Sources are the same object", source1, source2);
     assertEquals("Two Source objects with identical fields are not equal", source1, source2);
@@ -120,8 +80,8 @@ public class TestSourceJaxb {
   @Test
   public void testSourceToString() {
     String key1 = "foo-key", value1 = "foo", key2 = "bar-key", value2 = "bar";
-    Property prop1 = SourceUtils.makeSourceProperty(key1, value1);
-    Property prop2 = SourceUtils.makeSourceProperty(key2, value2);
+    Property prop1 = new Property(key1, value1);
+    Property prop2 = new Property(key2, value2);
     Properties props1 = new Properties();
     SubSources subSources1 = new SubSources();
     Source source1;
@@ -146,8 +106,8 @@ public class TestSourceJaxb {
     String description = "The fabulous foo meter";
 
     source1 =
-        SourceUtils.makeSource(sourceName, owner, publicp, virtualp, coordinates, location,
-            description, props1, subSources1);
+        new Source(sourceName, owner, publicp, virtualp, coordinates, location, description,
+            props1, subSources1);
     assertEquals("Source did not create expected toString", expectedOutput, source1.toString());
   }
 
@@ -226,10 +186,10 @@ public class TestSourceJaxb {
     String serverUri = "http://localhost:8183/wattdepot/sources/";
 
     SourceRef ref =
-        SourceUtils.makeSourceRef(sourceName, owner, publicp, virtualp, coordinates, location,
-            description, serverUri + sourceName);
+        new SourceRef(sourceName, owner, publicp, virtualp, coordinates, location, description,
+            serverUri + sourceName);
     SourceRef refEqual =
-        SourceUtils.makeSourceRef(sourceNameEqual, owner, publicp, virtualp, coordinates, location,
+        new SourceRef(sourceNameEqual, owner, publicp, virtualp, coordinates, location,
             description, serverUri + sourceNameEqual);
     assertNotSame("Two newly created SourceRefs are the same object", ref, refEqual);
     assertEquals("Two SourceRefs with identical fields are not equal", ref, refEqual);
@@ -237,10 +197,10 @@ public class TestSourceJaxb {
         refEqual.hashCode());
     assertEquals("SensorDataRef.compareTo timestamp not working", 0, ref.compareTo(refEqual));
     SourceRef refNameBefore =
-        SourceUtils.makeSourceRef(sourceNameBefore, owner, publicp, virtualp, coordinates,
-            location, description, serverUri + sourceNameBefore);
+        new SourceRef(sourceNameBefore, owner, publicp, virtualp, coordinates, location,
+            description, serverUri + sourceNameBefore);
     SourceRef refNameAfter =
-        SourceUtils.makeSourceRef(sourceNameAfter, owner, publicp, virtualp, coordinates, location,
+        new SourceRef(sourceNameAfter, owner, publicp, virtualp, coordinates, location,
             description, serverUri + sourceNameAfter);
     assertTrue("SourceRef.compareTo name not working", ref.compareTo(refNameAfter) < 0);
     assertTrue("SourceRef.compareTo name not working", ref.compareTo(refNameBefore) > 0);

@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,6 +14,7 @@ import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.test.ServerTestHelper;
 import org.wattdepot.util.tstamp.Tstamp;
@@ -271,7 +271,7 @@ public class TestPowerResource extends ServerTestHelper {
     XMLGregorianCalendar beforeTime, afterTime, timestamp;
     SensorData beforeData, afterData, powerData;
     String tool = "JUnit";
-    String source = sourceToUri(DbManager.defaultPublicSource, server);
+    String source = Source.sourceToUri(DbManager.defaultPublicSource, server);
     String sourceName = DbManager.defaultPublicSource;
     Properties beforeProps, afterProps;
     Property beforeProp, afterProp;
@@ -371,8 +371,8 @@ public class TestPowerResource extends ServerTestHelper {
     String source1Name = DbManager.defaultPublicSource;
     String source2Name = DbManager.defaultPrivateSource;
     String virtualSourceName = DbManager.defaultVirtualSource;
-    String source1 = sourceToUri(source1Name, server);
-    String source2 = sourceToUri(source2Name, server);
+    String source1 = Source.sourceToUri(source1Name, server);
+    String source2 = Source.sourceToUri(source2Name, server);
     Properties beforeProps, afterProps;
     Property beforeProp, afterProp;
     double interpolatedPower = -1;
@@ -468,8 +468,8 @@ public class TestPowerResource extends ServerTestHelper {
     String source1Name = DbManager.defaultPublicSource;
     String source2Name = DbManager.defaultPrivateSource;
     String virtualSourceName = DbManager.defaultVirtualSource;
-    String source1 = sourceToUri(source1Name, server);
-    String source2 = sourceToUri(source2Name, server);
+    String source1 = Source.sourceToUri(source1Name, server);
+    String source2 = Source.sourceToUri(source2Name, server);
     double interpolatedPower = -1;
     Property interpolatedProp = SensorDataUtils.makeSensorDataProperty("interpolated", "true");
 

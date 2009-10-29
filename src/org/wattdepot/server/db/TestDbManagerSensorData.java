@@ -7,11 +7,9 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.compareSensorDataRefsToSensorDatas;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.sensorDataRefEqualsSensorData;
-import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Test;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.SensorDataUtils;
@@ -20,6 +18,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.util.UriUtils;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Instantiates a DbManager and tests the database methods related to SensorData resources.
@@ -514,9 +513,9 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     XMLGregorianCalendar afterAll = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
 
     String tool = "JUnit";
-    String source1 = UriUtils.getUriSuffix(sourceToUri(makeTestSource1(), server));
+    String source1 = UriUtils.getUriSuffix(makeTestSource1().toUri(server));
     // String source2 = UriUtils.getUriSuffix(sourceToUri(makeTestSource2(), server));
-    String virtualSource = UriUtils.getUriSuffix(sourceToUri(makeTestSource3(), server));
+    String virtualSource = UriUtils.getUriSuffix(makeTestSource3().toUri(server));
 
     SensorData data1 = SensorDataUtils.makeSensorData(source1Time1, tool, source1, null);
     SensorData data2 = SensorDataUtils.makeSensorData(source1Time2, tool, source1, null);
@@ -596,9 +595,9 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     XMLGregorianCalendar afterAll = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
 
     String tool = "JUnit";
-    String source1 = UriUtils.getUriSuffix(sourceToUri(makeTestSource1(), server));
-    String source2 = UriUtils.getUriSuffix(sourceToUri(makeTestSource2(), server));
-    String virtualSource = UriUtils.getUriSuffix(sourceToUri(makeTestSource3(), server));
+    String source1 = UriUtils.getUriSuffix(makeTestSource1().toUri(server));
+    String source2 = UriUtils.getUriSuffix(makeTestSource2().toUri(server));
+    String virtualSource = UriUtils.getUriSuffix(makeTestSource3().toUri(server));
 
     SensorData source1Data1 = SensorDataUtils.makeSensorData(source1Time1, tool, source1, null);
     SensorData source1Data2 = SensorDataUtils.makeSensorData(source1Time2, tool, source1, null);

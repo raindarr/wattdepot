@@ -26,7 +26,6 @@ import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
-import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
@@ -371,7 +370,7 @@ public class WattDepotResource extends Resource {
       List<SensorDataStraddle> straddleList =
           this.dbManager.getSensorDataStraddleList(this.uriSource, timestamp);
       powerData =
-          SensorDataStraddle.getPowerFromList(straddleList, SourceUtils.sourceToUri(this.uriSource,
+          SensorDataStraddle.getPowerFromList(straddleList, Source.sourceToUri(this.uriSource,
               server));
     }
     else {
@@ -450,7 +449,7 @@ public class WattDepotResource extends Resource {
     }
     else {
       energyData =
-          Energy.getEnergyFromListOfLists(masterList, SourceUtils.sourceToUri(this.uriSource,
+          Energy.getEnergyFromListOfLists(masterList, Source.sourceToUri(this.uriSource,
               server));
     }
     if (energyData == null) {
@@ -516,7 +515,7 @@ public class WattDepotResource extends Resource {
     else {
       // Make list of carbon intensities, one from each source
       carbonData =
-          Carbon.getCarbonFromStraddleList(masterList, SourceUtils.sourceToUri(this.uriSource,
+          Carbon.getCarbonFromStraddleList(masterList, Source.sourceToUri(this.uriSource,
               server));
     }
     if (carbonData == null) {

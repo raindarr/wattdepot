@@ -142,7 +142,7 @@ public class Carbon extends Energy {
         source = list.getSource();
         carbonEmitted +=
             getCarbonFromList(list.getStraddleList(), source.getProperties().getPropertyAsDouble(
-                "carbonIntensity"));
+                Source.CARBON_INTENSITY));
       }
       return makeCarbonSensorData(timestamp, sourceUri, carbonEmitted, wasInterpolated);
     }

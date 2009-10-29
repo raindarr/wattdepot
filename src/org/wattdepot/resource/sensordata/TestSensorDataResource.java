@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.compareSensorDataRefsToSensorDatas;
 import static org.wattdepot.resource.sensordata.SensorDataUtils.sensorDataRefEqualsSensorData;
-import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +37,7 @@ import org.wattdepot.client.WattDepotClientException;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
+import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.test.ServerTestHelper;
@@ -665,7 +665,7 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreBadTimestamp() throws JAXBException {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, sourceToUri(
+        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
             DbManager.defaultPublicSource, server), null);
     // Can't use WattDepotClient to test this, as storeSensorData() is unable to send a bad
     // timestamp. Have to do things manually.
@@ -693,7 +693,7 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreNullEntity() {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, sourceToUri(
+        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
             DbManager.defaultPublicSource, server), null);
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send empty
     // body. Have to do things manually.
@@ -713,7 +713,7 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreEmptyEntity() {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, sourceToUri(
+        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
             DbManager.defaultPublicSource, server), null);
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send empty
     // body. Have to do things manually.
@@ -735,7 +735,7 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreBogusXML() {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, sourceToUri(
+        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
             DbManager.defaultPublicSource, server), null);
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send bogus XML.
     // Have to do things manually.
@@ -762,7 +762,7 @@ public class TestSensorDataResource extends ServerTestHelper {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp();
     SensorData data =
-        SensorDataUtils.makeSensorData(timestamp, JUNIT_TOOL, sourceToUri(
+        SensorDataUtils.makeSensorData(timestamp, JUNIT_TOOL, Source.sourceToUri(
             DbManager.defaultPublicSource, server), null);
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send
     // mismatching timestamps. Have to do things manually.
@@ -795,7 +795,7 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreMismatchedSources() throws JAXBException {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, sourceToUri(
+        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
             "bogus-source-name", server), null);
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send
     // mismatching timestamps. Have to do things manually.

@@ -1,15 +1,12 @@
 package org.wattdepot.server.db;
 
-import static org.wattdepot.resource.source.SourceUtils.makeSource;
-import static org.wattdepot.resource.source.SourceUtils.makeSourceProperty;
-import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import static org.wattdepot.resource.user.UserUtils.makeUser;
 import static org.wattdepot.resource.user.UserUtils.userToUri;
 import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
 import java.lang.reflect.Constructor;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.util.StackTrace;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
@@ -22,6 +19,7 @@ import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.ServerProperties;
+import org.wattdepot.util.StackTrace;
 
 /**
  * Provides an interface to storage for the resources managed by the WattDepot server. Portions of
@@ -145,36 +143,32 @@ public class DbManager {
       return false;
     }
 
-    org.wattdepot.resource.source.jaxb.Properties props =
-        new org.wattdepot.resource.source.jaxb.Properties();
-    props.getProperty().add(makeSourceProperty("carbonIntensity", "1000"));
     // create public source
     Source source1 =
-        makeSource(defaultPublicSource, userToUri(ownerUser, this.server), true, false,
+        new Source(defaultPublicSource, userToUri(ownerUser, this.server), true, false,
             "21.30078,-157.819129,41", "Saunders Hall on the University of Hawaii at Manoa campus",
-            "Obvius-brand power meter", props, null);
+            "Obvius-brand power meter", null, null);
+    source1.addProperty(new Property("carbonIntensity", "1000"));
     // stick public source into database
     if (!this.storeSource(source1)) {
       return false;
     }
 
-    props = new org.wattdepot.resource.source.jaxb.Properties();
-    props.getProperty().add(makeSourceProperty("carbonIntensity", "3000"));
     Source source2 =
-        makeSource(defaultPrivateSource, userToUri(ownerUser, this.server), false, false,
-            "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", props,
-            null);
+        new Source(defaultPrivateSource, userToUri(ownerUser, this.server), false, false,
+            "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", null, null);
+    source2.addProperty(new Property("carbonIntensity", "3000"));
     // stick public source into database
     if (!this.storeSource(source2)) {
       return false;
     }
 
     SubSources subSources = new SubSources();
-    subSources.getHref().add(sourceToUri(source1, server));
-    subSources.getHref().add(sourceToUri(source2, server));
+    subSources.getHref().add(source1.toUri(server));
+    subSources.getHref().add(source2.toUri(server));
 
     Source virtualSource =
-        makeSource(defaultVirtualSource, userToUri(ownerUser, server), true, true,
+        new Source(defaultVirtualSource, userToUri(ownerUser, server), true, true,
             "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null, subSources);
     return (this.storeSource(virtualSource));
   }

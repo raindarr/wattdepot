@@ -14,7 +14,6 @@ import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.server.db.DbBadIntervalException;
 
@@ -274,7 +273,7 @@ public class SensorDataResource extends WattDepotResource {
       }
       // Return failure if the SensorData Source doesn't match the uriSource
       Source source = dbManager.getSource(uriSource);
-      if (!SourceUtils.sourceToUri(source, server).equals(data.getSource())) {
+      if (!source.toUri(server).equals(data.getSource())) {
         setStatusMiscError("SensorData payload Source field does not match source field in URI");
         return;
       }

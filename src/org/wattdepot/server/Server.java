@@ -29,7 +29,6 @@ import org.wattdepot.resource.power.PowerResource;
 import org.wattdepot.resource.sensordata.SensorDataResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.SourceResource;
-import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.summary.SourceSummaryResource;
 import org.wattdepot.resource.user.UserResource;
@@ -256,7 +255,7 @@ public class Server extends Application {
           if (source.isSetSubSources()) {
             List<String> hrefs = source.getSubSources().getHref();
             for (int i = 0; i < hrefs.size(); i++) {
-              hrefs.set(i, SourceUtils.updateUri(hrefs.get(i), this));
+              hrefs.set(i, Source.updateUri(hrefs.get(i), this));
             }
           }
           if (dbManager.storeSource(source)) {
@@ -278,7 +277,7 @@ public class Server extends Application {
           data = (SensorData) unmarshaller.unmarshal(sensorDataFile);
           // SensorData read from the file might have an Owner field that points to a different
           // host URI. We want all defaults normalized to this server, so update it.
-          data.setSource(SourceUtils.updateUri(data.getSource(), this));
+          data.setSource(Source.updateUri(data.getSource(), this));
           if (dbManager.storeSensorData(data)) {
             // Too voluminous to print every sensor data loaded
             // logger.info("Loaded sensor data for source " + data.getSource() + ", time "

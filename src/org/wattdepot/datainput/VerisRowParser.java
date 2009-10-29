@@ -9,7 +9,7 @@ import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.SourceUtils;
+import org.wattdepot.resource.source.jaxb.Source;
 
 /**
  * Parses the tabular data format sent by Veris meters monitored by the Obvius Acquisuite device.
@@ -99,7 +99,7 @@ public class VerisRowParser extends RowParser {
     props.getProperty().add(prop1);
     props.getProperty().add(prop2);
 
-    return SensorDataUtils.makeSensorData(timestamp, this.toolName, SourceUtils.sourceToUri(
+    return SensorDataUtils.makeSensorData(timestamp, this.toolName, Source.sourceToUri(
         this.sourceName, this.serverUri), props);
   }
 }

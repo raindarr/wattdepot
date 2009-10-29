@@ -9,7 +9,7 @@ import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.SourceUtils;
+import org.wattdepot.resource.source.jaxb.Source;
 
 /**
  * Tests the OscarRowParser class.
@@ -36,7 +36,7 @@ public class TestOscarRowParser {
     props.getProperty().add(powerGenerated);
     SensorData data =
         SensorDataUtils.makeSensorData(Tstamp.makeTimestamp("2009-10-12T00:15:00.000-10:00"),
-            TOOL_NAME, SourceUtils.sourceToUri("SIM_HPOWER", SERVER_URI), props);
+            TOOL_NAME, Source.sourceToUri("SIM_HPOWER", SERVER_URI), props);
     SensorData parsedData = parser.parseRow(row.split(","));
     assertEquals("Parsed sensor data differs from hand-created sensor data", data, parsedData);
   }

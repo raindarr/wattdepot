@@ -14,6 +14,9 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlSchemaType;
 import javax.xml.bind.annotation.XmlType;
+import org.wattdepot.resource.property.jaxb.Properties;
+import org.wattdepot.resource.property.jaxb.Property;
+import org.wattdepot.server.Server;
 
 /**
  * <p>
@@ -71,6 +74,8 @@ public class Source implements Serializable {
   @XmlElement(name = "Properties")
   protected Properties properties;
 
+  public static final String CARBON_INTENSITY = "carbonIntensity";
+  
   /**
    * Default no-argument constructor, apparently needed by JAXB. Don't use this, use the one with
    * all the parameters.
@@ -114,6 +119,19 @@ public class Source implements Serializable {
     else if (!virtualp && (subSources != null)) {
       throw new IllegalArgumentException("Attempted to create non-virtual source with subsources");
     }
+  }
+
+  /**
+   * Returns a new Source object with the provided parameters. These are the bare minimum fields for
+   * a Source.
+   * 
+   * @param name The name for the Source.
+   * @param owner The owner URI for the Source.
+   * @param publicp Whether the Source is public.
+   * @param virtualp Whether the Source is virtual.
+   */
+  public Source(String name, String owner, boolean publicp) {
+    this(name, owner, publicp, false, null, null, null, null, null);
   }
 
   /**
@@ -446,4 +464,87 @@ public class Source implements Serializable {
         + "]";
   }
 
+  /**
+   * A convenience method to add a Property to the List of Property stored in the Properties field.
+   * 
+   * @param prop The Property to add.
+   */
+  public void addProperty(Property prop) {
+    if (this.properties == null) {
+      this.properties = new Properties();
+    }
+    this.properties.getProperty().add(prop);
+  }
+
+  /**
+   * Returns the value of the Property with the given key as a double. If the key is not found, it
+   * returns 0. Only the first property with the given key is returned. This is a convenience method
+   * that calls the underlying Properties method.
+   * 
+   * @param key The key.
+   * @return The key's value as a double.
+   */
+  public double getPropertyAsDouble(String key) {
+    return this.properties.getPropertyAsDouble(key);
+  }
+
+  /**
+   * Returns the value of the Property with the given key as a String. If the key is not found, it
+   * returns null. Only the first property with the given key is returned. This is a convenience
+   * method that calls the underlying Properties method.
+   * 
+   * @param key The key.
+   * @return The key's value as a double.
+   */
+  public String getProperty(String key) {
+    return this.properties.getProperty(key);
+  }
+
+  /**
+   * Given the Server a Source object belongs to, returns the URI to that Source resource.
+   * 
+   * @param source The Source object under consideration.
+   * @param server The Server user belongs to.
+   * @return The URI to the Source resource corresponding to the given Source.
+   */
+  public String toUri(Server server) {
+    return server.getHostName() + Server.SOURCES_URI + "/" + this.getName();
+  }
+
+  /**
+   * Takes the URI to a Source resource on an arbitrary WattDepot server, and turns it into a URI
+   * for that source on the provided server. This is useful when reading a SensorData resource from
+   * a file, where the stored URI might point to an source resource that is on a different server.
+   * 
+   * @param uri The URI that is to be updated.
+   * @param server The current server instance.
+   * @return A URI String for the given source on the given server.
+   */
+  public static String updateUri(String uri, Server server) {
+    // Grab out the username at the end of the URI
+    String sourceName = uri.substring(uri.lastIndexOf('/') + 1);
+    return sourceToUri(sourceName, server);
+  }
+
+  /**
+   * Given a Source name and the server URI it belongs to, returns the URI to that Source resource.
+   * 
+   * @param sourceName The Source object under consideration.
+   * @param serverUri The server URI source belongs to.
+   * @return The URI to the Source resource corresponding to the given Source name.
+   */
+  public static String sourceToUri(String sourceName, String serverUri) {
+    return serverUri + Server.SOURCES_URI + "/" + sourceName;
+  }
+
+  /**
+   * Given a Source name and the Server it belongs to, returns the URI to that Source resource.
+   * 
+   * @param sourceName The Source object under consideration.
+   * @param server The Server source belongs to.
+   * @return The URI to the Source resource corresponding to the given Source name.
+   */
+  public static String sourceToUri(String sourceName, Server server) {
+    return server.getHostName() + Server.SOURCES_URI + "/" + sourceName;
+  }
 }

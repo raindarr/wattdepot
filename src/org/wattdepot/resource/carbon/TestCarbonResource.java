@@ -3,7 +3,6 @@ package org.wattdepot.resource.carbon;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.wattdepot.resource.source.SourceUtils.sourceToUri;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +12,7 @@ import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.test.ServerTestHelper;
 import org.wattdepot.util.tstamp.Tstamp;
@@ -265,7 +265,7 @@ public class TestCarbonResource extends ServerTestHelper {
 
     XMLGregorianCalendar beforeTime, afterTime, timestamp1, timestamp2;
     SensorData beforeData, afterData;
-    String source = sourceToUri(DbManager.defaultPublicSource, server);
+    String source = Source.sourceToUri(DbManager.defaultPublicSource, server);
     String sourceName = DbManager.defaultPublicSource;
 
     // timestamp = range for flat power, getCarbon should just return simple carbon value
@@ -362,8 +362,8 @@ public class TestCarbonResource extends ServerTestHelper {
     String source1Name = DbManager.defaultPublicSource;
     String source2Name = DbManager.defaultPrivateSource;
     String virtualSourceName = DbManager.defaultVirtualSource;
-    String source1 = sourceToUri(source1Name, server);
-    String source2 = sourceToUri(source2Name, server);
+    String source1 = Source.sourceToUri(source1Name, server);
+    String source2 = Source.sourceToUri(source2Name, server);
     Property interpolatedProp = SensorDataUtils.makeSensorDataProperty("interpolated", "true");
 
     // timestamp = range for flat power on both sources

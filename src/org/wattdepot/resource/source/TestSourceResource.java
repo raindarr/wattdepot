@@ -41,11 +41,11 @@ public class TestSourceResource extends ServerTestHelper {
     // Need to create default data for each fresh DbManager
     assertTrue("Unable to create default data", manager.createDefaultData());
     this.publicSource = manager.getSource(DbManager.defaultPublicSource);
-    this.publicSourceRef = SourceUtils.makeSourceRef(this.publicSource, server);
+    this.publicSourceRef = new SourceRef(this.publicSource, server);
     this.privateSource = manager.getSource(DbManager.defaultPrivateSource);
-    this.privateSourceRef = SourceUtils.makeSourceRef(this.privateSource, server);
+    this.privateSourceRef = new SourceRef(this.privateSource, server);
     this.virtualSource = manager.getSource(DbManager.defaultVirtualSource);
-    this.virtualSourceRef = SourceUtils.makeSourceRef(this.virtualSource, server);
+    this.virtualSourceRef = new SourceRef(this.virtualSource, server);
     server.getContext().getAttributes().put("DbManager", manager);
   }
 

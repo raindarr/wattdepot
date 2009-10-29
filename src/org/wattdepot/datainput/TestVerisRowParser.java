@@ -9,7 +9,7 @@ import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.Properties;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.SourceUtils;
+import org.wattdepot.resource.source.jaxb.Source;
 
 /**
  * Tests the VerisRowParser class.
@@ -40,7 +40,7 @@ public class TestVerisRowParser {
     props.getProperty().add(energyConsumed);
     SensorData data =
         SensorDataUtils.makeSensorData(Tstamp.makeTimestamp("2009-09-01T01:01:01.000-10:00"),
-            TOOL_NAME, SourceUtils.sourceToUri(SOURCE_NAME, SERVER_URI), props);
+            TOOL_NAME, Source.sourceToUri(SOURCE_NAME, SERVER_URI), props);
     SensorData parsedData = parser.parseRow(row.split("\t"));
     assertEquals("Parsed sensor data differs from hand-created sensor data", data, parsedData);
   }

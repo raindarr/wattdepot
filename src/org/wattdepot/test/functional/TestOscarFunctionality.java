@@ -20,7 +20,6 @@ import org.wattdepot.datainput.OscarRowParser;
 import org.wattdepot.datainput.RowParseException;
 import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.server.db.DbException;
@@ -377,7 +376,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
       if (source.isSetSubSources()) {
         List<String> hrefs = source.getSubSources().getHref();
         for (int i = 0; i < hrefs.size(); i++) {
-          hrefs.set(i, SourceUtils.updateUri(hrefs.get(i), server));
+          hrefs.set(i, Source.updateUri(hrefs.get(i), server));
         }
       }
       if (!dbManager.storeSource(source)) {
@@ -489,7 +488,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * @return true if the potentialParent is a parent of source, otherwise false.
    */
   private boolean isParent(Source source, Source potentialParent) {
-    String sourceUri = SourceUtils.sourceToUri(source, server);
+    String sourceUri = source.toUri(server);
     if (potentialParent.isSetSubSources()) {
       for (String subSource : potentialParent.getSubSources().getHref()) {
         if (sourceUri.equals(subSource)) {

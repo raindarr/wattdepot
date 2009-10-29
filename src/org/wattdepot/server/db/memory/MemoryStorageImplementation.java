@@ -13,9 +13,9 @@ import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
-import org.wattdepot.resource.source.SourceUtils;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.jaxb.User;
@@ -78,7 +78,7 @@ public class MemoryStorageImplementation extends DbImplementation {
     // Loop over all Sources in hash
     for (Source source : this.name2SourceHash.values()) {
       // Convert each Source to SourceRef, add to index
-      index.getSourceRef().add(SourceUtils.makeSourceRef(source, this.server));
+      index.getSourceRef().add(new SourceRef(source, this.server));
     }
     Collections.sort(index.getSourceRef());
     return index;
@@ -107,7 +107,7 @@ public class MemoryStorageImplementation extends DbImplementation {
       return null;
     }
     SourceSummary summary = new SourceSummary();
-    summary.setHref(SourceUtils.sourceToUri(sourceName, this.server.getHostName()));
+    summary.setHref(Source.sourceToUri(sourceName, this.server.getHostName()));
     summary.setTotalSensorDatas(0);
     // Want to go through sensordata for base source, and all subsources recursively
     List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
