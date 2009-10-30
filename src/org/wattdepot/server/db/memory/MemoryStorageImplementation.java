@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.util.tstamp.Tstamp;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.StraddleList;
@@ -17,13 +16,14 @@ import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
-import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
+import org.wattdepot.resource.user.jaxb.UserRef;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbImplementation;
 import org.wattdepot.util.UriUtils;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * An in-memory storage implementation for WattDepot. <b>Note:</b> this class persists data
@@ -587,8 +587,9 @@ public class MemoryStorageImplementation extends DbImplementation {
     // Loop over all Users in hash
     for (User user : this.name2UserHash.values()) {
       // Convert each Source to SourceRef, add to index
-      index.getUserRef().add(UserUtils.makeUserRef(user, this.server));
+      index.getUserRef().add(new UserRef(user, this.server));
     }
+    Collections.sort(index.getUserRef());
     return index;
   }
 

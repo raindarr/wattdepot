@@ -5,14 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Test;
 import org.wattdepot.resource.property.jaxb.Properties;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceRef;
-import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.source.jaxb.SubSources;
+import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Ensures that the equals() and hashCode() methods that have been manually added to the JAXB
@@ -72,6 +72,13 @@ public class TestSourceJaxb {
     assertEquals("Two Source objects with identical fields are not equal", source1, source2);
     assertEquals("Two Source objects with identical fields have different hashCodes", source1
         .hashCode(), source2.hashCode());
+    subSources2.getHref().remove(1);
+    source2 =
+        new Source(sourceName, owner, publicp, virtualp, coordinates, location, description,
+            props2, subSources2);
+    assertFalse("Two different Source objects are equal", source1.equals(source2));
+    assertNotSame("Two different Source objects have same hashcode", source1.hashCode(), source2
+        .hashCode());
   }
 
   /**
@@ -170,7 +177,7 @@ public class TestSourceJaxb {
    * Tests equals, hashCode, and compareTo for the SourceRef type.
    */
   @Test
-  public void testSensorDataRef() {
+  public void testSourceRef() {
     // Create a bunch of components we can use to make various SourceRefs that will compare
     // differently. "Equal" suffix means the same as the original, "Before" means should compare
     // less than, "After" means should compare greater than.
@@ -195,7 +202,7 @@ public class TestSourceJaxb {
     assertEquals("Two SourceRefs with identical fields are not equal", ref, refEqual);
     assertEquals("Two SourceRefs with identical fields have different hashCodes", ref.hashCode(),
         refEqual.hashCode());
-    assertEquals("SensorDataRef.compareTo timestamp not working", 0, ref.compareTo(refEqual));
+    assertEquals("SourceRef.compareTo timestamp not working", 0, ref.compareTo(refEqual));
     SourceRef refNameBefore =
         new SourceRef(sourceNameBefore, owner, publicp, virtualp, coordinates, location,
             description, serverUri + sourceNameBefore);

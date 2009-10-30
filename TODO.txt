@@ -19,6 +19,7 @@ everywhere and convert to URIs only for output?
 thereby make the private source data public. This is bogus. Public virtual sources should only be
 allowed to point at public sources, and private virtual sources should only be allowed to point at
 public sources and private sources _that they own_.
+- Create maps and lists with larger size in MemoryStorageImplementation
 
 Refactoring:
 - Normalize all JAXB code to use a centralized Property/Properties class

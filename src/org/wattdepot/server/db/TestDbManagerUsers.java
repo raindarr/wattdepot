@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.wattdepot.resource.user.UserUtils.userRefEqualsUser;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
@@ -57,8 +56,7 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     // UserRef in UserIndex.
 
     // case #1: Database starts fresh with no Users. Might change if admin user is pre-added.
-    assertTrue("Freshly created database contains users",
-        manager.getUsers().getUserRef().isEmpty());
+    assertTrue("Freshly created database contains users", manager.getUsers().getUserRef().isEmpty());
 
     // case #2: after storing a single User, should have UserIndex with one UserRef that matches
     // User
@@ -67,8 +65,8 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     assertSame("getUsers returned wrong number of UserRefs",
         manager.getUsers().getUserRef().size(), 1);
     // Confirm that the single UserRef is from user1
-    assertTrue("getUsers didn't return expected UserRef", userRefEqualsUser(manager.getUsers()
-        .getUserRef().get(0), this.user1));
+    assertTrue("getUsers didn't return expected UserRef", manager.getUsers().getUserRef().get(0)
+        .equalsUser(this.user1));
 
     // case #3: after storing two Users, should have UserIndex with two UserRefs that match Users
     assertTrue("Unable to store user2 in DB", manager.storeUser(this.user2));
@@ -83,20 +81,22 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     for (UserRef ref : refs) {
       int found = 0;
       for (User user : origUsers) {
-        if (userRefEqualsUser(ref, user)) {
+        if (ref.equalsUser(user)) {
           found++;
         }
       }
       assertSame("UserRefs from getUsers do not match input Users", found, 1);
     }
 
+    // TODO should test that user list is sorted.
+    
     // case #4: after deleting a User should have single UserRef in UserIndex.
     assertTrue("Unable to delete user1", manager.deleteUser(this.user1.getEmail()));
     assertSame("getUsers returned wrong number of UserRefs",
         manager.getUsers().getUserRef().size(), 1);
     // Confirm that the single UserRef is from user2
-    assertTrue("getUsers didn't return expected UserRef", userRefEqualsUser(manager.getUsers()
-        .getUserRef().get(0), this.user2));
+    assertTrue("getUsers didn't return expected UserRef", manager.getUsers().getUserRef().get(0)
+        .equalsUser(this.user2));
   }
 
   /**

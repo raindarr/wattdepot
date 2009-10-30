@@ -32,7 +32,6 @@ import org.wattdepot.resource.source.SourceResource;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.summary.SourceSummaryResource;
 import org.wattdepot.resource.user.UserResource;
-import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.UsersResource;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.db.DbManager;
@@ -249,7 +248,7 @@ public class Server extends Application {
           source = (Source) unmarshaller.unmarshal(sourceFile);
           // Source read from the file might have an Owner field that points to a different
           // host URI. We want all defaults normalized to this server, so update it.
-          source.setOwner(UserUtils.updateUri(source.getOwner(), this));
+          source.setOwner(User.updateUri(source.getOwner(), this));
           // Source read from the file might have an Href elements under SubSources that points to
           // a different host URI. We want all defaults normalized to this server, so update it.
           if (source.isSetSubSources()) {

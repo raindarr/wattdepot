@@ -30,7 +30,6 @@ import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
-import org.wattdepot.resource.user.UserUtils;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbBadIntervalException;
@@ -621,7 +620,7 @@ public class WattDepotResource extends Resource {
     else {
       // Check if the URI of the authenticated user matches the URI of the owner for the source
       // parameter in the URI
-      return UserUtils.userToUri(user, this.server).equals(source.getOwner());
+      return user.toUri(this.server).equals(source.getOwner());
     }
   }
 

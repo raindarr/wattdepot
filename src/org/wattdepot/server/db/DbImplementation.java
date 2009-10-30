@@ -248,7 +248,7 @@ public abstract class DbImplementation {
       String sourceName, List<XMLGregorianCalendar> timestampList);
 
   /**
-   * Returns a UserIndex of all Users in the system.
+   * Returns a UserIndex of all Users in the system. The list is sorted by username.
    * 
    * @return a UserIndex object containing a List of UserRef objects for all User resources.
    */

@@ -1,7 +1,5 @@
 package org.wattdepot.server.db;
 
-import static org.wattdepot.resource.user.UserUtils.makeUser;
-import static org.wattdepot.resource.user.UserUtils.userToUri;
 import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
 import java.lang.reflect.Constructor;
 import java.util.List;
@@ -126,26 +124,26 @@ public class DbManager {
     String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
     String adminPassword = serverProps.get(ServerProperties.ADMIN_PASSWORD_KEY);
     // create the admin User object based on the server properties
-    User adminUser = makeUser(adminUsername, adminPassword, true, null);
+    User adminUser = new User(adminUsername, adminPassword, true, null);
     // stick admin user into database
     if (!this.storeUser(adminUser)) {
       // server.getLogger().severe("Unable to create admin user from properties!");
       return false;
     }
     // create a non-admin user that owns a source for testing
-    User ownerUser = makeUser(defaultOwnerUsername, defaultOwnerPassword, false, null);
+    User ownerUser = new User(defaultOwnerUsername, defaultOwnerPassword, false, null);
     if (!this.storeUser(ownerUser)) {
       return false;
     }
     // create a non-admin user that owns nothing for testing
-    User nonOwnerUser = makeUser(defaultNonOwnerUsername, defaultNonOwnerPassword, false, null);
+    User nonOwnerUser = new User(defaultNonOwnerUsername, defaultNonOwnerPassword, false, null);
     if (!this.storeUser(nonOwnerUser)) {
       return false;
     }
 
     // create public source
     Source source1 =
-        new Source(defaultPublicSource, userToUri(ownerUser, this.server), true, false,
+        new Source(defaultPublicSource, ownerUser.toUri(this.server), true, false,
             "21.30078,-157.819129,41", "Saunders Hall on the University of Hawaii at Manoa campus",
             "Obvius-brand power meter", null, null);
     source1.addProperty(new Property("carbonIntensity", "1000"));
@@ -155,7 +153,7 @@ public class DbManager {
     }
 
     Source source2 =
-        new Source(defaultPrivateSource, userToUri(ownerUser, this.server), false, false,
+        new Source(defaultPrivateSource, ownerUser.toUri(this.server), false, false,
             "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", null, null);
     source2.addProperty(new Property("carbonIntensity", "3000"));
     // stick public source into database
@@ -168,7 +166,7 @@ public class DbManager {
     subSources.getHref().add(source2.toUri(server));
 
     Source virtualSource =
-        new Source(defaultVirtualSource, userToUri(ownerUser, server), true, true,
+        new Source(defaultVirtualSource, ownerUser.toUri(server), true, true,
             "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null, subSources);
     return (this.storeSource(virtualSource));
   }
@@ -391,7 +389,7 @@ public class DbManager {
   }
 
   /**
-   * Returns a UserIndex of all Users in the system.
+   * Returns a UserIndex of all Users in the system. The list is sorted by username.
    * 
    * @return a UserIndex object containing a List of UserRef objects for all User resources.
    */
