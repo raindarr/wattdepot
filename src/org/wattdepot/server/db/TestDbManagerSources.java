@@ -10,7 +10,6 @@ import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.Before;
 import org.junit.Test;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceRef;
@@ -191,10 +190,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
 
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source2));
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source3));
-    SensorData data4 =
-        SensorDataUtils.makeSensorData(earlyTimestamp, "JUnit", this.source2.toUri(server), null);
-    SensorData data5 =
-        SensorDataUtils.makeSensorData(lateTimestamp, "JUnit", this.source2.toUri(server), null);
+    SensorData data4 = new SensorData(earlyTimestamp, "JUnit", this.source2.toUri(server));
+    SensorData data5 = new SensorData(lateTimestamp, "JUnit", this.source2.toUri(server));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data4));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data5));
     retreivedSummary = manager.getSourceSummary(this.source3.getName());

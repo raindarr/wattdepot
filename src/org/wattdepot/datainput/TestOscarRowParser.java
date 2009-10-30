@@ -3,13 +3,11 @@ package org.wattdepot.datainput;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Test;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
-import org.wattdepot.resource.sensordata.jaxb.Properties;
-import org.wattdepot.resource.sensordata.jaxb.Property;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Tests the OscarRowParser class.
@@ -31,16 +29,13 @@ public class TestOscarRowParser {
     RowParser parser = new OscarRowParser(TOOL_NAME, SERVER_URI);
     // Example row from Oscar data
     String row = "2009-10-12T00:15:00-1000,SIM_HPOWER,46,5,BASELOAD";
-    Property powerGenerated = SensorDataUtils.makeSensorDataProperty("powerGenerated", "4.6E7");
-    Properties props = new Properties();
-    props.getProperty().add(powerGenerated);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp("2009-10-12T00:15:00.000-10:00"),
-            TOOL_NAME, Source.sourceToUri("SIM_HPOWER", SERVER_URI), props);
+        new SensorData(Tstamp.makeTimestamp("2009-10-12T00:15:00.000-10:00"), TOOL_NAME, Source
+            .sourceToUri("SIM_HPOWER", SERVER_URI), new Property("powerGenerated", "4.6E7"));
     SensorData parsedData = parser.parseRow(row.split(","));
     assertEquals("Parsed sensor data differs from hand-created sensor data", data, parsedData);
   }
-  
+
   /**
    * Tests whether a valid row is parsed properly into a SensorData object.
    * 
@@ -53,7 +48,7 @@ public class TestOscarRowParser {
     SensorData parsedData = parser.parseRow(row.split(","));
     assertNull("Row with missing columns was successfully parsed", parsedData);
   }
-  
+
   /**
    * Tests whether a valid row is parsed properly into a SensorData object.
    * 
@@ -62,7 +57,7 @@ public class TestOscarRowParser {
   @Test(expected = RowParseException.class)
   public void testEmptyRow() throws RowParseException {
     RowParser parser = new OscarRowParser(TOOL_NAME, SERVER_URI);
-    String[] row = {""};
+    String[] row = { "" };
     SensorData parsedData = parser.parseRow(row);
     assertNull("Empty string row was parsed successfully", parsedData);
   }

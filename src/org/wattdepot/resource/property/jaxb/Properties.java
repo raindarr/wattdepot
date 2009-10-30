@@ -171,4 +171,14 @@ public class Properties implements Serializable {
     }
     return null;
   }
+  
+  /**
+   * Returns true if this Properties contains the given Property, or false otherwise.
+   * 
+   * @param prop The property to be searched for.
+   * @return True if prop is found, false otherwise.
+   */
+  public boolean containsProperty(Property prop) {
+    return this.getProperty().contains(prop);
+  }
 }

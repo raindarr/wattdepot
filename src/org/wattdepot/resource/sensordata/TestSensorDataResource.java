@@ -7,8 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.wattdepot.resource.sensordata.SensorDataUtils.compareSensorDataRefsToSensorDatas;
-import static org.wattdepot.resource.sensordata.SensorDataUtils.sensorDataRefEqualsSensorData;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,7 +49,8 @@ import org.wattdepot.util.UriUtils;
 public class TestSensorDataResource extends ServerTestHelper {
 
   /** Making PMD happy. */
-  private static final String REFS_DONT_MATCH_SENSORDATA = "SensorDataRefs from getSensorDataIndex do not match input SensorData";
+  private static final String REFS_DONT_MATCH_SENSORDATA =
+      "SensorDataRefs from getSensorDataIndex do not match input SensorData";
 
   /** Making PMD happy. */
   private static final String DATA_STORE_FAILED = "SensorData store failed";
@@ -270,22 +269,22 @@ public class TestSensorDataResource extends ServerTestHelper {
     List<SensorDataRef> index =
         client.getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef();
     assertEquals("Wrong number of SensorDataRefs after store", 1, index.size());
-    assertTrue("getSensorDataIndex didn't return expected SensorDataRef",
-        sensorDataRefEqualsSensorData(index.get(0), data1));
+    assertTrue("getSensorDataIndex didn't return expected SensorDataRef", index.get(0)
+        .equalsSensorData(data1));
     assertTrue(DATA_STORE_FAILED, client.storeSensorData(data2));
     index = client.getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef();
     assertEquals("Wrong number of SensorDataRefs after store", 2, index.size());
     List<SensorData> origData = new ArrayList<SensorData>();
     origData.add(data1);
     origData.add(data2);
-    assertTrue("getSensorDataIndex didn't return expected SensorDataRefs",
-        compareSensorDataRefsToSensorDatas(index, origData));
+    assertTrue("getSensorDataIndex didn't return expected SensorDataRefs", SensorDataRef
+        .compareSensorDataRefsToSensorDatas(index, origData));
     assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
     index = client.getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef();
     assertEquals("Wrong number of SensorDataRefs after store", 3, index.size());
     origData.add(data3);
-    assertTrue("getSensorDataIndex didn't return expected SensorDataRefs",
-        compareSensorDataRefsToSensorDatas(index, origData));
+    assertTrue("getSensorDataIndex didn't return expected SensorDataRefs", SensorDataRef
+        .compareSensorDataRefsToSensorDatas(index, origData));
   }
 
   // Tests for GET {host}/sources/{source}/sensordata/{timestamp}
@@ -399,35 +398,34 @@ public class TestSensorDataResource extends ServerTestHelper {
     origData.add(data1);
     origData.add(data2);
     origData.add(data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA,
-        compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
 
     // range starting exactly at data1 and ending exactly at data3
     retrievedRefs =
-        client.getSensorDataIndex(DbManager.defaultPublicSource, at1, at3)
-            .getSensorDataRef();
+        client.getSensorDataIndex(DbManager.defaultPublicSource, at1, at3).getSensorDataRef();
     origData.clear();
     origData.add(data1);
     origData.add(data2);
     origData.add(data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA,
-        compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
 
     // range covering only data1
     assertSame("getSensorDataIndex didn't contain all expected SensorData", client
         .getSensorDataIndex(DbManager.defaultPublicSource, before1, between1And2)
         .getSensorDataRef().size(), 1);
-    assertTrue("getSensorDataIndex entry didn't match input data", sensorDataRefEqualsSensorData(
-        client.getSensorDataIndex(DbManager.defaultPublicSource, before1, between1And2)
-            .getSensorDataRef().get(0), data1));
+    assertTrue("getSensorDataIndex entry didn't match input data", client.getSensorDataIndex(
+        DbManager.defaultPublicSource, before1, between1And2).getSensorDataRef().get(0)
+        .equalsSensorData(data1));
 
     // range covering only data2
     assertSame("getSensorDataIndex didn't contain all expected SensorData", client
         .getSensorDataIndex(DbManager.defaultPublicSource, between1And2, between2And3)
         .getSensorDataRef().size(), 1);
-    assertTrue("getSensorDataIndex didn't return expected ", sensorDataRefEqualsSensorData(client
-        .getSensorDataIndex(DbManager.defaultPublicSource, between1And2, between2And3)
-        .getSensorDataRef().get(0), data2));
+    assertTrue("getSensorDataIndex didn't return expected ", client.getSensorDataIndex(
+        DbManager.defaultPublicSource, between1And2, between2And3).getSensorDataRef().get(0)
+        .equalsSensorData(data2));
 
     // range covering data1 & data2
     retrievedRefs =
@@ -436,8 +434,8 @@ public class TestSensorDataResource extends ServerTestHelper {
     origData.clear();
     origData.add(data1);
     origData.add(data2);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA,
-        compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
 
     // range covering data2 & data3
     retrievedRefs =
@@ -446,8 +444,8 @@ public class TestSensorDataResource extends ServerTestHelper {
     origData.clear();
     origData.add(data2);
     origData.add(data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA,
-        compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
   }
 
   /**
@@ -651,8 +649,8 @@ public class TestSensorDataResource extends ServerTestHelper {
         new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
             DbManager.defaultOwnerPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, getHostName()
-            + Server.SOURCES_URI + "/bogus-source-name", null);
+        new SensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, getHostName() + Server.SOURCES_URI
+            + "/bogus-source-name");
     assertFalse("Able to store SensorData with bogus Source name", client.storeSensorData(data));
   }
 
@@ -665,8 +663,8 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreBadTimestamp() throws JAXBException {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
-            DbManager.defaultPublicSource, server), null);
+        new SensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
+            DbManager.defaultPublicSource, server));
     // Can't use WattDepotClient to test this, as storeSensorData() is unable to send a bad
     // timestamp. Have to do things manually.
     JAXBContext sensorDataJAXB =
@@ -693,8 +691,8 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreNullEntity() {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
-            DbManager.defaultPublicSource, server), null);
+        new SensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
+            DbManager.defaultPublicSource, server));
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send empty
     // body. Have to do things manually.
     Response response =
@@ -713,8 +711,8 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreEmptyEntity() {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
-            DbManager.defaultPublicSource, server), null);
+        new SensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
+            DbManager.defaultPublicSource, server));
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send empty
     // body. Have to do things manually.
     Representation rep =
@@ -735,8 +733,8 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreBogusXML() {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
-            DbManager.defaultPublicSource, server), null);
+        new SensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
+            DbManager.defaultPublicSource, server));
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send bogus XML.
     // Have to do things manually.
     Representation rep =
@@ -762,8 +760,8 @@ public class TestSensorDataResource extends ServerTestHelper {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp();
     SensorData data =
-        SensorDataUtils.makeSensorData(timestamp, JUNIT_TOOL, Source.sourceToUri(
-            DbManager.defaultPublicSource, server), null);
+        new SensorData(timestamp, JUNIT_TOOL, Source.sourceToUri(DbManager.defaultPublicSource,
+            server));
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send
     // mismatching timestamps. Have to do things manually.
     JAXBContext sensorDataJAXB =
@@ -795,8 +793,8 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testStoreMismatchedSources() throws JAXBException {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri(
-            "bogus-source-name", server), null);
+        new SensorData(Tstamp.makeTimestamp(), JUNIT_TOOL, Source.sourceToUri("bogus-source-name",
+            server));
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send
     // mismatching timestamps. Have to do things manually.
     JAXBContext sensorDataJAXB =

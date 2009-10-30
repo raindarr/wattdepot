@@ -4,12 +4,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.util.tstamp.Tstamp;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
-import org.wattdepot.resource.sensordata.jaxb.Properties;
-import org.wattdepot.resource.sensordata.jaxb.Property;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Parses the tabular simulated data format sent by OSCAR into SensorData.
@@ -22,8 +20,8 @@ public class OscarRowParser extends RowParser {
   private SimpleDateFormat format;
 
   /**
-   * Creates the OscarRowParser, and initializes fields based on the provided arguments. Any sourceName
-   * provided will be ignored, since OscarRowParser finds the source from the input data.
+   * Creates the OscarRowParser, and initializes fields based on the provided arguments. Any
+   * sourceName provided will be ignored, since OscarRowParser finds the source from the input data.
    * 
    * @param toolName Name of the tool sending the data.
    * @param serverUri URI of WattDepot server to send data to.
@@ -31,7 +29,7 @@ public class OscarRowParser extends RowParser {
    */
   // Is there a better way to do this (prevent a superclass's constructor from being
   // called)?
-  private OscarRowParser (String toolName, String serverUri, String sourceName) {
+  private OscarRowParser(String toolName, String serverUri, String sourceName) {
     super(toolName, serverUri, null);
   }
 
@@ -86,12 +84,7 @@ public class OscarRowParser extends RowParser {
     catch (NumberFormatException e) {
       throw new RowParseException("Unable to parse power generated: " + powerGeneratedString, e);
     }
-    Property prop1 =
-        SensorDataUtils.makeSensorDataProperty("powerGenerated", Double.toString(powerGenerated));
-
-    Properties props = new Properties();
-    props.getProperty().add(prop1);
-    return SensorDataUtils.makeSensorData(timestamp, this.toolName, Source.sourceToUri(
-        sourceName, this.serverUri), props);
+    return new SensorData(timestamp, this.toolName, Source.sourceToUri(sourceName, this.serverUri),
+        new Property("powerGenerated", Double.toString(powerGenerated)));
   }
 }

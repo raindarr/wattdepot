@@ -4,12 +4,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.util.tstamp.Tstamp;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
-import org.wattdepot.resource.sensordata.jaxb.Properties;
-import org.wattdepot.resource.sensordata.jaxb.Property;
+import org.wattdepot.resource.property.jaxb.Properties;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Parses the tabular data format sent by Veris meters monitored by the Obvius Acquisuite device.
@@ -77,8 +76,7 @@ public class VerisRowParser extends RowParser {
       throw new RowParseException("Unable to parse floating point number: " + powerConsumedString,
           e);
     }
-    Property prop1 =
-        SensorDataUtils.makeSensorDataProperty("powerConsumed", Double.toString(powerConsumed));
+    Property prop1 = new Property("powerConsumed", Double.toString(powerConsumed));
 
     String energyConsumedToDateString = col[4];
     double energyConsumedToDate;
@@ -92,14 +90,12 @@ public class VerisRowParser extends RowParser {
       throw new RowParseException("Unable to parse floating point number: "
           + energyConsumedToDateString, e);
     }
-    Property prop2 =
-        SensorDataUtils.makeSensorDataProperty("energyConsumedToDate", Double
-            .toString(energyConsumedToDate));
+    Property prop2 = new Property("energyConsumedToDate", Double.toString(energyConsumedToDate));
     Properties props = new Properties();
     props.getProperty().add(prop1);
     props.getProperty().add(prop2);
 
-    return SensorDataUtils.makeSensorData(timestamp, this.toolName, Source.sourceToUri(
-        this.sourceName, this.serverUri), props);
+    return new SensorData(timestamp, this.toolName, Source.sourceToUri(this.sourceName,
+        this.serverUri), props);
   }
 }

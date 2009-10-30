@@ -3,11 +3,9 @@ package org.wattdepot.resource.carbon;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.energy.Energy;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.StraddleList;
-import org.wattdepot.resource.sensordata.jaxb.Properties;
-import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
 
@@ -74,17 +72,15 @@ public class Carbon extends Energy {
    */
   public static SensorData makeCarbonSensorData(XMLGregorianCalendar timestamp, String source,
       double carbonEmittedValue, boolean interpolated) {
-    Properties props = new Properties();
     Property emittedProp, interpolatedProp;
-    emittedProp =
-        SensorDataUtils
-            .makeSensorDataProperty("carbonEmitted", Double.toString(carbonEmittedValue));
-    props.getProperty().add(emittedProp);
+    SensorData data = new SensorData(timestamp, "WattDepot Server", source);
+    emittedProp = new Property("carbonEmitted", Double.toString(carbonEmittedValue));
+    data.addProperty(emittedProp);
     if (interpolated) {
-      interpolatedProp = SensorDataUtils.makeSensorDataProperty("interpolated", "true");
-      props.getProperty().add(interpolatedProp);
+      interpolatedProp = new Property("interpolated", "true");
+      data.addProperty(interpolatedProp);
     }
-    return SensorDataUtils.makeSensorData(timestamp, "WattDepot Server", source, props);
+    return data;
   }
 
   /**

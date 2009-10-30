@@ -13,6 +13,8 @@ import javax.xml.bind.annotation.XmlElementDecl;
 import javax.xml.bind.annotation.XmlRegistry;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
+import org.wattdepot.resource.property.jaxb.Properties;
+import org.wattdepot.resource.property.jaxb.Property;
 
 
 /**

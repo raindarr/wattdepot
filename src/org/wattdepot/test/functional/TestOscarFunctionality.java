@@ -18,7 +18,7 @@ import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
 import org.wattdepot.datainput.OscarRowParser;
 import org.wattdepot.datainput.RowParseException;
-import org.wattdepot.resource.sensordata.jaxb.Property;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;

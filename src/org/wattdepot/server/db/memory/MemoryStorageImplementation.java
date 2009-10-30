@@ -8,10 +8,10 @@ import java.util.concurrent.ConcurrentMap;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
+import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
@@ -239,7 +239,7 @@ public class MemoryStorageImplementation extends DbImplementation {
         // Loop over all SensorData in hash
         for (SensorData data : sensorDataMap.values()) {
           // Convert each SensorData to SensorDataRef, add to index
-          index.getSensorDataRef().add(SensorDataUtils.makeSensorDataRef(data, this.server));
+          index.getSensorDataRef().add(new SensorDataRef(data));
         }
       }
       Collections.sort(index.getSensorDataRef());
@@ -278,7 +278,7 @@ public class MemoryStorageImplementation extends DbImplementation {
               || (endComparison == DatatypeConstants.EQUAL)
               || ((startComparison == DatatypeConstants.GREATER) && (endComparison == DatatypeConstants.LESSER))) {
             // convert each matching SensorData to SensorDataRef, add to index
-            index.getSensorDataRef().add(SensorDataUtils.makeSensorDataRef(data, this.server));
+            index.getSensorDataRef().add(new SensorDataRef(data));
           }
         }
       }
@@ -402,11 +402,8 @@ public class MemoryStorageImplementation extends DbImplementation {
     SensorData beforeSentinel, afterSentinel;
     try {
       beforeSentinel =
-          SensorDataUtils.makeSensorData(Tstamp.makeTimestamp("1700-01-01T00:00:00.000-10:00"), "",
-              "", null);
-      afterSentinel =
-          SensorDataUtils.makeSensorData(Tstamp.makeTimestamp("3000-01-01T00:00:00.000-10:00"), "",
-              "", null);
+          new SensorData(Tstamp.makeTimestamp("1700-01-01T00:00:00.000-10:00"), "", "");
+      afterSentinel = new SensorData(Tstamp.makeTimestamp("3000-01-01T00:00:00.000-10:00"), "", "");
     }
     catch (Exception e) {
       throw new RuntimeException(

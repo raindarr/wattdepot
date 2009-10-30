@@ -8,6 +8,7 @@
 package org.wattdepot.resource.sensordata.jaxb;
 
 import java.io.Serializable;
+import java.util.List;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlAttribute;
@@ -16,6 +17,8 @@ import javax.xml.bind.annotation.XmlSchemaType;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
+import org.wattdepot.server.Server;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * <p>
@@ -56,6 +59,41 @@ public class SensorDataRef implements Serializable, Comparable<SensorDataRef> {
   @XmlAttribute(name = "Href", required = true)
   @XmlSchemaType(name = "anyURI")
   protected String href;
+
+  /**
+   * Default no-argument constructor, apparently needed by JAXB. Don't use this, use the one with
+   * all the parameters.
+   */
+  public SensorDataRef() {
+    // Apparently needed by JAXB
+  }
+
+  /**
+   * Creates a SensorDataRef object from the given parameters. Note that no parameter is needed for
+   * the Href field, as it can be constructed from the source and timestamp.
+   * 
+   * @param timestamp The timestamp for the new object.
+   * @param tool The tool for the new object.
+   * @param source The URI of the source for the new object.
+   */
+  public SensorDataRef(XMLGregorianCalendar timestamp, String tool, String source) {
+    this.timestamp = timestamp;
+    this.tool = tool;
+    this.source = source;
+    this.href = source + "/" + Server.SENSORDATA_URI + "/" + timestamp.toXMLFormat();
+  }
+
+  /**
+   * Creates a SensorDataRef object from a SensorData object. Needs to be kept up to date with any
+   * changes to the schema, which is bogus.
+   * 
+   * @param data The SensorData to build the SensorDataRef from.
+   */
+  public SensorDataRef(SensorData data) {
+    this(data.getTimestamp(), data.getTool(), data.getSource());
+    this.href =
+        data.getSource() + "/" + Server.SENSORDATA_URI + "/" + data.getTimestamp().toXMLFormat();
+  }
 
   /**
    * Gets the value of the timestamp property.
@@ -272,5 +310,58 @@ public class SensorDataRef implements Serializable, Comparable<SensorDataRef> {
     // timestamps must be incomparable, since we tested equals at the start, yet we have
     // found all the other fields to be equal. Just give up and say they are the same.
     return 0;
+  }
+  
+  /**
+   * Determines if the subset of information in a SensorDataRef is equal to particular SensorData
+   * object. Note that only the final segment of the href field of the SensorDataRef is compared to
+   * the Source object, as the SensorData object does not contain its own URI. Thus if the
+   * SensorDataRef was from a different server than the SensorData object, this test would return
+   * true even though the SensorDataRef points to a different copy of this SensorData object.
+   * 
+   * @param data The SensorData to be compared.
+   * @return True if all the fields in the SensorDataRef correspond to the same fields in the
+   * SensorData.
+   */
+  public boolean equalsSensorData(SensorData data) {
+    XMLGregorianCalendar hrefTimestamp;
+    try {
+      hrefTimestamp =
+          Tstamp.makeTimestamp(this.href.substring(this.href.lastIndexOf('/') + 1));
+    }
+    catch (Exception e) {
+      // If the SourceRef has a bad timestamp, must be hosed so return false
+      return false;
+    }
+
+    return (this.timestamp.equals(data.getTimestamp())
+        && (this.tool.equals(data.getTool())) && (this.source.equals(data.getSource())) && (data
+        .getTimestamp().equals(hrefTimestamp)));
+  }
+
+  /**
+   * Compares a List of SensorDataRef to a List of SensorData.
+   * 
+   * @param retrievedRefs The List of SensorDataRef.
+   * @param origData The List of SensorData.
+   * @return true if every SensorData object has a matching SensorDataRef.
+   */
+  public static boolean compareSensorDataRefsToSensorDatas(List<SensorDataRef> retrievedRefs,
+      List<SensorData> origData) {
+    if (retrievedRefs.size() != origData.size()) {
+      return false;
+    }
+    for (SensorDataRef ref : retrievedRefs) {
+      int found = 0;
+      for (SensorData data : origData) {
+        if (ref.equalsSensorData(data)) {
+          found++;
+        }
+      }
+      if (found != 1) {
+        return false;
+      }
+    }
+    return true;
   }
 }

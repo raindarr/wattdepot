@@ -3,8 +3,7 @@ package org.wattdepot.resource.sensordata;
 import java.util.List;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.resource.sensordata.jaxb.Properties;
-import org.wattdepot.resource.sensordata.jaxb.Property;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 
 /**
@@ -158,8 +157,8 @@ public class SensorDataStraddle {
       return beforeData.getProperties().getPropertyAsDouble(propertyKey);
     }
     else {
-      String beforeValue = SensorDataUtils.getPropertyValue(this.beforeData, propertyKey);
-      String afterValue = SensorDataUtils.getPropertyValue(this.afterData, propertyKey);
+      String beforeValue = this.beforeData.getProperty(propertyKey);
+      String afterValue = this.afterData.getProperty(propertyKey);
       // If the property is missing from either SensorData, return 0
       if ((beforeValue == null) || (afterValue == null)) {
         return 0;
@@ -234,21 +233,17 @@ public class SensorDataStraddle {
    */
   public static SensorData makePowerSensorData(XMLGregorianCalendar timestamp, String source,
       double powerGeneratedValue, double powerConsumedValue, boolean interpolated) {
-    Properties props = new Properties();
     Property generatedProp, consumedProp, interpolatedProp;
-    generatedProp =
-        SensorDataUtils.makeSensorDataProperty("powerGenerated", Double
-            .toString(powerGeneratedValue));
-    consumedProp =
-        SensorDataUtils
-            .makeSensorDataProperty("powerConsumed", Double.toString(powerConsumedValue));
-    props.getProperty().add(generatedProp);
-    props.getProperty().add(consumedProp);
+    SensorData data = new SensorData(timestamp, "WattDepot Server", source);
+    generatedProp = new Property("powerGenerated", Double.toString(powerGeneratedValue));
+    data.addProperty(generatedProp);
+    consumedProp = new Property("powerConsumed", Double.toString(powerConsumedValue));
+    data.addProperty(consumedProp);
     if (interpolated) {
-      interpolatedProp = SensorDataUtils.makeSensorDataProperty("interpolated", "true");
-      props.getProperty().add(interpolatedProp);
+      interpolatedProp = new Property("interpolated", "true");
+      data.addProperty(interpolatedProp);
     }
-    return SensorDataUtils.makeSensorData(timestamp, "WattDepot Server", source, props);
+    return data;
   }
 
   /**

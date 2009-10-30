@@ -1,8 +1,6 @@
 package org.wattdepot.server.db;
 
 import static org.junit.Assert.assertTrue;
-import static org.wattdepot.resource.sensordata.SensorDataUtils.makeSensorData;
-import static org.wattdepot.resource.sensordata.SensorDataUtils.makeSensorDataProperty;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.wattdepot.resource.property.jaxb.Property;
@@ -128,11 +126,8 @@ public class DbManagerTestHelper {
    * (should never happen)
    */
   protected SensorData makeTestSensorData1() throws Exception {
-    org.wattdepot.resource.sensordata.jaxb.Properties props =
-        new org.wattdepot.resource.sensordata.jaxb.Properties();
-    props.getProperty().add(makeSensorDataProperty("powerConsumed", "10000"));
-    return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00"), "JUnit",
-        makeTestSource1().toUri(server), props);
+    return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00"), "JUnit",
+        makeTestSource1().toUri(server), new Property("powerConsumed", "10000"));
   }
 
   /**
@@ -143,11 +138,8 @@ public class DbManagerTestHelper {
    * (should never happen)
    */
   protected SensorData makeTestSensorData2() throws Exception {
-    org.wattdepot.resource.sensordata.jaxb.Properties props =
-        new org.wattdepot.resource.sensordata.jaxb.Properties();
-    props.getProperty().add(makeSensorDataProperty("powerConsumed", "11000"));
-    return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00"), "FooTool",
-        makeTestSource1().toUri(server), props);
+    return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00"), "FooTool",
+        makeTestSource1().toUri(server), new Property("powerConsumed", "11000"));
   }
 
   /**
@@ -158,10 +150,7 @@ public class DbManagerTestHelper {
    * (should never happen)
    */
   protected SensorData makeTestSensorData3() throws Exception {
-    org.wattdepot.resource.sensordata.jaxb.Properties props =
-        new org.wattdepot.resource.sensordata.jaxb.Properties();
-    props.getProperty().add(makeSensorDataProperty("powerConsumed", "9500"));
-    return makeSensorData(Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00"), "JUnit",
-        makeTestSource1().toUri(server), props);
+    return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00"), "JUnit",
+        makeTestSource1().toUri(server), new Property("powerConsumed", "9500"));
   }
 }

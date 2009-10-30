@@ -3,13 +3,11 @@ package org.wattdepot.datainput;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Test;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
-import org.wattdepot.resource.sensordata.jaxb.Properties;
-import org.wattdepot.resource.sensordata.jaxb.Property;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Tests the VerisRowParser class.
@@ -32,15 +30,13 @@ public class TestVerisRowParser {
     RowParser parser = new VerisRowParser(TOOL_NAME, SERVER_URI, SOURCE_NAME);
     // Example row from 2mauka meter
     String row = "2009-09-01 01:01:01\t0\t0\t0\t37785.62\t3.719";
-    Property powerConsumed = SensorDataUtils.makeSensorDataProperty("powerConsumed", "3719.0");
-    Property energyConsumed =
-        SensorDataUtils.makeSensorDataProperty("energyConsumedToDate", "3.778562E7");
-    Properties props = new Properties();
-    props.getProperty().add(powerConsumed);
-    props.getProperty().add(energyConsumed);
     SensorData data =
-        SensorDataUtils.makeSensorData(Tstamp.makeTimestamp("2009-09-01T01:01:01.000-10:00"),
-            TOOL_NAME, Source.sourceToUri(SOURCE_NAME, SERVER_URI), props);
+      new SensorData(Tstamp.makeTimestamp("2009-09-01T01:01:01.000-10:00"), TOOL_NAME, Source
+          .sourceToUri(SOURCE_NAME, SERVER_URI));
+    Property powerConsumed = new Property("powerConsumed", "3719.0");
+    Property energyConsumed = new Property("energyConsumedToDate", "3.778562E7");
+    data.addProperty(powerConsumed);
+    data.addProperty(energyConsumed);
     SensorData parsedData = parser.parseRow(row.split("\t"));
     assertEquals("Parsed sensor data differs from hand-created sensor data", data, parsedData);
   }

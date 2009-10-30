@@ -4,9 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.Test;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
-import org.wattdepot.resource.sensordata.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.util.tstamp.Tstamp;
 
@@ -70,9 +69,9 @@ public class TestCarbon {
     carbon = new Carbon(straddle1, straddle2, carbonIntensity);
     assertEquals("getCarbonEmitted on degenerate straddles with doubling power was wrong", 1.8,
         carbon.getCarbonEmitted(), 0.01);
-    Property interpolatedProp = SensorDataUtils.makeSensorDataProperty("interpolated", "true");
-    assertTrue("Interpolated property not found", carbon.getEnergy().getProperties().getProperty()
-        .contains(interpolatedProp));
+    Property interpolatedProp = new Property("interpolated", "true");
+    assertTrue("Interpolated property not found", carbon.getEnergy().containsProperty(
+        interpolatedProp));
 
     // Computed by hand from Oscar data
     beforeTime = Tstamp.makeTimestamp("2009-10-12T00:00:00.000-10:00");

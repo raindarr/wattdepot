@@ -6,8 +6,8 @@ import static org.junit.Assert.assertTrue;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.util.tstamp.Tstamp;
 import org.junit.Test;
-import org.wattdepot.resource.sensordata.jaxb.Properties;
-import org.wattdepot.resource.sensordata.jaxb.Property;
+import org.wattdepot.resource.property.jaxb.Properties;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 
@@ -30,48 +30,6 @@ public class TestSensorDataJaxb {
   private static final String DEFAULT_TIMESTAMP = "2009-07-28T08:00:00.000-10:00";
 
   /**
-   * Tests equals and hashCode for the SensorData Property type.
-   */
-  @Test
-  public void testSensorDataProperty() {
-    String key = "some-key", value = "some-value";
-    Property prop1 = SensorDataUtils.makeSensorDataProperty(key, value), prop2 =
-        SensorDataUtils.makeSensorDataProperty(key, value);
-
-    assertNotSame("Two newly created SensorData Property are the same object", prop1, prop2);
-    assertEquals("Two SensorData Property with identical keys and values are not equal", prop1,
-        prop2);
-    assertEquals("Two SensorData Property with identical keys and values have different hashCodes",
-        prop1.hashCode(), prop2.hashCode());
-  }
-
-  /**
-   * Tests equals and hashCode for the SensorData Properties type.
-   */
-  @Test
-  public void testSensorDataProperties() {
-    String key1 = "some-key", value1 = "some-value", key2 = "foo-key", value2 = "foo-value";
-    // Make two pairs of Property objects that have same keys &values
-    Property prop1 = SensorDataUtils.makeSensorDataProperty(key1, value1);
-    Property prop2 = SensorDataUtils.makeSensorDataProperty(key2, value2);
-    Property prop3 = SensorDataUtils.makeSensorDataProperty(key1, value1);
-    Property prop4 = SensorDataUtils.makeSensorDataProperty(key2, value2);
-    Properties props1 = new Properties(), props2 = new Properties();
-
-    props1.getProperty().add(prop1);
-    props1.getProperty().add(prop2);
-    props2.getProperty().add(prop3);
-    props2.getProperty().add(prop4);
-
-    assertNotSame("Two newly created SensorData Properties are the same object", props1, props2);
-    assertEquals(
-        "Two SensorData Properties with lists of identical Property objects are not equal", props1,
-        props2);
-    assertEquals("Two SensorData Properties with identical lists have different hashCodes", props1
-        .hashCode(), props2.hashCode());
-  }
-
-  /**
    * Tests equals and hashCode for the SensorData type.
    * 
    * @throws Exception If there are problems creating the timestamp
@@ -80,10 +38,10 @@ public class TestSensorDataJaxb {
   public void testSensorData() throws Exception {
     String key1 = "some-key", value1 = "some-value", key2 = "foo-key", value2 = "foo-value";
     // Make two pairs of Property objects that have same keys &values
-    Property prop1 = SensorDataUtils.makeSensorDataProperty(key1, value1);
-    Property prop2 = SensorDataUtils.makeSensorDataProperty(key2, value2);
-    Property prop3 = SensorDataUtils.makeSensorDataProperty(key1, value1);
-    Property prop4 = SensorDataUtils.makeSensorDataProperty(key2, value2);
+    Property prop1 = new Property(key1, value1);
+    Property prop2 = new Property(key2, value2);
+    Property prop3 = new Property(key1, value1);
+    Property prop4 = new Property(key2, value2);
     Properties props1 = new Properties(), props2 = new Properties();
     SensorData data1, data2;
 
@@ -95,10 +53,10 @@ public class TestSensorDataJaxb {
     XMLGregorianCalendar timestamp1 = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
     XMLGregorianCalendar timestamp2 = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
     data1 =
-        SensorDataUtils.makeSensorData(timestamp1, JUNIT_TOOL,
+        new SensorData(timestamp1, JUNIT_TOOL,
             "http://localhost:8183/wattdepot/sources/saunders-hall", props1);
     data2 =
-        SensorDataUtils.makeSensorData(timestamp2, JUNIT_TOOL,
+        new SensorData(timestamp2, JUNIT_TOOL,
             "http://localhost:8183/wattdepot/sources/saunders-hall", props2);
 
     assertNotSame("Two newly created SensorData are the same object", data1, data2);
@@ -115,8 +73,8 @@ public class TestSensorDataJaxb {
   @Test
   public void testToString() throws Exception {
     String key1 = "foo-key", value1 = "foo", key2 = "bar-key", value2 = "bar";
-    Property prop1 = SensorDataUtils.makeSensorDataProperty(key1, value1);
-    Property prop2 = SensorDataUtils.makeSensorDataProperty(key2, value2);
+    Property prop1 = new Property(key1, value1);
+    Property prop2 = new Property(key2, value2);
     Properties props1 = new Properties();
     SensorData data1;
 
@@ -125,7 +83,7 @@ public class TestSensorDataJaxb {
 
     XMLGregorianCalendar timestamp1 = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
     data1 =
-        SensorDataUtils.makeSensorData(timestamp1, JUNIT_TOOL,
+        new SensorData(timestamp1, JUNIT_TOOL,
             "http://localhost:8183/wattdepot/sources/saunders-hall", props1);
     assertEquals("SensorData did not create expected toString",
         "SensorData [properties=[Property [key=foo-key, value=foo], Property [key=bar-key,"
@@ -155,28 +113,25 @@ public class TestSensorDataJaxb {
     String sourceEqual = "http://server.wattdepot.org:1234/sources/saunders-hall";
     String sourceBefore = "http://server.wattdepot.org:1234/sources/a-saunders-hall";
     String sourceAfter = "http://server.wattdepot.org:1234/sources/z-saunders-hall";
-    SensorDataRef ref = SensorDataUtils.makeSensorDataRef(timestamp, tool, source);
-    SensorDataRef refEqual =
-        SensorDataUtils.makeSensorDataRef(timestampEqual, toolEqual, sourceEqual);
+    SensorDataRef ref = new SensorDataRef(timestamp, tool, source);
+    SensorDataRef refEqual = new SensorDataRef(timestampEqual, toolEqual, sourceEqual);
     assertNotSame("Two newly created SensorDataRefs are the same object", ref, refEqual);
     assertEquals("Two SensorDataRefs with identical fields are not equal", ref, refEqual);
     assertEquals("Two SensorDataRefs with identical fields have different hashCodes", ref
         .hashCode(), refEqual.hashCode());
     assertEquals("SensorDataRef.compareTo timestamp not working", 0, ref.compareTo(refEqual));
-    SensorDataRef refTimestampBefore =
-        SensorDataUtils.makeSensorDataRef(timestampBefore, tool, source);
-    SensorDataRef refTimestampAfter =
-        SensorDataUtils.makeSensorDataRef(timestampAfter, tool, source);
+    SensorDataRef refTimestampBefore = new SensorDataRef(timestampBefore, tool, source);
+    SensorDataRef refTimestampAfter = new SensorDataRef(timestampAfter, tool, source);
     assertEquals("SensorDataRef.compareTo timestamp not working", -1, ref
         .compareTo(refTimestampAfter));
     assertEquals("SensorDataRef.compareTo timestamp not working", 1, ref
         .compareTo(refTimestampBefore));
-    SensorDataRef refToolBefore = SensorDataUtils.makeSensorDataRef(timestamp, toolBefore, source);
-    SensorDataRef refToolAfter = SensorDataUtils.makeSensorDataRef(timestamp, toolAfter, source);
+    SensorDataRef refToolBefore = new SensorDataRef(timestamp, toolBefore, source);
+    SensorDataRef refToolAfter = new SensorDataRef(timestamp, toolAfter, source);
     assertTrue("SensorDataRef.compareTo tool not working", ref.compareTo(refToolAfter) < 0);
     assertTrue("SensorDataRef.compareTo tool not working", ref.compareTo(refToolBefore) > 0);
-    SensorDataRef refSourceBefore = SensorDataUtils.makeSensorDataRef(timestamp, tool, sourceBefore);
-    SensorDataRef refSourceAfter = SensorDataUtils.makeSensorDataRef(timestamp, tool, sourceAfter);
+    SensorDataRef refSourceBefore = new SensorDataRef(timestamp, tool, sourceBefore);
+    SensorDataRef refSourceAfter = new SensorDataRef(timestamp, tool, sourceAfter);
     assertTrue("SensorDataRef.compareTo source not working", ref.compareTo(refSourceAfter) < 0);
     assertTrue("SensorDataRef.compareTo source not working", ref.compareTo(refSourceBefore) > 0);
   }

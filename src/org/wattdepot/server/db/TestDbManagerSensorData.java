@@ -5,14 +5,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.wattdepot.resource.sensordata.SensorDataUtils.compareSensorDataRefsToSensorDatas;
-import static org.wattdepot.resource.sensordata.SensorDataUtils.sensorDataRefEqualsSensorData;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.Test;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
-import org.wattdepot.resource.sensordata.SensorDataUtils;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -90,9 +87,9 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
     assertSame("getSensorDataIndex returned wrong number of SensorDataRefs", manager
         .getSensorDataIndex(this.source1.getName()).getSensorDataRef().size(), 1);
-    assertTrue("getSensorDataIndex didn't return expected SensorDataRef",
-        sensorDataRefEqualsSensorData(manager.getSensorDataIndex(this.source1.getName())
-            .getSensorDataRef().get(0), this.data1));
+    assertTrue("getSensorDataIndex didn't return expected SensorDataRef", manager
+        .getSensorDataIndex(this.source1.getName()).getSensorDataRef().get(0).equalsSensorData(
+            this.data1));
 
     // case #3: after storing three SensorDatas should have SensorDataIndex with three
     // SensorDataRefs that match original SensorDatas
@@ -107,8 +104,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.add(this.data1);
     origData.add(this.data2);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, compareSensorDataRefsToSensorDatas(retrievedRefs,
-        origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
 
     // TODO Should test that SensorDataIndex is sorted in increasing timestamp order
 
@@ -194,24 +191,24 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.add(this.data1);
     origData.add(this.data2);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, compareSensorDataRefsToSensorDatas(retrievedRefs,
-        origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
 
     // case #4: range covering only data1
     assertSame("getSensorDataIndex didn't contain all expected SensorData", manager
         .getSensorDataIndex(this.source1.getName(), before1, between1And2).getSensorDataRef()
         .size(), 1);
-    assertTrue("getSensorDataIndex didn't return expected ", sensorDataRefEqualsSensorData(manager
-        .getSensorDataIndex(this.source1.getName(), before1, between1And2).getSensorDataRef()
-        .get(0), this.data1));
+    assertTrue("getSensorDataIndex didn't return expected ", manager.getSensorDataIndex(
+        this.source1.getName(), before1, between1And2).getSensorDataRef().get(0).equalsSensorData(
+        this.data1));
 
     // case #5: range covering only data2
     assertSame("getSensorDataIndex didn't contain all expected SensorData", manager
         .getSensorDataIndex(this.source1.getName(), between1And2, between2And3).getSensorDataRef()
         .size(), 1);
-    assertTrue("getSensorDataIndex didn't return expected ", sensorDataRefEqualsSensorData(manager
-        .getSensorDataIndex(this.source1.getName(), between1And2, between2And3).getSensorDataRef()
-        .get(0), this.data2));
+    assertTrue("getSensorDataIndex didn't return expected ", manager.getSensorDataIndex(
+        this.source1.getName(), between1And2, between2And3).getSensorDataRef().get(0)
+        .equalsSensorData(this.data2));
 
     // case #6: range covering data1 & data2
     retrievedRefs =
@@ -220,8 +217,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.clear();
     origData.add(this.data1);
     origData.add(this.data2);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, compareSensorDataRefsToSensorDatas(retrievedRefs,
-        origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
 
     // case #7: range covering data2 & data3
     retrievedRefs =
@@ -229,8 +226,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.clear();
     origData.add(this.data2);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, compareSensorDataRefsToSensorDatas(retrievedRefs,
-        origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
 
     // case #7.5: range starting exactly at data1 and ending exactly at data3
     retrievedRefs = manager.getSensorDataIndex(this.source1.getName(), at1, at3).getSensorDataRef();
@@ -238,8 +235,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.add(this.data1);
     origData.add(this.data2);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, compareSensorDataRefsToSensorDatas(retrievedRefs,
-        origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
 
     // TODO Should test that SensorDataIndex is sorted in increasing timestamp order
 
@@ -251,8 +248,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.clear();
     origData.add(this.data1);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, compareSensorDataRefsToSensorDatas(retrievedRefs,
-        origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
+        retrievedRefs, origData));
 
     // case #9: retrieving SensorDataIndex for bogus Source name
     assertNull("Found SensorDataIndex for bogus Source name", manager.getSensorDataIndex(
@@ -517,11 +514,11 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     // String source2 = UriUtils.getUriSuffix(sourceToUri(makeTestSource2(), server));
     String virtualSource = UriUtils.getUriSuffix(makeTestSource3().toUri(server));
 
-    SensorData data1 = SensorDataUtils.makeSensorData(source1Time1, tool, source1, null);
-    SensorData data2 = SensorDataUtils.makeSensorData(source1Time2, tool, source1, null);
-    SensorData data3 = SensorDataUtils.makeSensorData(source1Time3, tool, source1, null);
-    SensorData data4 = SensorDataUtils.makeSensorData(source1Time4, tool, source1, null);
-    SensorData data5 = SensorDataUtils.makeSensorData(source1Time5, tool, source1, null);
+    SensorData data1 = new SensorData(source1Time1, tool, source1);
+    SensorData data2 = new SensorData(source1Time2, tool, source1);
+    SensorData data3 = new SensorData(source1Time3, tool, source1);
+    SensorData data4 = new SensorData(source1Time4, tool, source1);
+    SensorData data5 = new SensorData(source1Time5, tool, source1);
     SensorDataStraddle straddle;
 
     assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data1));
@@ -599,14 +596,14 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     String source2 = UriUtils.getUriSuffix(makeTestSource2().toUri(server));
     String virtualSource = UriUtils.getUriSuffix(makeTestSource3().toUri(server));
 
-    SensorData source1Data1 = SensorDataUtils.makeSensorData(source1Time1, tool, source1, null);
-    SensorData source1Data2 = SensorDataUtils.makeSensorData(source1Time2, tool, source1, null);
-    SensorData source1Data3 = SensorDataUtils.makeSensorData(source1Time3, tool, source1, null);
-    SensorData source1Data4 = SensorDataUtils.makeSensorData(source1Time4, tool, source1, null);
-    SensorData source1Data5 = SensorDataUtils.makeSensorData(source1Time5, tool, source1, null);
-    SensorData source2Data1 = SensorDataUtils.makeSensorData(source2Time1, tool, source2, null);
-    SensorData source2Data2 = SensorDataUtils.makeSensorData(source2Time2, tool, source2, null);
-    SensorData source2Data3 = SensorDataUtils.makeSensorData(source2Time3, tool, source2, null);
+    SensorData source1Data1 = new SensorData(source1Time1, tool, source1);
+    SensorData source1Data2 = new SensorData(source1Time2, tool, source1);
+    SensorData source1Data3 = new SensorData(source1Time3, tool, source1);
+    SensorData source1Data4 = new SensorData(source1Time4, tool, source1);
+    SensorData source1Data5 = new SensorData(source1Time5, tool, source1);
+    SensorData source2Data1 = new SensorData(source2Time1, tool, source2);
+    SensorData source2Data2 = new SensorData(source2Time2, tool, source2);
+    SensorData source2Data3 = new SensorData(source2Time3, tool, source2);
     List<SensorDataStraddle> straddleList;
 
     assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data1));
