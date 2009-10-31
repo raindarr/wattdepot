@@ -72,13 +72,12 @@ public class Carbon extends Energy {
    */
   public static SensorData makeCarbonSensorData(XMLGregorianCalendar timestamp, String source,
       double carbonEmittedValue, boolean interpolated) {
-    Property emittedProp, interpolatedProp;
+    Property emittedProp;
     SensorData data = new SensorData(timestamp, "WattDepot Server", source);
     emittedProp = new Property(SensorData.CARBON_EMITTED, Double.toString(carbonEmittedValue));
     data.addProperty(emittedProp);
     if (interpolated) {
-      interpolatedProp = new Property("interpolated", "true");
-      data.addProperty(interpolatedProp);
+      data.setInterpolated(true);
     }
     return data;
   }

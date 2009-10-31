@@ -8,7 +8,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.client.BadXmlException;
 import org.wattdepot.client.WattDepotClient;
-import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -315,9 +314,8 @@ public class TestEnergyResource extends ServerTestHelper {
         client.getEnergyGenerated(sourceName, beforeTime, afterTime, 0), 0.01);
     assertEquals("getEnergy on degenerate range with default interval gave wrong value", 150,
         client.getEnergyGenerated(sourceName, beforeTime, afterTime, 5), 0.01);
-    Property interpolatedProp = new Property("interpolated", "true");
     assertTrue("Interpolated property not found", client.getEnergy(sourceName, beforeTime,
-        afterTime, 0).containsProperty(interpolatedProp));
+        afterTime, 0).isInterpolated());
     client.deleteSensorData(sourceName, beforeData.getTimestamp());
     client.deleteSensorData(sourceName, afterData.getTimestamp());
 
@@ -368,7 +366,6 @@ public class TestEnergyResource extends ServerTestHelper {
     String virtualSourceName = DbManager.defaultVirtualSource;
     String source1 = Source.sourceToUri(source1Name, server);
     String source2 = Source.sourceToUri(source2Name, server);
-    Property interpolatedProp = new Property("interpolated", "true");
 
     // timestamp = range for flat power on both sources, getEnergy should just return double
     beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
@@ -443,6 +440,6 @@ public class TestEnergyResource extends ServerTestHelper {
     assertEquals("energy for virtual source did not equal expected value", 7.448E7, client
         .getEnergyGenerated(virtualSourceName, timestamp1, timestamp2, 0), 0.01);
     assertTrue("Interpolated property not found", client.getEnergy(virtualSourceName, timestamp1,
-        timestamp2, 0).getProperties().getProperty().contains(interpolatedProp));
+        timestamp2, 0).isInterpolated());
   }
 }

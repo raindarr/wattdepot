@@ -1,6 +1,7 @@
 package org.wattdepot.resource.sensordata;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -22,6 +23,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
  * 
  * @author Robert Brewer
  */
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 public class TestSensorDataJaxb {
 
   /** Making PMD happy. */
@@ -89,6 +91,26 @@ public class TestSensorDataJaxb {
         "SensorData [properties=[Property [key=foo-key, value=foo], Property [key=bar-key,"
             + " value=bar]], source=http://localhost:8183/wattdepot/sources/saunders-hall,"
             + " timestamp=2009-07-28T08:00:00.000-10:00, tool=JUnit]", data1.toString());
+  }
+  
+  /**
+   * Tests that the isInterpolated and setInterpolated methods work properly.
+   * 
+   * @throws Exception If there are problems creating the timestamp.
+   */
+  @Test
+  public void testInterpolation() throws Exception {
+    String key1 = "foo-key", value1 = "foo", key2 = "bar-key", value2 = "bar";
+    XMLGregorianCalendar timestamp1 = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
+    SensorData data = new SensorData(timestamp1, JUNIT_TOOL,
+        "http://localhost:8183/wattdepot/sources/saunders-hall");
+    data.addProperty(new Property(key1, value1));
+    data.addProperty(new Property(key2, value2));
+    assertFalse("SensorData incorrectly reports interpolation", data.isInterpolated());
+    data.setInterpolated(true);
+    assertTrue("SensorData incorrectly reports interpolation", data.isInterpolated());
+    data.setInterpolated(false);
+    assertFalse("SensorData incorrectly reports interpolation", data.isInterpolated());
   }
 
   /**

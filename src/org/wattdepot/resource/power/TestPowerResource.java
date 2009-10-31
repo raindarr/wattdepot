@@ -290,10 +290,8 @@ public class TestPowerResource extends ServerTestHelper {
     timestamp = Tstamp.makeTimestamp("2009-07-28T08:00:25.000-10:00");
     powerData = client.getPower(sourceName, timestamp);
     interpolatedPower = Double.valueOf(powerData.getProperties().getProperty().get(0).getValue());
-    Property interpolatedProp = new Property("interpolated", "true");
     assertEquals("Interpolated power did not equal expected value", 150, interpolatedPower, 0.01);
-    assertTrue("Interpolated property not found", powerData.getProperties().getProperty().contains(
-        interpolatedProp));
+    assertTrue("Interpolated property not found", powerData.isInterpolated());
     // Test for power before all SensorData
     try {
       client.getPowerConsumed(sourceName, Tstamp.makeTimestamp("2009-07-28T07:00:00.000-10:00"));
@@ -354,7 +352,6 @@ public class TestPowerResource extends ServerTestHelper {
     String source2 = Source.sourceToUri(source2Name, server);
     Property beforeProp;
     double interpolatedPower = -1;
-    Property interpolatedProp = new Property("interpolated", "true");
 
     // timestamp == beforeData == afterData on both sources, getPower should return beforeData * 2
     beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
@@ -370,8 +367,7 @@ public class TestPowerResource extends ServerTestHelper {
     interpolatedPower = powerData.getProperties().getPropertyAsDouble(POWER_GENERATED);
     assertEquals("getPower for virtual source on degenerate straddle did not return beforeData",
         200, interpolatedPower, 0.1);
-    assertFalse("Interpolated property found on non-interpolated data", powerData.getProperties()
-        .getProperty().contains(interpolatedProp));
+    assertFalse("Interpolated property found on non-interpolated data", powerData.isInterpolated());
     // Delete sensordata for next test
     client.deleteSensorData(source1Name, beforeData.getTimestamp());
     client.deleteSensorData(source2Name, beforeData.getTimestamp());
@@ -387,8 +383,7 @@ public class TestPowerResource extends ServerTestHelper {
     powerData = client.getPower(source1Name, timestamp);
     interpolatedPower = Double.valueOf(powerData.getProperties().getProperty().get(0).getValue());
     assertEquals("Interpolated power did not equal expected value", 1.5E7, interpolatedPower, 0.01);
-    assertTrue("Interpolated property not found", powerData.getProperties().getProperty().contains(
-        interpolatedProp));
+    assertTrue("Interpolated property not found", powerData.isInterpolated());
     // Test getPowerGenerated
     assertEquals("Interpolated power did not equal expected value", 1.5E7, client
         .getPowerGenerated(source1Name, timestamp), 0.01);
@@ -435,7 +430,6 @@ public class TestPowerResource extends ServerTestHelper {
     String source1 = Source.sourceToUri(source1Name, server);
     String source2 = Source.sourceToUri(source2Name, server);
     double interpolatedPower = -1;
-    Property interpolatedProp = new Property("interpolated", "true");
 
     // timestamp == beforeData == afterData on both sources, getPower should return beforeData * 2
     beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
@@ -449,8 +443,7 @@ public class TestPowerResource extends ServerTestHelper {
     interpolatedPower = powerData.getProperties().getPropertyAsDouble(POWER_GENERATED);
     assertEquals("getPower for virtual source on degenerate straddle did not return beforeData",
         200, interpolatedPower, 0.1);
-    assertFalse("Interpolated property found on non-interpolated data", powerData.getProperties()
-        .getProperty().contains(interpolatedProp));
+    assertFalse("Interpolated property found on non-interpolated data", powerData.isInterpolated());
     // Delete sensordata for next test
     client.deleteSensorData(source1Name, beforeData.getTimestamp());
     client.deleteSensorData(source2Name, beforeData.getTimestamp());

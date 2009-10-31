@@ -8,7 +8,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.client.BadXmlException;
 import org.wattdepot.client.WattDepotClient;
-import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -316,9 +315,8 @@ public class TestCarbonResource extends ServerTestHelper {
         client.getCarbonEmitted(sourceName, beforeTime, afterTime, 0), 0.001);
     assertEquals("getCarbon on degenerate range with default interval gave wrong value", 0.15,
         client.getCarbonEmitted(sourceName, beforeTime, afterTime, 5), 0.001);
-    Property interpolatedProp = new Property("interpolated", "true");
     assertTrue("Interpolated property not found", client.getCarbon(sourceName, beforeTime,
-        afterTime, 0).containsProperty(interpolatedProp));
+        afterTime, 0).isInterpolated());
     client.deleteSensorData(sourceName, beforeData.getTimestamp());
     client.deleteSensorData(sourceName, afterData.getTimestamp());
 
@@ -363,7 +361,6 @@ public class TestCarbonResource extends ServerTestHelper {
     String virtualSourceName = DbManager.defaultVirtualSource;
     String source1 = Source.sourceToUri(source1Name, server);
     String source2 = Source.sourceToUri(source2Name, server);
-    Property interpolatedProp = new Property("interpolated", "true");
 
     // timestamp = range for flat power on both sources
     beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
@@ -404,7 +401,7 @@ public class TestCarbonResource extends ServerTestHelper {
       // Expected in this case
     }
     assertTrue("Interpolated property not found", client.getCarbon(virtualSourceName, beforeTime,
-        afterTime, 0).containsProperty(interpolatedProp));
+        afterTime, 0).isInterpolated());
     client.deleteSensorData(source1Name, beforeData.getTimestamp());
     client.deleteSensorData(source1Name, afterData.getTimestamp());
     client.deleteSensorData(source2Name, beforeData.getTimestamp());

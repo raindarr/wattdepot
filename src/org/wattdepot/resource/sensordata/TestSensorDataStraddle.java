@@ -126,10 +126,8 @@ public class TestSensorDataStraddle {
     straddle = new SensorDataStraddle(timestamp, beforeData, afterData);
     interpolatedPower =
         Double.valueOf(straddle.getPower().getProperties().getProperty().get(0).getValue());
-    Property interpolatedProp = new Property("interpolated", "true");
     assertEquals("Interpolated power did not equal expected value", 150, interpolatedPower, 0.01);
-    assertTrue("Interpolated property not found", straddle.getPower().containsProperty(
-        interpolatedProp));
+    assertTrue("Interpolated property not found", straddle.getPower().isInterpolated());
 
     // Computed by hand from Oscar data
     beforeTime = Tstamp.makeTimestamp("2009-10-12T00:00:00.000-10:00");
@@ -142,8 +140,7 @@ public class TestSensorDataStraddle {
         Double.valueOf(straddle.getPower().getProperties().getProperty().get(0).getValue());
     // System.out.println(interpolatedPower);
     assertEquals("Interpolated power did not equal expected value", 6.28E7, interpolatedPower, 0.01);
-    assertTrue("Interpolated property not found", straddle.getPower().containsProperty(
-        interpolatedProp));
+    assertTrue("Interpolated property not found", straddle.getPower().isInterpolated());
   }
 
   /**
@@ -160,7 +157,6 @@ public class TestSensorDataStraddle {
     String source = "http://server.wattdepot.org:1234/wattdepot/sources/foo-source";
     SensorDataStraddle straddle1, straddle2;
     double interpolatedPower = -1;
-    Property interpolatedProp = new Property("interpolated", "true");
 
     // timestamp == beforeData == afterData for two straddles, getPower should return beforeData * 2
     beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
@@ -176,7 +172,7 @@ public class TestSensorDataStraddle {
     assertEquals("getPower for virtual source on degenerate straddle did not return beforeData",
         200, interpolatedPower, 0.01);
     assertFalse("Interpolated property found on non-interpolated data", straddle1.getPower()
-        .containsProperty(interpolatedProp));
+        .isInterpolated());
 
     // Simple, in the middle of interval
     beforeTime = Tstamp.makeTimestamp("2009-10-12T00:12:35.000-10:00");
@@ -188,8 +184,7 @@ public class TestSensorDataStraddle {
     interpolatedPower =
         Double.valueOf(straddle1.getPower().getProperties().getProperty().get(0).getValue());
     assertEquals("Interpolated power did not equal expected value", 1.5E7, interpolatedPower, 0.01);
-    assertTrue("Interpolated property not found", straddle1.getPower().containsProperty(
-        interpolatedProp));
+    assertTrue("Interpolated property not found", straddle1.getPower().isInterpolated());
 
     // Computed by hand from Oscar data
     beforeTime = Tstamp.makeTimestamp("2009-10-12T00:00:00.000-10:00");
@@ -202,8 +197,7 @@ public class TestSensorDataStraddle {
         Double.valueOf(straddle2.getPower().getProperties().getProperty().get(0).getValue());
     // System.out.println(interpolatedPower);
     assertEquals("Interpolated power did not equal expected value", 6.28E7, interpolatedPower, 0.01);
-    assertTrue("Interpolated property not found", straddle2.getPower().getProperties()
-        .getProperty().contains(interpolatedProp));
+    assertTrue("Interpolated property not found", straddle2.getPower().isInterpolated());
 
     // Now make list of straddle1 & straddle2 and confirm results are combined
     straddleList.clear();

@@ -368,7 +368,6 @@ public class SensorData implements Serializable {
    * 
    * @param interpolatedp The interpolated value to set.
    */
-  // TODO really need a unit test for this
   public void setInterpolated(boolean interpolatedp) {
     if (interpolatedp) {
       addProperty(interpolatedProperty);
