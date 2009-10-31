@@ -186,7 +186,7 @@ public class SensorDataStraddle {
    * @return the power generated at the timestamp.
    */
   public double getPowerGenerated() {
-    return linearlyInterpolate("powerGenerated");
+    return linearlyInterpolate(SensorData.POWER_GENERATED);
   }
 
   /**
@@ -195,7 +195,7 @@ public class SensorDataStraddle {
    * @return the power consumed at the timestamp.
    */
   public double getPowerConsumed() {
-    return linearlyInterpolate("powerConsumed");
+    return linearlyInterpolate(SensorData.POWER_CONSUMED);
   }
 
   /**
@@ -235,12 +235,12 @@ public class SensorDataStraddle {
       double powerGeneratedValue, double powerConsumedValue, boolean interpolated) {
     Property generatedProp, consumedProp, interpolatedProp;
     SensorData data = new SensorData(timestamp, "WattDepot Server", source);
-    generatedProp = new Property("powerGenerated", Double.toString(powerGeneratedValue));
+    generatedProp = new Property(SensorData.POWER_GENERATED, Double.toString(powerGeneratedValue));
     data.addProperty(generatedProp);
-    consumedProp = new Property("powerConsumed", Double.toString(powerConsumedValue));
+    consumedProp = new Property(SensorData.POWER_CONSUMED, Double.toString(powerConsumedValue));
     data.addProperty(consumedProp);
     if (interpolated) {
-      interpolatedProp = new Property("interpolated", "true");
+      interpolatedProp = new Property(SensorData.INTERPOLATED, "true");
       data.addProperty(interpolatedProp);
     }
     return data;
@@ -271,9 +271,11 @@ public class SensorDataStraddle {
       for (SensorDataStraddle straddle : straddleList) {
         if (straddle.isDegenerate()) {
           powerGenerated +=
-              straddle.getBeforeData().getProperties().getPropertyAsDouble("powerGenerated");
+              straddle.getBeforeData().getProperties().getPropertyAsDouble(
+                  SensorData.POWER_GENERATED);
           powerConsumed +=
-              straddle.getBeforeData().getProperties().getPropertyAsDouble("powerConsumed");
+              straddle.getBeforeData().getProperties().getPropertyAsDouble(
+                  SensorData.POWER_CONSUMED);
         }
         else {
           // If any of the straddles were non-degenerate, then set the whole thing to interpolated

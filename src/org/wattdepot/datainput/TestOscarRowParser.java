@@ -31,7 +31,7 @@ public class TestOscarRowParser {
     String row = "2009-10-12T00:15:00-1000,SIM_HPOWER,46,5,BASELOAD";
     SensorData data =
         new SensorData(Tstamp.makeTimestamp("2009-10-12T00:15:00.000-10:00"), TOOL_NAME, Source
-            .sourceToUri("SIM_HPOWER", SERVER_URI), new Property("powerGenerated", "4.6E7"));
+            .sourceToUri("SIM_HPOWER", SERVER_URI), new Property(SensorData.POWER_GENERATED, "4.6E7"));
     SensorData parsedData = parser.parseRow(row.split(","));
     assertEquals("Parsed sensor data differs from hand-created sensor data", data, parsedData);
   }

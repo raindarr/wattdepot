@@ -76,7 +76,7 @@ public class VerisRowParser extends RowParser {
       throw new RowParseException("Unable to parse floating point number: " + powerConsumedString,
           e);
     }
-    Property prop1 = new Property("powerConsumed", Double.toString(powerConsumed));
+    Property prop1 = new Property(SensorData.POWER_CONSUMED, Double.toString(powerConsumed));
 
     String energyConsumedToDateString = col[4];
     double energyConsumedToDate;
@@ -90,7 +90,8 @@ public class VerisRowParser extends RowParser {
       throw new RowParseException("Unable to parse floating point number: "
           + energyConsumedToDateString, e);
     }
-    Property prop2 = new Property("energyConsumedToDate", Double.toString(energyConsumedToDate));
+    Property prop2 =
+        new Property(SensorData.ENERGY_CONSUMED_TO_DATE, Double.toString(energyConsumedToDate));
     Properties props = new Properties();
     props.getProperty().add(prop1);
     props.getProperty().add(prop2);

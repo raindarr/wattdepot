@@ -342,7 +342,7 @@ public class TestCarbonResource extends ServerTestHelper {
         .getCarbonEmitted(sourceName, timestamp1, timestamp2, 0), 0.3E4);
     SensorData energyData = client.getCarbon(sourceName, timestamp1, timestamp2, 1);
     assertEquals("getCarbon on on Oscar data was wrong", 2.8033333333333332E4, energyData
-        .getProperties().getPropertyAsDouble("carbonEmitted"), 0.2E4);
+        .getProperties().getPropertyAsDouble(SensorData.CARBON_EMITTED), 0.2E4);
   }
 
   /**

@@ -127,7 +127,7 @@ public class DbManagerTestHelper {
    */
   protected SensorData makeTestSensorData1() throws Exception {
     return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00"), "JUnit",
-        makeTestSource1().toUri(server), new Property("powerConsumed", "10000"));
+        makeTestSource1().toUri(server), new Property(SensorData.POWER_CONSUMED, "10000"));
   }
 
   /**
@@ -139,7 +139,7 @@ public class DbManagerTestHelper {
    */
   protected SensorData makeTestSensorData2() throws Exception {
     return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00"), "FooTool",
-        makeTestSource1().toUri(server), new Property("powerConsumed", "11000"));
+        makeTestSource1().toUri(server), new Property(SensorData.POWER_CONSUMED, "11000"));
   }
 
   /**
@@ -151,6 +151,6 @@ public class DbManagerTestHelper {
    */
   protected SensorData makeTestSensorData3() throws Exception {
     return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00"), "JUnit",
-        makeTestSource1().toUri(server), new Property("powerConsumed", "9500"));
+        makeTestSource1().toUri(server), new Property(SensorData.POWER_CONSUMED, "9500"));
   }
 }

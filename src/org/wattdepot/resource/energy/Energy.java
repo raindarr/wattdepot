@@ -109,12 +109,13 @@ public class Energy {
       double energyGeneratedValue, double energyConsumedValue, boolean interpolated) {
     Property generatedProp, consumedProp, interpolatedProp;
     SensorData data = new SensorData(timestamp, "WattDepot Server", source);
-    generatedProp = new Property("energyGenerated", Double.toString(energyGeneratedValue));
+    generatedProp =
+        new Property(SensorData.ENERGY_GENERATED, Double.toString(energyGeneratedValue));
     data.addProperty(generatedProp);
-    consumedProp = new Property("energyConsumed", Double.toString(energyConsumedValue));
+    consumedProp = new Property(SensorData.ENERGY_CONSUMED, Double.toString(energyConsumedValue));
     data.addProperty(consumedProp);
     if (interpolated) {
-      interpolatedProp = new Property("interpolated", "true");
+      interpolatedProp = new Property(SensorData.INTERPOLATED, "true");
       data.addProperty(interpolatedProp);
     }
     return data;
@@ -179,8 +180,10 @@ public class Energy {
       // iterate over the list of straddle lists (each one corresponding to a different source
       for (List<SensorDataStraddle> straddleList : masterList) {
         energyData = getEnergyFromList(straddleList, source);
-        energyGenerated += energyData.getProperties().getPropertyAsDouble("energyGenerated");
-        energyConsumed += energyData.getProperties().getPropertyAsDouble("energyConsumed");
+        energyGenerated +=
+            energyData.getProperties().getPropertyAsDouble(SensorData.ENERGY_GENERATED);
+        energyConsumed +=
+            energyData.getProperties().getPropertyAsDouble(SensorData.ENERGY_CONSUMED);
       }
       return makeEnergySensorData(timestamp, source, energyGenerated, energyConsumed,
           wasInterpolated);

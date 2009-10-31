@@ -362,6 +362,23 @@ public class SensorData implements Serializable {
   }
 
   /**
+   * Sets the interpolated property to the desired value. To indicate that the SensorData is
+   * interpolated, the property SensorData.INTERPOLATED is set to value "true". To indicate that
+   * the SensorData is not interpolated, the property is deleted.
+   * 
+   * @param interpolatedp The interpolated value to set.
+   */
+  // TODO really need a unit test for this
+  public void setInterpolated(boolean interpolatedp) {
+    if (interpolatedp) {
+      addProperty(interpolatedProperty);
+    }
+    else {
+      this.properties.getProperty().remove(interpolatedProperty);
+    }
+  }
+
+  /**
    * Given the Server and Source a SensorData object belongs to, returns the URI to that SensorData
    * resource.
    * 

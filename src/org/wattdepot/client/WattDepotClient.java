@@ -502,7 +502,7 @@ public class WattDepotClient {
   public double getPowerGenerated(String source, XMLGregorianCalendar timestamp)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
-    return getPowerValue(source, timestamp, "powerGenerated");
+    return getPowerValue(source, timestamp, SensorData.POWER_GENERATED);
   }
 
   /**
@@ -521,7 +521,7 @@ public class WattDepotClient {
   public double getPowerConsumed(String source, XMLGregorianCalendar timestamp)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
-    return getPowerValue(source, timestamp, "powerConsumed");
+    return getPowerValue(source, timestamp, SensorData.POWER_CONSUMED);
   }
 
   /**
@@ -634,7 +634,7 @@ public class WattDepotClient {
   public double getEnergyGenerated(String source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    return getEnergyValue(source, startTime, endTime, samplingInterval, "energyGenerated");
+    return getEnergyValue(source, startTime, endTime, samplingInterval, SensorData.ENERGY_GENERATED);
   }
 
   /**
@@ -656,7 +656,7 @@ public class WattDepotClient {
   public double getEnergyConsumed(String source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    return getEnergyValue(source, startTime, endTime, samplingInterval, "energyConsumed");
+    return getEnergyValue(source, startTime, endTime, samplingInterval, SensorData.ENERGY_CONSUMED);
   }
 
   /**
@@ -743,7 +743,7 @@ public class WattDepotClient {
       XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
     SensorData data = getCarbon(source, startTime, endTime, samplingInterval);
-    return data.getProperties().getPropertyAsDouble("carbonEmitted");
+    return data.getProperties().getPropertyAsDouble(SensorData.CARBON_EMITTED);
   }
 
   /**

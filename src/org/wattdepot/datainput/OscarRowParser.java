@@ -85,6 +85,6 @@ public class OscarRowParser extends RowParser {
       throw new RowParseException("Unable to parse power generated: " + powerGeneratedString, e);
     }
     return new SensorData(timestamp, this.toolName, Source.sourceToUri(sourceName, this.serverUri),
-        new Property("powerGenerated", Double.toString(powerGenerated)));
+        new Property(SensorData.POWER_GENERATED, Double.toString(powerGenerated)));
   }
 }

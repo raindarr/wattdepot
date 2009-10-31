@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.wattdepot.resource.sensordata.jaxb.SensorData.POWER_GENERATED;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,9 +24,6 @@ import org.wattdepot.util.tstamp.Tstamp;
  * @author Robert Brewer
  */
 public class TestPowerResource extends ServerTestHelper {
-
-  /** Making PMD happy. */
-  private static final String POWER_GENERATED = "powerGenerated";
 
   /**
    * Creates a fresh DbManager for each test. This might prove too expensive for some

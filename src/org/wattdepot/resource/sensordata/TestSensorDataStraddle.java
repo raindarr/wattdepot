@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.wattdepot.resource.sensordata.jaxb.SensorData.POWER_GENERATED;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -19,8 +20,6 @@ import org.wattdepot.util.tstamp.Tstamp;
  * @author Robert Brewer
  */
 public class TestSensorDataStraddle {
-
-  private static final String POWER_GENERATED = "powerGenerated";
 
   /**
    * Tests the constructor, ensuring that it does not accept invalid data.

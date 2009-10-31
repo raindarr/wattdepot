@@ -33,8 +33,8 @@ public class TestVerisRowParser {
     SensorData data =
       new SensorData(Tstamp.makeTimestamp("2009-09-01T01:01:01.000-10:00"), TOOL_NAME, Source
           .sourceToUri(SOURCE_NAME, SERVER_URI));
-    Property powerConsumed = new Property("powerConsumed", "3719.0");
-    Property energyConsumed = new Property("energyConsumedToDate", "3.778562E7");
+    Property powerConsumed = new Property(SensorData.POWER_CONSUMED, "3719.0");
+    Property energyConsumed = new Property(SensorData.ENERGY_CONSUMED_TO_DATE, "3.778562E7");
     data.addProperty(powerConsumed);
     data.addProperty(energyConsumed);
     SensorData parsedData = parser.parseRow(row.split("\t"));

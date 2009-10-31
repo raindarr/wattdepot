@@ -345,9 +345,9 @@ public class TestEnergyResource extends ServerTestHelper {
         sourceName, timestamp1, timestamp2, 0), 0.01);
     SensorData energyData = client.getEnergy(sourceName, timestamp1, timestamp2, 1);
     assertEquals("getEnergy on on Oscar data was wrong", 2.8033333333333332E7, energyData
-        .getProperties().getPropertyAsDouble("energyGenerated"), 0.2E7);
+        .getProperties().getPropertyAsDouble(SensorData.ENERGY_GENERATED), 0.2E7);
     assertEquals("getEnergy on on Oscar data was wrong", 0, energyData.getProperties()
-        .getPropertyAsDouble("energyConsumed"), 0.01);
+        .getPropertyAsDouble(SensorData.ENERGY_CONSUMED), 0.01);
   }
 
   /**

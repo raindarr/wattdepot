@@ -6,6 +6,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.property.jaxb.Properties;
 import org.wattdepot.resource.property.jaxb.Property;
+import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.server.Server;
@@ -96,13 +97,13 @@ public class GVisualizationServlet extends DataSourceServlet {
       // Look for properties on this SensorData that we are interested in
       for (Property prop : props.getProperty()) {
         try {
-          if (prop.getKey().equals("powerConsumed")) {
+          if (prop.getKey().equals(SensorData.POWER_CONSUMED)) {
             powerConsumed = new Double(prop.getValue());
           }
-          else if (prop.getKey().equals("energyConsumedToDate")) {
+          else if (prop.getKey().equals(SensorData.ENERGY_CONSUMED_TO_DATE)) {
             energyConsumedToDate = new Double(prop.getValue());
           }
-          else if (prop.getKey().equals("powerGenerated")) {
+          else if (prop.getKey().equals(SensorData.POWER_GENERATED)) {
             powerGenerated = new Double(prop.getValue());
           }
         }

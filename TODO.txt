@@ -22,10 +22,7 @@ public sources and private sources _that they own_.
 - Create maps and lists with larger size in MemoryStorageImplementation
 
 Refactoring:
-- Normalize all JAXB code to use a centralized Property/Properties class
-  - Create constants for all properties defined in PropertyDictionary wiki page, and refactor code
-- Merge the Utility class code into the appropriate JAXB class, and refactor all the calls
-- Add hashCode and equals to User (and downstream stuff), with unit tests
+- Refactor code using the interpolated property to use the setInterpolated and isInterpolated methods.
 - Figure out superclass for Sensors
   - Refactor TabularFileSensor class to use new superclass
   - Refactor BMOSensor class to use new superclass

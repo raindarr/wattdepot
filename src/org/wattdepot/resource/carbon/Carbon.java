@@ -74,7 +74,7 @@ public class Carbon extends Energy {
       double carbonEmittedValue, boolean interpolated) {
     Property emittedProp, interpolatedProp;
     SensorData data = new SensorData(timestamp, "WattDepot Server", source);
-    emittedProp = new Property("carbonEmitted", Double.toString(carbonEmittedValue));
+    emittedProp = new Property(SensorData.CARBON_EMITTED, Double.toString(carbonEmittedValue));
     data.addProperty(emittedProp);
     if (interpolated) {
       interpolatedProp = new Property("interpolated", "true");

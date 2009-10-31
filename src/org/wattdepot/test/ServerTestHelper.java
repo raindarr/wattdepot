@@ -72,7 +72,8 @@ public class ServerTestHelper {
    */
   protected SensorData makeTestSensorData1() throws Exception {
     return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00"), "JUnit", Source
-        .sourceToUri(DbManager.defaultPublicSource, server), new Property("powerConsumed", "10000"));
+        .sourceToUri(DbManager.defaultPublicSource, server), new Property(
+        SensorData.POWER_CONSUMED, "10000"));
   }
 
   /**
@@ -84,7 +85,8 @@ public class ServerTestHelper {
    */
   protected SensorData makeTestSensorData2() throws Exception {
     return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00"), "FooTool", Source
-        .sourceToUri(DbManager.defaultPublicSource, server), new Property("powerConsumed", "11000"));
+        .sourceToUri(DbManager.defaultPublicSource, server), new Property(
+        SensorData.POWER_CONSUMED, "11000"));
   }
 
   /**
@@ -96,7 +98,8 @@ public class ServerTestHelper {
    */
   protected SensorData makeTestSensorData3() throws Exception {
     return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00"), "JUnit", Source
-        .sourceToUri(DbManager.defaultPublicSource, server), new Property("powerConsumed", "9500"));
+        .sourceToUri(DbManager.defaultPublicSource, server), new Property(
+        SensorData.POWER_CONSUMED, "9500"));
   }
 
   /**
@@ -108,6 +111,7 @@ public class ServerTestHelper {
    */
   protected SensorData makeTestSensorDataPrivateSource() throws Exception {
     return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:40:00.000-10:00"), "JUnit", Source
-        .sourceToUri(DbManager.defaultPrivateSource, server), new Property("powerProduced", "3000"));
+        .sourceToUri(DbManager.defaultPrivateSource, server), new Property(
+        SensorData.POWER_CONSUMED, "3000"));
   }
 }
