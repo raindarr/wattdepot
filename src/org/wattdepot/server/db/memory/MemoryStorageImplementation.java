@@ -41,6 +41,22 @@ public class MemoryStorageImplementation extends DbImplementation {
   private ConcurrentMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>> source2SensorDatasHash;
   /** Holds the mapping from username to a User object. */
   private ConcurrentMap<String, User> name2UserHash;
+  /**
+   * The default size for containers that are indexed by Source. This should be set to a number
+   * larger than the expected number of sources that will be stored, to prevent containers from
+   * resizing.
+   */
+  private static final int DEFAULT_NUM_SOURCES = 100;
+  /**
+   * The default size for containers that are indexed by SensorData. This should be set to a number
+   * larger than the expected number of SensorDatas per Source, to prevent containers from resizing.
+   */
+  private static final int DEFAULT_NUM_SENSORDATA = 3000;
+  /**
+   * The default size for containers that are indexed by User. This should be set to a number larger
+   * than the expected number of users that will be stored, to prevent containers from resizing.
+   */
+  private static final int DEFAULT_NUM_USERS = 100;
 
   /**
    * Constructs a new DbImplementation using ConcurrentHashMaps for storage, with no long-term
@@ -56,10 +72,11 @@ public class MemoryStorageImplementation extends DbImplementation {
   @Override
   public void initialize(boolean wipe) {
     // Create the hash maps
-    this.name2SourceHash = new ConcurrentHashMap<String, Source>();
+    this.name2SourceHash = new ConcurrentHashMap<String, Source>(DEFAULT_NUM_SOURCES);
     this.source2SensorDatasHash =
-        new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>();
-    this.name2UserHash = new ConcurrentHashMap<String, User>();
+        new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>(
+            DEFAULT_NUM_SOURCES);
+    this.name2UserHash = new ConcurrentHashMap<String, User>(DEFAULT_NUM_USERS);
     // Since nothing is stored on disk, there is no data to be read into the hash maps
     // wipe parameter is also ignored, since the DB is always wiped on initialization
   }
@@ -74,7 +91,7 @@ public class MemoryStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public SourceIndex getSources() {
-    SourceIndex index = new SourceIndex();
+    SourceIndex index = new SourceIndex(this.name2SourceHash.size());
     // Loop over all Sources in hash
     for (Source source : this.name2SourceHash.values()) {
       // Convert each Source to SourceRef, add to index
@@ -230,12 +247,16 @@ public class MemoryStorageImplementation extends DbImplementation {
       return null;
     }
     else {
-      SensorDataIndex index = new SensorDataIndex();
+      SensorDataIndex index;
       // Retrieve this Source's map of timestamps to SensorData
       ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
           this.source2SensorDatasHash.get(sourceName);
       // If there is any sensor data for this Source
-      if (sensorDataMap != null) {
+      if (sensorDataMap == null) {
+        index = new SensorDataIndex();
+      }
+      else {
+        index = new SensorDataIndex(sensorDataMap.size());
         // Loop over all SensorData in hash
         for (SensorData data : sensorDataMap.values()) {
           // Convert each SensorData to SensorDataRef, add to index
@@ -329,7 +350,8 @@ public class MemoryStorageImplementation extends DbImplementation {
       // If there is no sensor data for this Source yet
       if (sensorDataMap == null) {
         // Create the sensorDataMap
-        sensorDataMap = new ConcurrentHashMap<XMLGregorianCalendar, SensorData>();
+        sensorDataMap =
+            new ConcurrentHashMap<XMLGregorianCalendar, SensorData>(DEFAULT_NUM_SENSORDATA);
         // add to SenorDataHash in thread-safe manner (in case someone beats us to it)
         this.source2SensorDatasHash.putIfAbsent(sourceName, sensorDataMap);
         // Don't need to check result, since we only care that there is a hash we can store to,
@@ -482,7 +504,7 @@ public class MemoryStorageImplementation extends DbImplementation {
     }
     // Want to go through sensordata for base source, and all subsources recursively
     List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
-    List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>();
+    List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>(sourceList.size());
     for (Source subSource : sourceList) {
       String subSourceName = subSource.getName();
       SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
@@ -515,10 +537,10 @@ public class MemoryStorageImplementation extends DbImplementation {
     }
     // Want to go through sensordata for base source, and all subsources recursively
     List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
-    List<StraddleList> masterList = new ArrayList<StraddleList>();
+    List<StraddleList> masterList = new ArrayList<StraddleList>(sourceList.size());
     List<SensorDataStraddle> straddleList;
     for (Source subSource : sourceList) {
-      straddleList = new ArrayList<SensorDataStraddle>();
+      straddleList = new ArrayList<SensorDataStraddle>(timestampList.size());
       String subSourceName = subSource.getName();
       for (XMLGregorianCalendar timestamp : timestampList) {
         SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
