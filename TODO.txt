@@ -1,30 +1,8 @@
 List of things to do:
 
-- Write DbManager test to check if deleting User deletes Source and SensorData
-- Write DbManager test to check if deleting Source deletes SensorData
 - Resolve persistent errors in Eclipse wrt Ant build files
   - Maybe need to run Eclipse under Java 1.6 (requires downloading 64bit Eclipse version?)
   - Maybe need to install JAXB via Ivy (though it's a manual download, bletch)
   - Maybe need to add JAXB as library in Eclipse
-- Add more tests for UsersResource once UserResource is fully implemented
-- Make UserIndex method in MemoryStorageImplementation sort the list before returning
-- Make tests to confirm SensorDataIndexes and SourceIndexes returned are sorted in DbManagerSensorData
-- Write a subclass of Guard that looks at the URI and authentication credentials and determines
-whether to allow access, rather than doing it inside each resource. Resources will have to make
-some decisions (like only putting public Sources in an index if the client is anonymous), but that
-can be based off of a status field (ANON, ADMIN, OWNER).
-- Put an end to the resource URI vs. name madness. Either use URIs everywhere, or use names
-everywhere and convert to URIs only for output? 
-- A public virtual source can point to private sources (including ones they don't own!), and
-thereby make the private source data public. This is bogus. Public virtual sources should only be
-allowed to point at public sources, and private virtual sources should only be allowed to point at
-public sources and private sources _that they own_.
-- Create maps and lists with larger size in MemoryStorageImplementation
 
 Refactoring:
-- Figure out superclass for Sensors
-  - Refactor TabularFileSensor class to use new superclass
-  - Refactor BMOSensor class to use new superclass
-- Remove all traces of hard-coded default data in DbManager, and replace any uses of the default
-data in test cases with data created in the test class.
-- Think about new abstraction above SensorDataStraddle to support energy & carbon
