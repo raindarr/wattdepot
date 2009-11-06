@@ -501,14 +501,23 @@ public class Source implements Serializable {
   }
 
   /**
+   * Given the URI for a WattDepot server, returns the URI to this Source resource.
+   * 
+   * @param serverUri The URI of the server this sensor data belongs to.
+   * @return The URI to the Source resource corresponding to this Source object.
+   */
+  public String toUri(String serverUri) {
+    return serverUri + Server.SOURCES_URI + "/" + this.getName();
+  }
+
+  /**
    * Given the Server a Source object belongs to, returns the URI to that Source resource.
    * 
-   * @param source The Source object under consideration.
    * @param server The Server user belongs to.
    * @return The URI to the Source resource corresponding to the given Source.
    */
   public String toUri(Server server) {
-    return server.getHostName() + Server.SOURCES_URI + "/" + this.getName();
+    return toUri(server.getHostName());
   }
 
   /**

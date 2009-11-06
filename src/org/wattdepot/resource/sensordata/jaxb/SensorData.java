@@ -363,8 +363,8 @@ public class SensorData implements Serializable {
 
   /**
    * Sets the interpolated property to the desired value. To indicate that the SensorData is
-   * interpolated, the property SensorData.INTERPOLATED is set to value "true". To indicate that
-   * the SensorData is not interpolated, the property is deleted.
+   * interpolated, the property SensorData.INTERPOLATED is set to value "true". To indicate that the
+   * SensorData is not interpolated, the property is deleted.
    * 
    * @param interpolatedp The interpolated value to set.
    */
@@ -378,6 +378,18 @@ public class SensorData implements Serializable {
   }
 
   /**
+   * Given the URI for a WattDepot server, returns the URI to this SensorData resource.
+   * 
+   * @param source The Source the SensorData belongs to.
+   * @param serverUri The URI of the server this sensor data belongs to.
+   * @return The URI to the SensorData resource corresponding to this SensorData object.
+   */
+  public String toUri(Source source, String serverUri) {
+    return serverUri + Server.SOURCES_URI + "/" + source.getName() + "/" + Server.SENSORDATA_URI
+        + this.timestamp.toXMLFormat();
+  }
+
+  /**
    * Given the Server and Source a SensorData object belongs to, returns the URI to that SensorData
    * resource.
    * 
@@ -386,7 +398,6 @@ public class SensorData implements Serializable {
    * @return The URI to the SensorData resource corresponding to the given SensorData object.
    */
   public String toUri(Source source, Server server) {
-    return server.getHostName() + Server.SOURCES_URI + "/" + source.getName() + "/"
-        + Server.SENSORDATA_URI + this.timestamp.toXMLFormat();
+    return toUri(source, server.getHostName());
   }
 }

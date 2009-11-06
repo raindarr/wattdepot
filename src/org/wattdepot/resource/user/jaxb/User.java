@@ -291,13 +291,23 @@ public class User implements Serializable {
   }
 
   /**
+   * Given the URI for a WattDepot server, returns the URI to this User resource on that server.
+   *  
+   * @param serverUri The URI of the server this user belongs to.
+   * @return The URI to the User resource corresponding to the given User.
+   */
+  public String toUri(String serverUri) {
+    return serverUri + Server.USERS_URI + "/" + this.getEmail();
+  }
+
+  /**
    * Given the Server a User object belongs to, returns the URI to that User resource.
    *  
    * @param server The Server user belongs to.
    * @return The URI to the User resource corresponding to the given User.
    */
   public String toUri(Server server) {
-    return server.getHostName() + Server.USERS_URI + "/" + this.getEmail();
+    return toUri(server.getHostName());
   }
 
   /**
