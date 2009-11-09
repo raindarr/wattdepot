@@ -81,7 +81,6 @@ public class SourceRef implements Serializable, Comparable<SourceRef> {
    * 
    * @param source The Source to build the SourceRef from.
    * @param server The Server where the Source is located.
-   * @return The new SourceRef object.
    */
   public SourceRef(Source source, Server server) {
     this(source, server.getHostName() + Server.SOURCES_URI + "/" + source.getName());
@@ -94,7 +93,6 @@ public class SourceRef implements Serializable, Comparable<SourceRef> {
    * 
    * @param source The Source to build the SourceRef from.
    * @param uri The URI where the Source is located.
-   * @return The new SourceRef object.
    */
   public SourceRef(Source source, String uri) {
     this(source.getName(), source.getOwner(), source.isPublic(), source.isVirtual(), source
@@ -113,7 +111,6 @@ public class SourceRef implements Serializable, Comparable<SourceRef> {
    * @param location The location of the Source.
    * @param description The description of the Source.
    * @param uri The URI where the Source is located.
-   * @return The new SourceRef object.
    */
   public SourceRef(String name, String owner, boolean publicp, boolean virtualp,
       String coordinates, String location, String description, String uri) {
@@ -484,7 +481,6 @@ public class SourceRef implements Serializable, Comparable<SourceRef> {
    * different server than the Source object, this test would return true even though the SourceRef
    * points to a different copy of this Source object.
    * 
-   * @param ref The SourceRef to be compared.
    * @param source The Source to be compared.
    * @return True if all the fields in the SourceRef correspond to the same fields in the Source
    */

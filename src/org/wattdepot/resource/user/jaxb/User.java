@@ -72,7 +72,6 @@ public class User implements Serializable {
    * @param password The password for the User.
    * @param adminp Whether the User is an administrator.
    * @param props The properties for the User.
-   * @return The freshly created User object.
    */
   public User(String username, String password, boolean adminp, Properties props) {
     this.email = username;

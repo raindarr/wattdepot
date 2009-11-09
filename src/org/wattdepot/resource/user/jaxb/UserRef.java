@@ -62,11 +62,10 @@ public class UserRef implements Serializable, Comparable<UserRef> {
    * 
    * @param username The username for the UserRef.
    * @param uri The URI where the User is located.
-   * @return The freshly created UserRef object.
    */
-  public UserRef(String username, String href) {
+  public UserRef(String username, String uri) {
     this.email = username;
-    this.href = href;
+    this.href = uri;
   }
 
   /**
@@ -76,7 +75,6 @@ public class UserRef implements Serializable, Comparable<UserRef> {
    * 
    * @param user The User to build the UserRef from.
    * @param server The Server where the User is located.
-   * @return The new UserRef object.
    */
   public UserRef(User user, Server server) {
     this(user.getEmail(), server.getHostName() + Server.USERS_URI + "/" + user.getEmail());

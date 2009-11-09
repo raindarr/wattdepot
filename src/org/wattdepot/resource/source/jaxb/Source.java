@@ -131,7 +131,6 @@ public class Source implements Serializable {
    * @param name The name for the Source.
    * @param owner The owner URI for the Source.
    * @param publicp Whether the Source is public.
-   * @param virtualp Whether the Source is virtual.
    */
   public Source(String name, String owner, boolean publicp) {
     this(name, owner, publicp, false, null, null, null, null, null);

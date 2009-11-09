@@ -60,7 +60,6 @@ public class Property implements Serializable {
    * 
    * @param key The key.
    * @param value The value.
-   * @return The freshly created Property object.
    */
   public Property(String key, String value) {
     this.key = key;
