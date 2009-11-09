@@ -74,7 +74,10 @@ public class Source implements Serializable {
   @XmlElement(name = "Properties")
   protected Properties properties;
 
+  /** Property name for carbon intensity. */
   public static final String CARBON_INTENSITY = "carbonIntensity";
+  /** Property key for fuel type. */
+  public static final String FUEL_TYPE = "fuelType";
   
   /**
    * Default no-argument constructor, apparently needed by JAXB. Don't use this, use the one with

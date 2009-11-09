@@ -487,7 +487,8 @@ public class WattDepotClient {
   }
 
   /**
-   * Requests the power generated from a given Source corresponding to the given timestamp.
+   * Requests the power generated from a given Source corresponding to the given timestamp. The
+   * resulting value is in watts.
    * 
    * @param source The name of the Source.
    * @param timestamp The timestamp of the desired power reading.
@@ -506,7 +507,8 @@ public class WattDepotClient {
   }
 
   /**
-   * Requests the power consumed by a given Source corresponding to the given timestamp.
+   * Requests the power consumed by a given Source corresponding to the given timestamp. The
+   * resulting value is in watts.
    * 
    * @param source The name of the Source.
    * @param timestamp The timestamp of the desired power reading.
@@ -617,7 +619,8 @@ public class WattDepotClient {
 
   /**
    * Requests the energy generated from a given Source corresponding to the range from startTime to
-   * endTime and sampling interval in minutes, and returns the value as a double.
+   * endTime and sampling interval in minutes, and returns the value as a double in units of
+   * watt-hours.
    * 
    * @param source The name of the Source.
    * @param startTime The timestamp of the start of the range.
@@ -639,7 +642,8 @@ public class WattDepotClient {
 
   /**
    * Requests the energy consumed by a given Source corresponding to the range from startTime to
-   * endTime and sampling interval in minutes, and returns the value as a double.
+   * endTime and sampling interval in minutes, and returns the value as a double in units of
+   * watt-hours.
    * 
    * @param source The name of the Source.
    * @param startTime The timestamp of the start of the range.
@@ -725,7 +729,8 @@ public class WattDepotClient {
 
   /**
    * Requests the carbon emitted from a given Source corresponding to the range from startTime to
-   * endTime and sampling interval in minutes, and returns the value as a double.
+   * endTime and sampling interval in minutes, and returns the value as a double in units of lbs CO2
+   * equivalent.
    * 
    * @param source The name of the Source.
    * @param startTime The timestamp of the start of the range.

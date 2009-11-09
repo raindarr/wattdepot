@@ -514,8 +514,7 @@ public class WattDepotResource extends Resource {
     else {
       // Make list of carbon intensities, one from each source
       carbonData =
-          Carbon.getCarbonFromStraddleList(masterList, Source.sourceToUri(this.uriSource,
-              server));
+          Carbon.getCarbonFromStraddleList(masterList, Source.sourceToUri(this.uriSource, server));
     }
     if (carbonData == null) {
       return null;

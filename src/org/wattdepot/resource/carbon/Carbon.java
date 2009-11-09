@@ -38,7 +38,8 @@ public class Carbon extends Energy {
 
   /**
    * Computes the amount of carbon emitted between the two straddles by computing energy between the
-   * straddles, and multiplying by the carbon intensity.
+   * straddles, and multiplying by the carbon intensity. The resulting value is in lbs of CO2
+   * equivalent.
    * 
    * @return The carbon emitted between the straddles in lbs CO2 equivalent.
    */
@@ -84,7 +85,7 @@ public class Carbon extends Energy {
 
   /**
    * Takes a List of SensorDataStraddles, computes and sums up the carbon emitted between each
-   * straddle, and returns the sum as a double.
+   * straddle, and returns the sum as a double. The resulting value is in lbs of CO2 equivalent.
    * 
    * @param straddleList The list of straddles to process.
    * @param carbonIntensity The carbon intensity of the source these straddles come from.

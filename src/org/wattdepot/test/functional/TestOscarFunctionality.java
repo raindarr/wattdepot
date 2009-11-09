@@ -488,7 +488,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * @return true if the potentialParent is a parent of source, otherwise false.
    */
   private boolean isParent(Source source, Source potentialParent) {
-    String sourceUri = source.toUri(server);
+    String sourceUri = source.toUri(this.client.getWattDepotUri());
     if (potentialParent.isSetSubSources()) {
       for (String subSource : potentialParent.getSubSources().getHref()) {
         if (sourceUri.equals(subSource)) {
