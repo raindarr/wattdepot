@@ -28,6 +28,7 @@ import org.wattdepot.resource.health.HealthResource;
 import org.wattdepot.resource.power.PowerResource;
 import org.wattdepot.resource.sensordata.SensorDataResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
 import org.wattdepot.resource.source.SourceResource;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.summary.SourceSummaryResource;
@@ -269,23 +270,50 @@ public class Server extends Application {
       File sensorDataDir = new File(defaultDirFile, "sensordata");
       if (sensorDataDir.isDirectory()) {
         unmarshaller = sensorDataJAXB.createUnmarshaller();
+        Object xmlObj;
         SensorData data;
+        SensorDatas datas;
         int dataCount = 0;
         logger.info("Loading sensor data from defaults.");
         for (File sensorDataFile : sensorDataDir.listFiles()) {
-          data = (SensorData) unmarshaller.unmarshal(sensorDataFile);
-          // SensorData read from the file might have an Owner field that points to a different
-          // host URI. We want all defaults normalized to this server, so update it.
-          data.setSource(Source.updateUri(data.getSource(), this));
-          if (dbManager.storeSensorData(data)) {
-            // Too voluminous to print every sensor data loaded
-            // logger.info("Loaded sensor data for source " + data.getSource() + ", time "
-            // + data.getTimestamp() + " from defaults.");
-            dataCount++;
+          xmlObj = unmarshaller.unmarshal(sensorDataFile);
+          if (xmlObj instanceof SensorData) {
+            data = (SensorData) xmlObj;
+            // SensorData read from the file might have an Owner field that points to a different
+            // host URI. We want all defaults normalized to this server, so update it.
+            data.setSource(Source.updateUri(data.getSource(), this));
+            if (dbManager.storeSensorData(data)) {
+              // Too voluminous to print every sensor data loaded
+              // logger.info("Loaded sensor data for source " + data.getSource() + ", time "
+              // + data.getTimestamp() + " from defaults.");
+              dataCount++;
+            }
+            else {
+              logger.warning("Default resource from file \"" + sensorDataFile.toString()
+                  + "\" could not be stored in DB.");
+            }
+          }
+          else if (xmlObj instanceof SensorDatas) {
+            datas = (SensorDatas) xmlObj;
+            for (SensorData theData : datas.getSensorData()) {
+              // SensorData read from the file might have an Owner field that points to a different
+              // host URI. We want all defaults normalized to this server, so update it.
+              theData.setSource(Source.updateUri(theData.getSource(), this));
+              if (dbManager.storeSensorData(theData)) {
+                // Too voluminous to print every sensor data loaded
+                // logger.info("Loaded sensor data for source " + data.getSource() + ", time "
+                // + data.getTimestamp() + " from defaults.");
+                dataCount++;
+              }
+              else {
+                logger.warning("A default resource from file \"" + sensorDataFile.toString()
+                    + "\" could not be stored in database.");
+              }
+            }
           }
           else {
-            logger.warning("Default resource from file \"" + sensorDataFile.toString()
-                + "\" could not be stored in DB.");
+            logger
+                .warning("Found unknown XML type in sensordata file " + sensorDataFile.toString());
           }
         }
         logger.info("Loaded " + dataCount + " sensor data objects from defaults.");

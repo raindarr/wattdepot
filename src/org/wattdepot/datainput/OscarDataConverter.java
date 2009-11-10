@@ -14,6 +14,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
+import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
 import au.com.bytecode.opencsv.CSVReader;
 
 /**
@@ -37,6 +38,9 @@ public class OscarDataConverter {
   /** URI of WattDepot server this data will live in. */
   protected String serverUri;
 
+  /** Whether to write output to a single big file or not. */
+  protected boolean singleFile;
+
   /** The parser used to turn rows into SensorData objects. */
   protected RowParser parser;
 
@@ -46,11 +50,13 @@ public class OscarDataConverter {
    * @param filename Name of the file to read data from.
    * @param directory Name of the directory where sensordata will be output.
    * @param uri URI of the server to send data to (ending in "/").
+   * @param singleFile True if output is to be written to a single file.
    */
-  public OscarDataConverter(String filename, String directory, String uri) {
+  public OscarDataConverter(String filename, String directory, String uri, boolean singleFile) {
     this.filename = filename;
     this.directory = directory;
     this.serverUri = uri;
+    this.singleFile = singleFile;
     this.parser = new OscarRowParser(TOOL_NAME, this.serverUri);
   }
 
@@ -94,6 +100,7 @@ public class OscarDataConverter {
     String[] nextLine;
     File outputFile;
     int rowsConverted = 0;
+    SensorDatas datas = new SensorDatas();
 
     while ((nextLine = reader.readNext()) != null) {
       // nextLine[] is an array of values from the current row in the file
@@ -105,21 +112,39 @@ public class OscarDataConverter {
         System.err.println(e);
       }
       if (data != null) {
-        // Create a new output file in the output directory named by source name and timestamp
-        String sourceUri = data.getSource();
-        String sourceName = sourceUri.substring(sourceUri.lastIndexOf('/') + 1);
-        outputFile = new File(outputDir, sourceName + "_" + data.getTimestamp().toString());
-        try {
-          marshaller.marshal(data, outputFile);
+        if (singleFile) {
+          // Just append to the list, which will be written out later
+          datas.getSensorData().add(data);
         }
-        catch (JAXBException e) {
-          System.err.format("Problem creating writing output file: %s %s%n", outputFile, e);
-          return false;
+        else {
+          // Create a new output file in the output directory named by source name and timestamp
+          String sourceUri = data.getSource();
+          String sourceName = sourceUri.substring(sourceUri.lastIndexOf('/') + 1);
+          outputFile = new File(outputDir, sourceName + "_" + data.getTimestamp().toString());
+          try {
+            marshaller.marshal(data, outputFile);
+          }
+          catch (JAXBException e) {
+            System.err.format("Problem creating writing output file: %s %s%n", outputFile, e);
+            return false;
+          }
         }
         rowsConverted++;
       }
     }
     reader.close();
+    // If we are in singleFile mode and there is output data
+    if (singleFile && datas.isSetSensorData()) {
+      outputFile = new File(outputDir, "sensordata.xml");
+      System.out.format("Writing out %d sensordata entries in one big file...%n", rowsConverted);
+      try {
+        marshaller.marshal(datas, outputFile);
+      }
+      catch (JAXBException e) {
+        System.err.format("Problem creating writing output file: %s %s%n", outputFile, e);
+        return false;
+      }
+    }
     System.out.format("Converted %d rows of input data.%n", rowsConverted);
     return true;
   }
@@ -139,8 +164,10 @@ public class OscarDataConverter {
         "URI of WattDepot server, ex. \"http://wattdepot.example.com:1234/wattdepot/\"."
             + " Note that this parameter is used only to populate the SensorData object "
             + "Source field, no network connection will be made.");
+    options.addOption("s", "singleFile", false, "output will be written to one big file");
     CommandLine cmd = null;
     String filename = null, directory = null, uri = null;
+    boolean singleFile = false;
 
     CommandLineParser parser = new PosixParser();
     try {
@@ -156,6 +183,11 @@ public class OscarDataConverter {
       formatter.printHelp(TOOL_NAME, options);
       System.exit(0);
     }
+    if (cmd.hasOption("s")) {
+      singleFile = true;
+    }
+
+    // required options
     if (cmd.hasOption("f")) {
       filename = cmd.getOptionValue("f");
     }
@@ -182,11 +214,12 @@ public class OscarDataConverter {
     }
 
     // Results of command line processing, should probably be commented out
-    System.out.println("filename: " + filename);
-    System.out.println("directory: " + directory);
-    System.out.println("uri:      " + uri);
+    System.out.println("filename:   " + filename);
+    System.out.println("directory:  " + directory);
+    System.out.println("uri:        " + uri);
+    System.out.println("singleFile: " + singleFile);
     // Actually create the input client
-    OscarDataConverter inputClient = new OscarDataConverter(filename, directory, uri);
+    OscarDataConverter inputClient = new OscarDataConverter(filename, directory, uri, singleFile);
     // Just do it
     if (inputClient.process()) {
       System.out.println("Successfully converted data.");

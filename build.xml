@@ -245,6 +245,7 @@
         <pathelement location="${build.dir}/classes" />
         <path refid="compile.classpath" />
       </classpath>
+      <jvmarg value="-Xmx512M"/>
     </java>
   </target>
 
