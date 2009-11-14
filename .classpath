@@ -77,5 +77,10 @@
 			<attribute name="javadoc_location" value="http://code.google.com/apis/visualization/documentation/dev/dsl_javadocs/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/derby/derby.jar" sourcepath="lib/derby/source.zip">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/derby/javadoc.zip!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

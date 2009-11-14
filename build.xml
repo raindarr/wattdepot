@@ -198,14 +198,12 @@
     </path>
     -->
 
-    <!--
     <ivy:retrieve organisation="org.apache.derby" module="derby" revision="${derby.version}" pattern="${lib.dir}/derby/[artifact].[ext]" sync="true" inline="true" conf="default,locale" log="download-only" transitive="false" type="jar, javadoc, source" />
     <path id="derby.path">
       <fileset dir="${lib.dir}/derby">
         <include name="*.jar" />
       </fileset>
     </path>
-    -->
     
   </target>
 
@@ -226,7 +224,7 @@
     <path refid="google-collections.path" />
     <path refid="google-visualization-java.path" />
     <!-- <path refid="catalina.path" /> -->
-    <!-- <path refid="derby.path" /> -->
+    <path refid="derby.path" />
   </path>
 
   <target name="compile" depends="install-ivy, install-libraries" description="Compiles the code.">

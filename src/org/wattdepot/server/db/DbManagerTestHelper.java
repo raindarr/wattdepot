@@ -44,8 +44,10 @@ public class DbManagerTestHelper {
   @Before
   public void makeDb() {
     // TODO should loop over all DbImplementations once we have more than one
+//    this.manager =
+//      new DbManager(server, "org.wattdepot.server.db.memory.MemoryStorageImplementation", true);
     this.manager =
-        new DbManager(server, "org.wattdepot.server.db.memory.MemoryStorageImplementation", true);
+        new DbManager(server, "org.wattdepot.server.db.derby.DerbyStorageImplementation", true);
     // Need to create default data for each fresh DbManager
     assertTrue("Unable to create default data", this.manager.createDefaultData());
   }
