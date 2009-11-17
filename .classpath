@@ -24,9 +24,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/restlet/org.simpleframework.jar"/>
-	<classpathentry kind="var" path="JAXB_HOME/lib/jaxb-api.jar"/>
-	<classpathentry kind="var" path="JAXB_HOME/lib/jaxb-impl.jar"/>
-	<classpathentry kind="var" path="JAXB_HOME/lib/jaxb-xjc.jar"/>
 	<classpathentry kind="lib" path="lib/commons-cli/commons-cli.jar" sourcepath="lib/commons-cli/source.zip">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/commons-cli/javadoc.zip!/"/>

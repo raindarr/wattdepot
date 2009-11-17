@@ -1,8 +1,5 @@
 List of things to do:
 
-- Resolve persistent errors in Eclipse wrt Ant build files
-  - Maybe need to run Eclipse under Java 1.6 (requires downloading 64bit Eclipse version?)
-  - Maybe need to install JAXB via Ivy (though it's a manual download, bletch)
-  - Maybe need to add JAXB as library in Eclipse
-
+  Should now be recorded as issues on Google Code site.
+    
 Refactoring:
