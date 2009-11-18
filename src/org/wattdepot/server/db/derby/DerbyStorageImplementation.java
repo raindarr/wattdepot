@@ -1,13 +1,27 @@
 package org.wattdepot.server.db.derby;
 
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.util.StackTrace;
+import org.wattdepot.resource.property.jaxb.Properties;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
@@ -24,6 +38,7 @@ import org.wattdepot.server.Server;
 import org.wattdepot.server.ServerProperties;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbImplementation;
+import org.wattdepot.util.StackTrace;
 import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
 
@@ -46,8 +61,8 @@ public class DerbyStorageImplementation extends DbImplementation {
   private ConcurrentMap<String, Source> name2SourceHash;
   /** Holds the mapping from Source name to a map of timestamp to SensorData. */
   private ConcurrentMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>> source2SensorDatasHash;
-  /** Holds the mapping from username to a User object. */
-  private ConcurrentMap<String, User> name2UserHash;
+  // /** Holds the mapping from username to a User object. */
+  // private ConcurrentMap<String, User> name2UserHash;
   /**
    * The default size for containers that are indexed by Source. This should be set to a number
    * larger than the expected number of sources that will be stored, to prevent containers from
@@ -59,21 +74,47 @@ public class DerbyStorageImplementation extends DbImplementation {
    * larger than the expected number of SensorDatas per Source, to prevent containers from resizing.
    */
   private static final int DEFAULT_NUM_SENSORDATA = 3000;
-  /**
-   * The default size for containers that are indexed by User. This should be set to a number larger
-   * than the expected number of users that will be stored, to prevent containers from resizing.
-   */
-  private static final int DEFAULT_NUM_USERS = 100;
+  // /**
+  // * The default size for containers that are indexed by User. This should be set to a number
+  // larger
+  // * than the expected number of users that will be stored, to prevent containers from resizing.
+  // */
+  // private static final int DEFAULT_NUM_USERS = 100;
+  /** Property JAXBContext. */
+  private static final JAXBContext propertiesJAXB;
 
+  // JAXBContexts are thread safe, so we can share them across all instances and threads.
+  // https://jaxb.dev.java.net/guide/Performance_and_thread_safety.html
+  static {
+    try {
+      propertiesJAXB =
+          JAXBContext.newInstance(org.wattdepot.resource.property.jaxb.Properties.class);
+    }
+    catch (Exception e) {
+      throw new RuntimeException("Couldn't create JAXB context instance.", e);
+    }
+  }
   /** The key for putting/retrieving the directory where Derby will create its databases. */
   private static final String derbySystemKey = "derby.system.home";
-
   /** The JDBC driver. */
   private static final String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+  /** The Database name. */
+  private static final String dbName = "wattdepot";
+  /** The Derby connection URL. */
+  private static final String connectionURL = "jdbc:derby:" + dbName + ";create=true";
+  /** Indicates whether this database was initialized or was pre-existing. */
+  private boolean isFreshlyCreated = false;
+  /** The logger message when executing a query. */
+  private static final String executeQueryMsg = "Derby: Executing query ";
+  /** The logger message for connection closing errors. */
+  private static final String errorClosingMsg = "Derby: Error while closing. \n";
+  private static final String derbyError = "Derby: Error ";
+  /** The SQL state indicating that INSERT tried to add data to a table with a preexisting key. */
+  private static final String DUPLICATE_KEY = "23505";
 
   /**
-   * Constructs a new DbImplementation using ConcurrentHashMaps for storage, with no long-term
-   * persistence.
+   * Instantiates the Derby implementation. Throws a Runtime exception if the Derby jar file cannot
+   * be found on the classpath.
    * 
    * @param server The server this DbImplementation is associated with.
    */
@@ -98,21 +139,162 @@ public class DerbyStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public void initialize(boolean wipe) {
+    // //// Memory storage code, to be removed after Derby conversion is complete!
     // Create the hash maps
     this.name2SourceHash = new ConcurrentHashMap<String, Source>(DEFAULT_NUM_SOURCES);
     this.source2SensorDatasHash =
         new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>(
             DEFAULT_NUM_SOURCES);
-    this.name2UserHash = new ConcurrentHashMap<String, User>(DEFAULT_NUM_USERS);
-    // Since nothing is stored on disk, there is no data to be read into the hash maps
-    // wipe parameter is also ignored, since the DB is always wiped on initialization
+    // this.name2UserHash = new ConcurrentHashMap<String, User>(DEFAULT_NUM_USERS);
+
+    try {
+      // Create a shutdown hook that shuts down derby.
+      Runtime.getRuntime().addShutdownHook(new Thread() {
+        /** Run the shutdown hook for shutting down Derby. */
+        @Override
+        public void run() {
+          Connection conn = null;
+          try {
+            conn = DriverManager.getConnection("jdbc:derby:;shutdown=true");
+          }
+          catch (Exception e) {
+            System.out.println("Derby shutdown hook results: " + e.getMessage());
+          }
+          finally {
+            try {
+              conn.close();
+            }
+            catch (Exception e) { // NOPMD
+              // we tried.
+            }
+          }
+        }
+      });
+      // Initialize the database table structure if necessary.
+      this.isFreshlyCreated = !isPreExisting();
+      String dbStatusMsg =
+          (this.isFreshlyCreated) ? "Derby: uninitialized." : "Derby: previously initialized.";
+      this.logger.info(dbStatusMsg);
+      if (this.isFreshlyCreated) {
+        this.logger.info("Derby: creating DB in: " + System.getProperty(derbySystemKey));
+        createTables();
+      }
+      // Only need to wipe tables if database has already been created and wiping was requested
+      else if (wipe) {
+        wipeTables();
+      }
+      // if (server.getServerProperties().compressOnStartup()) {
+      // this.logger.info("Derby: compressing database...");
+      // compressTables();
+      // }
+      // if (server.getServerProperties().reindexOnStartup()) {
+      // this.logger.info("Derby: reindexing database...");
+      // this.logger.info("Derby: reindexing database " + ((indexTables()) ? "OK" : "not OK"));
+      // }
+    }
+    catch (Exception e) {
+      String msg = "Derby: Exception during DerbyImplementation initialization:";
+      this.logger.warning(msg + "\n" + StackTrace.toString(e));
+      throw new RuntimeException(msg, e);
+    }
+
+  }
+
+  /**
+   * Determine if the database has already been initialized with correct table definitions. Table
+   * schemas are checked by seeing if a dummy insert on the table will work OK.
+   * 
+   * @return True if the database exists and tables are set up correctly.
+   * @throws SQLException If problems occur accessing the database or the tables aren't set up
+   * correctly.
+   */
+  private boolean isPreExisting() throws SQLException {
+    Connection conn = null;
+    Statement s = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      s = conn.createStatement();
+      // s.execute(testSensorDataTableStatement);
+      // s.execute(testSensorDataTypeTableStatement);
+      s.execute(testUserTableStatement);
+      // s.execute(testProjectTableStatement);
+    }
+    catch (SQLException e) {
+      String theError = (e).getSQLState();
+      if ("42X05".equals(theError)) {
+        // Database doesn't exist.
+        return false;
+      }
+      else if ("42X14".equals(theError) || "42821".equals(theError)) {
+        // Incorrect table definition.
+        throw e;
+      }
+      else {
+        // Unknown SQLException
+        throw e;
+      }
+    }
+    finally {
+      if (s != null) {
+        s.close();
+      }
+      if (conn != null) {
+        conn.close();
+      }
+    }
+    // If table exists will get - WARNING 02000: No row was found
+    return true;
+  }
+
+  /**
+   * Initialize the database by creating tables for each resource type.
+   * 
+   * @throws SQLException If table creation fails.
+   */
+  private void createTables() throws SQLException {
+    Connection conn = null;
+    Statement s = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      s = conn.createStatement();
+      // s.execute(createSensorDataTableStatement);
+      // s.execute(indexSensorDataTstampStatement);
+      s.execute(createUserTableStatement);
+      s.close();
+    }
+    finally {
+      s.close();
+      conn.close();
+    }
+  }
+
+  /**
+   * Wipe the database by deleting all records from each table.
+   * 
+   * @throws SQLException If table deletion fails.
+   */
+  private void wipeTables() throws SQLException {
+    Connection conn = null;
+    Statement s = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      s = conn.createStatement();
+      // s.execute(createSensorDataTableStatement);
+      // s.execute(indexSensorDataTstampStatement);
+      s.execute("DELETE from WattDepotUser");
+      s.close();
+    }
+    finally {
+      s.close();
+      conn.close();
+    }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean isFreshlyCreated() {
     // Since this implementation provides no long-term storage, it is always freshly created.
-    return true;
+    return this.isFreshlyCreated;
   }
 
   /** {@inheritDoc} */
@@ -626,14 +808,56 @@ public class DerbyStorageImplementation extends DbImplementation {
     }
   }
 
+  /** The SQL string for creating the WattDepotUser table. So named because 'User' is reserved. */
+  private static final String createUserTableStatement =
+      "create table WattDepotUser  " + "(" + " Username VARCHAR(128) NOT NULL, "
+          + " Password VARCHAR(128) NOT NULL, " + " Admin SMALLINT NOT NULL, "
+          + " Properties VARCHAR(32000), " + " LastMod TIMESTAMP NOT NULL, "
+          + " PRIMARY KEY (Username) " + ")";
+
+  /** An SQL string to test whether the User table exists and has the correct schema. */
+  private static final String testUserTableStatement =
+      " UPDATE WattDepotUser SET "
+          + " Username = 'TestEmail@foo.com', "
+          + " Password = 'changeme', "
+          + " Admin = 0, "
+          + " Properties = '<Properties><Property><Key>awesomeness</Key><Value>total</Value></Property></Properties>', "
+          + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
+
   /** {@inheritDoc} */
   @Override
   public UserIndex getUsers() {
     UserIndex index = new UserIndex();
-    // Loop over all Users in hash
-    for (User user : this.name2UserHash.values()) {
-      // Convert each Source to SourceRef, add to index
-      index.getUserRef().add(new UserRef(user, this.server));
+    // // Loop over all Users in hash
+    // for (User user : this.name2UserHash.values()) {
+    // // Convert each Source to SourceRef, add to index
+    // index.getUserRef().add(new UserRef(user, this.server));
+    // }
+    String statement = "SELECT Username FROM WattDepotUser";
+    Connection conn = null;
+    PreparedStatement s = null;
+    ResultSet rs = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      server.getLogger().fine(executeQueryMsg + statement);
+      s = conn.prepareStatement(statement);
+      rs = s.executeQuery();
+      while (rs.next()) {
+        index.getUserRef().add(new UserRef(rs.getString("Username"), this.server));
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info("DB: Error in getUsers()" + StackTrace.toString(e));
+    }
+    finally {
+      try {
+        rs.close();
+        s.close();
+        conn.close();
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+      }
     }
     Collections.sort(index.getUserRef());
     return index;
@@ -645,8 +869,55 @@ public class DerbyStorageImplementation extends DbImplementation {
     if (username == null) {
       return null;
     }
+    // else {
+    // return this.name2UserHash.get(username);
+    // }
     else {
-      return this.name2UserHash.get(username);
+      String statement = "SELECT * FROM WattDepotUser WHERE Username = ?";
+      Connection conn = null;
+      PreparedStatement s = null;
+      ResultSet rs = null;
+      boolean hasData = false;
+      User user = new User();
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, username);
+        rs = s.executeQuery();
+        while (rs.next()) { // the select statement must guarantee only one row is returned.
+          hasData = true;
+          user.setEmail(rs.getString("Username"));
+          user.setPassword(rs.getString("Password"));
+          user.setAdmin(rs.getBoolean("Admin"));
+          String xmlString = rs.getString("Properties");
+          if (xmlString != null) {
+            try {
+              Unmarshaller unmarshaller = propertiesJAXB.createUnmarshaller();
+              user.setProperties((Properties) unmarshaller.unmarshal(new StringReader(xmlString)));
+            }
+            catch (JAXBException e) {
+              // Got some XML from DB we can't parse
+              this.logger.warning("Unable to parse property XML from database "
+                  + StackTrace.toString(e));
+            }
+          }
+        }
+      }
+      catch (SQLException e) {
+        this.logger.info("DB: Error in getUser()" + StackTrace.toString(e));
+      }
+      finally {
+        try {
+          rs.close();
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
+      return (hasData) ? user : null;
     }
   }
 
@@ -657,11 +928,65 @@ public class DerbyStorageImplementation extends DbImplementation {
       return false;
     }
     else {
-      User previousValue = this.name2UserHash.putIfAbsent(user.getEmail(), user);
-      // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
-      // no value was previously stored, so we succeeded. If we get anything else, then there was
-      // already a value in the hash for this username, so we failed.
-      return (previousValue == null);
+      // User previousValue = this.name2UserHash.putIfAbsent(user.getEmail(), user);
+      // // putIfAbsent returns the previous value that ended up in the hash, so if we get a null
+      // then
+      // // no value was previously stored, so we succeeded. If we get anything else, then there was
+      // // already a value in the hash for this username, so we failed.
+      // return (previousValue == null);
+      Connection conn = null;
+      PreparedStatement s = null;
+      Marshaller marshaller = null;
+      try {
+        marshaller = propertiesJAXB.createMarshaller();
+      }
+      catch (JAXBException e) {
+        this.logger.info("Unable to create marshaller" + StackTrace.toString(e));
+        return false;
+      }
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        s = conn.prepareStatement("INSERT INTO WattDepotUser VALUES (?, ?, ?, ?, ?)");
+        // Order: Username Password Admin Properties LastMod
+        s.setString(1, user.getEmail());
+        s.setString(2, user.getPassword());
+        s.setShort(3, booleanToShort(user.isAdmin()));
+        if (user.isSetProperties()) {
+          StringWriter writer = new StringWriter();
+          marshaller.marshal(user.getProperties(), writer);
+          s.setString(4, writer.toString());
+        }
+        else {
+          s.setString(4, null);
+        }
+        s.setTimestamp(5, new Timestamp(new Date().getTime()));
+        s.executeUpdate();
+        this.logger.fine("Derby: Inserted User" + user.getEmail());
+        return true;
+      }
+      catch (SQLException e) {
+        if (DUPLICATE_KEY.equals(e.getSQLState())) {
+          this.logger.fine("Derby: Attempted to overwrite User " + user.getEmail());
+          return false;
+        }
+        else {
+          this.logger.info(derbyError + StackTrace.toString(e));
+          return false;
+        }
+      }
+      catch (JAXBException e) {
+        this.logger.info("Unable to marshall Properties" + StackTrace.toString(e));
+        return false;
+      }
+      finally {
+        try {
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
     }
   }
 
@@ -672,20 +997,74 @@ public class DerbyStorageImplementation extends DbImplementation {
       return false;
     }
     else {
-      // Loop over all Sources in hash, looking for ones owned by username
-      for (Source source : this.name2SourceHash.values()) {
-        // Source resources contain the URI of their owner, so the owner username can be found by
-        // taking everything after the last "/" in the URI.
-        String ownerName = source.getOwner().substring(source.getOwner().lastIndexOf('/') + 1);
-        // If this User owns the Source, delete the Source
-        if (ownerName.equals(username)) {
-          deleteSource(source.getName());
-        }
-      }
-      // remove() returns the value for the key, or null if there was no value in the hash. So
-      // return true unless we got a null.
-      return (this.name2UserHash.remove(username) != null);
+      // // Loop over all Sources in hash, looking for ones owned by username
+      // for (Source source : this.name2SourceHash.values()) {
+      // // Source resources contain the URI of their owner, so the owner username can be found by
+      // // taking everything after the last "/" in the URI.
+      // String ownerName = source.getOwner().substring(source.getOwner().lastIndexOf('/') + 1);
+      // // If this User owns the Source, delete the Source
+      // if (ownerName.equals(username)) {
+      // deleteSource(source.getName());
+      // }
+      // }
+      // // remove() returns the value for the key, or null if there was no value in the hash. So
+      // // return true unless we got a null.
+      // return (this.name2UserHash.remove(username) != null);
+      String statement = "DELETE FROM WattDepotUser WHERE Username='" + username + "'";
+      return deleteResource(statement);
+      // TODO add code to delete sources and sensordata owned by the user
     }
+  }
+
+  /**
+   * Deletes the resource, given the SQL statement to perform the delete.
+   * 
+   * @param statement The SQL delete statement.
+   * @return True if resource was successfully deleted, false otherwise.
+   */
+  private boolean deleteResource(String statement) {
+    Connection conn = null;
+    PreparedStatement s = null;
+    boolean succeeded = false;
+
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      server.getLogger().fine("Derby: " + statement);
+      s = conn.prepareStatement(statement);
+      int rowCount = s.executeUpdate();
+      if (rowCount == 1) {
+        succeeded = true;
+      }
+      else {
+        return false;
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info("Derby: Error in deleteResource()" + StackTrace.toString(e));
+      succeeded = false;
+    }
+    finally {
+      try {
+        s.close();
+        conn.close();
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+      }
+    }
+    return succeeded;
+  }
+
+  /**
+   * Converts a boolean into 1 (for true), or 0 (for false). Useful because Derby does not support
+   * the boolean SQL type, so recommended procedure is to use a SHORTINT column type with value 1 or
+   * 0.
+   * 
+   * @param value The boolean value.
+   * @return 1 if value is true, 0 if value is false.
+   */
+  private short booleanToShort(boolean value) {
+    return value ? (short) 1 : (short) 0;
   }
 
   /** {@inheritDoc} */

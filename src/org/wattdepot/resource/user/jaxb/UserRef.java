@@ -81,6 +81,18 @@ public class UserRef implements Serializable, Comparable<UserRef> {
   }
 
   /**
+   * Creates a UserRef object given a username. The Server argument is required to build the URI in
+   * the UserRef pointing to the full User resource. Needs to be kept up to date with any changes to
+   * the User or UserRef schemas, which is bogus.
+   * 
+   * @param username The username for the UserRef.
+   * @param server The Server where the User is located.
+   */
+  public UserRef(String username, Server server) {
+    this(username, server.getHostName() + Server.USERS_URI + "/" + username);
+  }
+
+  /**
    * Gets the value of the email property.
    * 
    * @return possible object is {@link String }
