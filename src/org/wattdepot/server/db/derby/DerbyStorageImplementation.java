@@ -30,6 +30,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
@@ -82,6 +83,8 @@ public class DerbyStorageImplementation extends DbImplementation {
   // private static final int DEFAULT_NUM_USERS = 100;
   /** Property JAXBContext. */
   private static final JAXBContext propertiesJAXB;
+  /** SubSources JAXBContext. */
+  private static final JAXBContext subSourcesJAXB;
 
   // JAXBContexts are thread safe, so we can share them across all instances and threads.
   // https://jaxb.dev.java.net/guide/Performance_and_thread_safety.html
@@ -89,6 +92,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     try {
       propertiesJAXB =
           JAXBContext.newInstance(org.wattdepot.resource.property.jaxb.Properties.class);
+      subSourcesJAXB = JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.SubSources.class);
     }
     catch (Exception e) {
       throw new RuntimeException("Couldn't create JAXB context instance.", e);
@@ -139,7 +143,7 @@ public class DerbyStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public void initialize(boolean wipe) {
-    // //// Memory storage code, to be removed after Derby conversion is complete!
+    // **** Memory storage code, to be removed after Derby conversion is complete!
     // Create the hash maps
     this.name2SourceHash = new ConcurrentHashMap<String, Source>(DEFAULT_NUM_SOURCES);
     this.source2SensorDatasHash =
@@ -217,7 +221,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       // s.execute(testSensorDataTableStatement);
       // s.execute(testSensorDataTypeTableStatement);
       s.execute(testUserTableStatement);
-      // s.execute(testProjectTableStatement);
+      s.execute(testSourceTableStatement);
     }
     catch (SQLException e) {
       String theError = (e).getSQLState();
@@ -260,6 +264,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       // s.execute(createSensorDataTableStatement);
       // s.execute(indexSensorDataTstampStatement);
       s.execute(createUserTableStatement);
+      s.execute(createSourceTableStatement);
       s.close();
     }
     finally {
@@ -279,9 +284,8 @@ public class DerbyStorageImplementation extends DbImplementation {
     try {
       conn = DriverManager.getConnection(connectionURL);
       s = conn.createStatement();
-      // s.execute(createSensorDataTableStatement);
-      // s.execute(indexSensorDataTstampStatement);
       s.execute("DELETE from WattDepotUser");
+      s.execute("DELETE from Source");
       s.close();
     }
     finally {
@@ -297,14 +301,78 @@ public class DerbyStorageImplementation extends DbImplementation {
     return this.isFreshlyCreated;
   }
 
+  /** The SQL string for creating the Source table. */
+  private static final String createSourceTableStatement =
+      "create table Source  " + "(" + " Name VARCHAR(128) NOT NULL, "
+          + " Owner VARCHAR(256) NOT NULL, " + " PublicP SMALLINT NOT NULL, "
+          + " Virtual SMALLINT NOT NULL, " + " Coordinates VARCHAR(80) NOT NULL, "
+          + " Location VARCHAR(256) NOT NULL, " + " Description VARCHAR(1024) NOT NULL, "
+          + " SubSources VARCHAR(32000), " + " Properties VARCHAR(32000), "
+          + " LastMod TIMESTAMP NOT NULL, " + " PRIMARY KEY (Name) " + ")";
+
+  /** An SQL string to test whether the Source table exists and has the correct schema. */
+  private static final String testSourceTableStatement =
+      " UPDATE Source SET "
+          + " Name = 'db-test-source', "
+          + " Owner = 'http://server.wattdepot.org/wattdepot/users/db-test-user', "
+          + " PublicP = 0, "
+          + " Virtual = 1, "
+          + " Coordinates = '21.30078,-157.819129,41', "
+          + " Location = 'Some place', "
+          + " Description = 'A test source.', "
+          + " SubSources = '<SubSources><Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_HONOLULU_8</Href><Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_HONOLULU_9</Href></SubSources>', "
+          + " Properties = '<Properties><Property><Key>carbonIntensity</Key><Value>2120</Value></Property></Properties>', "
+          + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
+
   /** {@inheritDoc} */
   @Override
   public SourceIndex getSources() {
-    SourceIndex index = new SourceIndex(this.name2SourceHash.size());
-    // Loop over all Sources in hash
-    for (Source source : this.name2SourceHash.values()) {
-      // Convert each Source to SourceRef, add to index
-      index.getSourceRef().add(new SourceRef(source, this.server));
+    SourceIndex index = new SourceIndex();
+
+    // **** Memory storage code, to be removed after Derby conversion is complete!
+//    // Loop over all Sources in hash
+//    for (Source source : this.name2SourceHash.values()) {
+//      // Convert each Source to SourceRef, add to index
+//      index.getSourceRef().add(new SourceRef(source, this.server));
+//    }
+
+    String statement =
+        "SELECT Name, Owner, PublicP, Virtual, Coordinates, Location, Description FROM Source";
+    Connection conn = null;
+    PreparedStatement s = null;
+    ResultSet rs = null;
+    SourceRef ref;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      server.getLogger().fine(executeQueryMsg + statement);
+      s = conn.prepareStatement(statement);
+      rs = s.executeQuery();
+      while (rs.next()) {
+        ref = new SourceRef();
+        String name = rs.getString("Name");
+        ref.setName(name);
+        ref.setOwner(rs.getString("Owner"));
+        ref.setPublic(rs.getBoolean("PublicP"));
+        ref.setVirtual(rs.getBoolean("Virtual"));
+        ref.setCoordinates(rs.getString("Coordinates"));
+        ref.setLocation(rs.getString("Location"));
+        ref.setDescription(rs.getString("Description"));
+        ref.setHref(name, this.server);
+        index.getSourceRef().add(ref);
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info("DB: Error in getSources()" + StackTrace.toString(e));
+    }
+    finally {
+      try {
+        rs.close();
+        s.close();
+        conn.close();
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+      }
     }
     Collections.sort(index.getSourceRef());
     return index;
@@ -317,7 +385,73 @@ public class DerbyStorageImplementation extends DbImplementation {
       return null;
     }
     else {
-      return this.name2SourceHash.get(sourceName);
+      // **** Memory storage code, to be removed after Derby conversion is complete!
+      // return this.name2SourceHash.get(sourceName);
+      
+      String statement = "SELECT * FROM Source WHERE Name = ?";
+      Connection conn = null;
+      PreparedStatement s = null;
+      ResultSet rs = null;
+      boolean hasData = false;
+      Source source = new Source();
+      String xmlString;
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, sourceName);
+        rs = s.executeQuery();
+        while (rs.next()) { // the select statement must guarantee only one row is returned.
+          hasData = true;
+          source.setName(rs.getString("Name"));
+          source.setOwner(rs.getString("Owner"));
+          source.setPublic(rs.getBoolean("PublicP"));
+          source.setVirtual(rs.getBoolean("Virtual"));
+          source.setCoordinates(rs.getString("Coordinates"));
+          source.setLocation(rs.getString("Location"));
+          source.setDescription(rs.getString("Description"));
+          xmlString = rs.getString("SubSources");
+          if (xmlString != null) {
+            try {
+              Unmarshaller unmarshaller = subSourcesJAXB.createUnmarshaller();
+              source
+                  .setSubSources((SubSources) unmarshaller.unmarshal(new StringReader(xmlString)));
+            }
+            catch (JAXBException e) {
+              // Got some XML from DB we can't parse
+              this.logger.warning("Unable to parse property XML from database "
+                  + StackTrace.toString(e));
+            }
+          }
+          xmlString = rs.getString("Properties");
+          if (xmlString != null) {
+            try {
+              Unmarshaller unmarshaller = propertiesJAXB.createUnmarshaller();
+              source
+                  .setProperties((Properties) unmarshaller.unmarshal(new StringReader(xmlString)));
+            }
+            catch (JAXBException e) {
+              // Got some XML from DB we can't parse
+              this.logger.warning("Unable to parse property XML from database "
+                  + StackTrace.toString(e));
+            }
+          }
+        }
+      }
+      catch (SQLException e) {
+        this.logger.info("DB: Error in getSource()" + StackTrace.toString(e));
+      }
+      finally {
+        try {
+          rs.close();
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
+      return (hasData) ? source : null;
     }
   }
 
@@ -328,7 +462,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       // null or non-existent source name
       return null;
     }
-    Source baseSource = this.name2SourceHash.get(sourceName);
+    Source baseSource = getSource(sourceName);
     if (baseSource == null) {
       return null;
     }
@@ -421,11 +555,79 @@ public class DerbyStorageImplementation extends DbImplementation {
       return false;
     }
     else {
-      Source previousValue = this.name2SourceHash.putIfAbsent(source.getName(), source);
+      // **** Memory storage code, to be removed after Derby conversion is complete!
+      this.name2SourceHash.putIfAbsent(source.getName(), source);
       // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
       // no value was previously stored, so we succeeded. If we get anything else, then there was
       // already a value in the hash for this username, so we failed.
-      return (previousValue == null);
+      
+      Connection conn = null;
+      PreparedStatement s = null;
+      Marshaller propertiesMarshaller = null;
+      Marshaller subSourcesMarshaller = null;
+      try {
+        propertiesMarshaller = propertiesJAXB.createMarshaller();
+        subSourcesMarshaller = subSourcesJAXB.createMarshaller();
+      }
+      catch (JAXBException e) {
+        this.logger.info("Unable to create marshaller" + StackTrace.toString(e));
+        return false;
+      }
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        s = conn.prepareStatement("INSERT INTO Source VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        // Order: Name Owner PublicP Virtual Coordinates Location Description SubSources Properties LastMod
+        s.setString(1, source.getName());
+        s.setString(2, source.getOwner());
+        s.setShort(3, booleanToShort(source.isPublic()));
+        s.setShort(4, booleanToShort(source.isVirtual()));
+        s.setString(5, source.getCoordinates());
+        s.setString(6, source.getLocation());
+        s.setString(7, source.getDescription());
+        if (source.isSetSubSources()) {
+          StringWriter writer = new StringWriter();
+          subSourcesMarshaller.marshal(source.getSubSources(), writer);
+          s.setString(8, writer.toString());
+        }
+        else {
+          s.setString(8, null);
+        }
+        if (source.isSetProperties()) {
+          StringWriter writer = new StringWriter();
+          propertiesMarshaller.marshal(source.getProperties(), writer);
+          s.setString(9, writer.toString());
+        }
+        else {
+          s.setString(9, null);
+        }
+        s.setTimestamp(10, new Timestamp(new Date().getTime()));
+        s.executeUpdate();
+        this.logger.fine("Derby: Inserted Source" + source.getName());
+        return true;
+      }
+      catch (SQLException e) {
+        if (DUPLICATE_KEY.equals(e.getSQLState())) {
+          this.logger.fine("Derby: Attempted to overwrite Source " + source.getName());
+          return false;
+        }
+        else {
+          this.logger.info(derbyError + StackTrace.toString(e));
+          return false;
+        }
+      }
+      catch (JAXBException e) {
+        this.logger.info("Unable to marshall XML field" + StackTrace.toString(e));
+        return false;
+      }
+      finally {
+        try {
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
     }
   }
 
@@ -436,12 +638,16 @@ public class DerbyStorageImplementation extends DbImplementation {
       return false;
     }
     else {
+      // **** Memory storage code, to be removed after Derby conversion is complete!
       // First delete the hash of sensor data for this Source. We ignore the return value since
       // we only need to ensure that there is no sensor data leftover.
       deleteSensorData(sourceName);
       // remove() returns the value for the key, or null if there was no value in the hash. So
       // return true unless we got a null.
-      return (this.name2SourceHash.remove(sourceName) != null);
+      this.name2SourceHash.remove(sourceName);
+      
+      String statement = "DELETE FROM Source WHERE Name='" + sourceName + "'";
+      return deleteResource(statement);
     }
   }
 
@@ -1032,10 +1238,12 @@ public class DerbyStorageImplementation extends DbImplementation {
       server.getLogger().fine("Derby: " + statement);
       s = conn.prepareStatement(statement);
       int rowCount = s.executeUpdate();
-      if (rowCount == 1) {
+      // actually deleted something
+      if (rowCount >= 1) {
         succeeded = true;
       }
       else {
+        // didn't delete anything (maybe resource didn't exist?)
         return false;
       }
     }

@@ -304,6 +304,17 @@ public class SourceRef implements Serializable, Comparable<SourceRef> {
     this.href = value;
   }
 
+  /**
+   * Sets the value of the href property based on the name and Server provided.
+   * 
+   * @param name The name of the Source.
+   * @param server The Server this object belongs to.
+   * 
+   */
+  public void setHref(String name, Server server) {
+    this.href = server.getHostName() + Server.SOURCES_URI + "/" + name;
+  }
+
   public boolean isSetHref() {
     return (this.href != null);
   }
