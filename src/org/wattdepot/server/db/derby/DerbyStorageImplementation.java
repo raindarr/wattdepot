@@ -58,8 +58,8 @@ import org.wattdepot.util.tstamp.Tstamp;
  */
 public class DerbyStorageImplementation extends DbImplementation {
 
-  /** Holds the mapping from Source name to Source object. */
-  private ConcurrentMap<String, Source> name2SourceHash;
+//  /** Holds the mapping from Source name to Source object. */
+//  private ConcurrentMap<String, Source> name2SourceHash;
   /** Holds the mapping from Source name to a map of timestamp to SensorData. */
   private ConcurrentMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>> source2SensorDatasHash;
   // /** Holds the mapping from username to a User object. */
@@ -145,7 +145,7 @@ public class DerbyStorageImplementation extends DbImplementation {
   public void initialize(boolean wipe) {
     // **** Memory storage code, to be removed after Derby conversion is complete!
     // Create the hash maps
-    this.name2SourceHash = new ConcurrentHashMap<String, Source>(DEFAULT_NUM_SOURCES);
+//    this.name2SourceHash = new ConcurrentHashMap<String, Source>(DEFAULT_NUM_SOURCES);
     this.source2SensorDatasHash =
         new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>(
             DEFAULT_NUM_SOURCES);
@@ -556,7 +556,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     }
     else {
       // **** Memory storage code, to be removed after Derby conversion is complete!
-      this.name2SourceHash.putIfAbsent(source.getName(), source);
+//      this.name2SourceHash.putIfAbsent(source.getName(), source);
       // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
       // no value was previously stored, so we succeeded. If we get anything else, then there was
       // already a value in the hash for this username, so we failed.
@@ -644,7 +644,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       deleteSensorData(sourceName);
       // remove() returns the value for the key, or null if there was no value in the hash. So
       // return true unless we got a null.
-      this.name2SourceHash.remove(sourceName);
+      // this.name2SourceHash.remove(sourceName);
       
       String statement = "DELETE FROM Source WHERE Name='" + sourceName + "'";
       return deleteResource(statement);
@@ -657,7 +657,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     if (sourceName == null) {
       return null;
     }
-    else if (this.name2SourceHash.get(sourceName) == null) {
+    else if (getSource(sourceName) == null) {
       // Unknown Source name, therefore no possibility of SensorData
       return null;
     }
@@ -690,7 +690,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     if ((sourceName == null) || (startTime == null) || (endTime == null)) {
       return null;
     }
-    else if (this.name2SourceHash.get(sourceName) == null) {
+    else if (getSource(sourceName) == null) {
       // Unknown Source name, therefore no possibility of SensorData
       return null;
     }
@@ -851,7 +851,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     if ((sourceName == null) || (timestamp == null)) {
       return null;
     }
-    Source source = this.name2SourceHash.get(sourceName);
+    Source source = getSource(sourceName);
     if (source == null) {
       return null;
     }
@@ -913,7 +913,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     if ((sourceName == null) || (timestamp == null)) {
       return null;
     }
-    Source baseSource = this.name2SourceHash.get(sourceName);
+    Source baseSource = getSource(sourceName);
     if (baseSource == null) {
       return null;
     }
@@ -946,7 +946,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     if ((sourceName == null) || (timestampList == null)) {
       return null;
     }
-    Source baseSource = this.name2SourceHash.get(sourceName);
+    Source baseSource = getSource(sourceName);
     if (baseSource == null) {
       return null;
     }
@@ -985,7 +985,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     if ((sourceName == null) || (timestampList == null)) {
       return null;
     }
-    Source baseSource = this.name2SourceHash.get(sourceName);
+    Source baseSource = getSource(sourceName);
     if (baseSource == null) {
       return null;
     }
