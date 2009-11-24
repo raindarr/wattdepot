@@ -58,8 +58,10 @@ import org.wattdepot.util.tstamp.Tstamp;
  */
 public class DerbyStorageImplementation extends DbImplementation {
 
-//  /** Holds the mapping from Source name to Source object. */
-//  private ConcurrentMap<String, Source> name2SourceHash;
+  private static final String UNABLE_TO_PARSE_PROPERTY_XML =
+      "Unable to parse property XML from database ";
+  // /** Holds the mapping from Source name to Source object. */
+  // private ConcurrentMap<String, Source> name2SourceHash;
   /** Holds the mapping from Source name to a map of timestamp to SensorData. */
   private ConcurrentMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>> source2SensorDatasHash;
   // /** Holds the mapping from username to a User object. */
@@ -145,7 +147,7 @@ public class DerbyStorageImplementation extends DbImplementation {
   public void initialize(boolean wipe) {
     // **** Memory storage code, to be removed after Derby conversion is complete!
     // Create the hash maps
-//    this.name2SourceHash = new ConcurrentHashMap<String, Source>(DEFAULT_NUM_SOURCES);
+    // this.name2SourceHash = new ConcurrentHashMap<String, Source>(DEFAULT_NUM_SOURCES);
     this.source2SensorDatasHash =
         new ConcurrentHashMap<String, ConcurrentMap<XMLGregorianCalendar, SensorData>>(
             DEFAULT_NUM_SOURCES);
@@ -218,10 +220,9 @@ public class DerbyStorageImplementation extends DbImplementation {
     try {
       conn = DriverManager.getConnection(connectionURL);
       s = conn.createStatement();
-      // s.execute(testSensorDataTableStatement);
-      // s.execute(testSensorDataTypeTableStatement);
       s.execute(testUserTableStatement);
       s.execute(testSourceTableStatement);
+      s.execute(testSensorDataTableStatement);
     }
     catch (SQLException e) {
       String theError = (e).getSQLState();
@@ -261,7 +262,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     try {
       conn = DriverManager.getConnection(connectionURL);
       s = conn.createStatement();
-      // s.execute(createSensorDataTableStatement);
+      s.execute(createSensorDataTableStatement);
       // s.execute(indexSensorDataTstampStatement);
       s.execute(createUserTableStatement);
       s.execute(createSourceTableStatement);
@@ -286,6 +287,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       s = conn.createStatement();
       s.execute("DELETE from WattDepotUser");
       s.execute("DELETE from Source");
+      s.execute("DELETE from SensorData");
       s.close();
     }
     finally {
@@ -330,11 +332,11 @@ public class DerbyStorageImplementation extends DbImplementation {
     SourceIndex index = new SourceIndex();
 
     // **** Memory storage code, to be removed after Derby conversion is complete!
-//    // Loop over all Sources in hash
-//    for (Source source : this.name2SourceHash.values()) {
-//      // Convert each Source to SourceRef, add to index
-//      index.getSourceRef().add(new SourceRef(source, this.server));
-//    }
+    // // Loop over all Sources in hash
+    // for (Source source : this.name2SourceHash.values()) {
+    // // Convert each Source to SourceRef, add to index
+    // index.getSourceRef().add(new SourceRef(source, this.server));
+    // }
 
     String statement =
         "SELECT Name, Owner, PublicP, Virtual, Coordinates, Location, Description FROM Source";
@@ -387,7 +389,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     else {
       // **** Memory storage code, to be removed after Derby conversion is complete!
       // return this.name2SourceHash.get(sourceName);
-      
+
       String statement = "SELECT * FROM Source WHERE Name = ?";
       Connection conn = null;
       PreparedStatement s = null;
@@ -419,8 +421,7 @@ public class DerbyStorageImplementation extends DbImplementation {
             }
             catch (JAXBException e) {
               // Got some XML from DB we can't parse
-              this.logger.warning("Unable to parse property XML from database "
-                  + StackTrace.toString(e));
+              this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
             }
           }
           xmlString = rs.getString("Properties");
@@ -432,8 +433,7 @@ public class DerbyStorageImplementation extends DbImplementation {
             }
             catch (JAXBException e) {
               // Got some XML from DB we can't parse
-              this.logger.warning("Unable to parse property XML from database "
-                  + StackTrace.toString(e));
+              this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
             }
           }
         }
@@ -556,11 +556,11 @@ public class DerbyStorageImplementation extends DbImplementation {
     }
     else {
       // **** Memory storage code, to be removed after Derby conversion is complete!
-//      this.name2SourceHash.putIfAbsent(source.getName(), source);
+      // this.name2SourceHash.putIfAbsent(source.getName(), source);
       // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
       // no value was previously stored, so we succeeded. If we get anything else, then there was
       // already a value in the hash for this username, so we failed.
-      
+
       Connection conn = null;
       PreparedStatement s = null;
       Marshaller propertiesMarshaller = null;
@@ -576,7 +576,8 @@ public class DerbyStorageImplementation extends DbImplementation {
       try {
         conn = DriverManager.getConnection(connectionURL);
         s = conn.prepareStatement("INSERT INTO Source VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        // Order: Name Owner PublicP Virtual Coordinates Location Description SubSources Properties LastMod
+        // Order: Name Owner PublicP Virtual Coordinates Location Description SubSources Properties
+        // LastMod
         s.setString(1, source.getName());
         s.setString(2, source.getOwner());
         s.setShort(3, booleanToShort(source.isPublic()));
@@ -645,11 +646,29 @@ public class DerbyStorageImplementation extends DbImplementation {
       // remove() returns the value for the key, or null if there was no value in the hash. So
       // return true unless we got a null.
       // this.name2SourceHash.remove(sourceName);
-      
+
       String statement = "DELETE FROM Source WHERE Name='" + sourceName + "'";
       return deleteResource(statement);
     }
   }
+
+  /** The SQL string for creating the SensorData table. */
+  private static final String createSensorDataTableStatement =
+      "create table SensorData  " + "(" + " Tstamp TIMESTAMP NOT NULL, "
+          + " Tool VARCHAR(128) NOT NULL, " + " Source VARCHAR(256) NOT NULL, "
+          + " Properties VARCHAR(32000), " + " LastMod TIMESTAMP NOT NULL, "
+          + " PRIMARY KEY (Source, Tstamp) " + ")";
+
+  /** An SQL string to test whether the User table exists and has the correct schema. */
+  private static final String testSensorDataTableStatement =
+      " UPDATE SensorData SET "
+          + " Tstamp = '"
+          + new Timestamp(new Date().getTime()).toString()
+          + "', "
+          + " Tool = 'test-db-tool', "
+          + " Source = 'test-db-source', "
+          + " Properties = '<Properties><Property><Key>powerGenerated</Key><Value>4.6E7</Value></Property></Properties>', "
+          + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
   /** {@inheritDoc} */
   @Override
@@ -662,23 +681,59 @@ public class DerbyStorageImplementation extends DbImplementation {
       return null;
     }
     else {
-      SensorDataIndex index;
-      // Retrieve this Source's map of timestamps to SensorData
-      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
-          this.source2SensorDatasHash.get(sourceName);
-      // If there is any sensor data for this Source
-      if (sensorDataMap == null) {
-        index = new SensorDataIndex();
-      }
-      else {
-        index = new SensorDataIndex(sensorDataMap.size());
-        // Loop over all SensorData in hash
-        for (SensorData data : sensorDataMap.values()) {
-          // Convert each SensorData to SensorDataRef, add to index
-          index.getSensorDataRef().add(new SensorDataRef(data));
+      SensorDataIndex index = new SensorDataIndex();
+
+      // **** Memory storage code, to be removed after Derby conversion is complete!
+      // // Retrieve this Source's map of timestamps to SensorData
+      // ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+      // this.source2SensorDatasHash.get(sourceName);
+      // // If there is any sensor data for this Source
+      // if (sensorDataMap == null) {
+      // index = new SensorDataIndex();
+      // }
+      // else {
+      // index = new SensorDataIndex(sensorDataMap.size());
+      // // Loop over all SensorData in hash
+      // for (SensorData data : sensorDataMap.values()) {
+      // // Convert each SensorData to SensorDataRef, add to index
+      // index.getSensorDataRef().add(new SensorDataRef(data));
+      // }
+      // }
+
+      String statement =
+          "SELECT Tstamp, Tool, Source FROM SensorData WHERE Source = ? ORDER BY Tstamp";
+      Connection conn = null;
+      PreparedStatement s = null;
+      ResultSet rs = null;
+      SensorDataRef ref;
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, Source.sourceToUri(sourceName, this.server));
+        rs = s.executeQuery();
+        while (rs.next()) {
+          Timestamp timestamp = rs.getTimestamp("Tstamp");
+          String tool = rs.getString("Tool");
+          String sourceUri = rs.getString("Source");
+          ref = new SensorDataRef(Tstamp.makeTimestamp(timestamp), tool, sourceUri);
+          index.getSensorDataRef().add(ref);
         }
       }
-      Collections.sort(index.getSensorDataRef());
+      catch (SQLException e) {
+        this.logger.info("DB: Error in getSensorDataIndex()" + StackTrace.toString(e));
+      }
+      finally {
+        try {
+          rs.close();
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
+      // Collections.sort(index.getSensorDataRef());
       return index;
     }
   }
@@ -700,25 +755,64 @@ public class DerbyStorageImplementation extends DbImplementation {
     }
     else {
       SensorDataIndex index = new SensorDataIndex();
-      // Retrieve this Source's map of timestamps to SensorData
-      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
-          this.source2SensorDatasHash.get(sourceName);
-      // If there is any sensor data for this Source
-      if (sensorDataMap != null) {
-        // Loop over all SensorData in hash
-        for (SensorData data : sensorDataMap.values()) {
-          // Only interested in SensorData that is startTime <= data <= endTime
-          int startComparison = data.getTimestamp().compare(startTime);
-          int endComparison = data.getTimestamp().compare(endTime);
-          if ((startComparison == DatatypeConstants.EQUAL)
-              || (endComparison == DatatypeConstants.EQUAL)
-              || ((startComparison == DatatypeConstants.GREATER) && (endComparison == DatatypeConstants.LESSER))) {
-            // convert each matching SensorData to SensorDataRef, add to index
-            index.getSensorDataRef().add(new SensorDataRef(data));
-          }
+
+      // **** Memory storage code, to be removed after Derby conversion is complete!
+      // // Retrieve this Source's map of timestamps to SensorData
+      // ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+      // this.source2SensorDatasHash.get(sourceName);
+      // // If there is any sensor data for this Source
+      // if (sensorDataMap != null) {
+      // // Loop over all SensorData in hash
+      // for (SensorData data : sensorDataMap.values()) {
+      // // Only interested in SensorData that is startTime <= data <= endTime
+      // int startComparison = data.getTimestamp().compare(startTime);
+      // int endComparison = data.getTimestamp().compare(endTime);
+      // if ((startComparison == DatatypeConstants.EQUAL)
+      // || (endComparison == DatatypeConstants.EQUAL)
+      // || ((startComparison == DatatypeConstants.GREATER) && (endComparison ==
+      // DatatypeConstants.LESSER))) {
+      // // convert each matching SensorData to SensorDataRef, add to index
+      // index.getSensorDataRef().add(new SensorDataRef(data));
+      // }
+      // }
+
+      String statement =
+          "SELECT Tstamp, Tool, Source FROM SensorData WHERE Source = ? AND "
+              + " (Tstamp BETWEEN ? AND ?)" + " ORDER BY Tstamp";
+      Connection conn = null;
+      PreparedStatement s = null;
+      ResultSet rs = null;
+      SensorDataRef ref;
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, Source.sourceToUri(sourceName, this.server));
+        s.setTimestamp(2, Tstamp.makeTimestamp(startTime));
+        s.setTimestamp(3, Tstamp.makeTimestamp(endTime));
+        rs = s.executeQuery();
+        while (rs.next()) {
+          Timestamp timestamp = rs.getTimestamp("Tstamp");
+          String tool = rs.getString("Tool");
+          String sourceUri = rs.getString("Source");
+          ref = new SensorDataRef(Tstamp.makeTimestamp(timestamp), tool, sourceUri);
+          index.getSensorDataRef().add(ref);
         }
       }
-      Collections.sort(index.getSensorDataRef());
+      catch (SQLException e) {
+        this.logger.info("DB: Error in getSensorDataIndex()" + StackTrace.toString(e));
+      }
+      finally {
+        try {
+          rs.close();
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
+      // Collections.sort(index.getSensorDataRef());
       return index;
     }
   }
@@ -730,22 +824,72 @@ public class DerbyStorageImplementation extends DbImplementation {
       return null;
     }
     else {
-      // Retrieve this Source's map of timestamps to SensorData
-      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
-          this.source2SensorDatasHash.get(sourceName);
-      // If there is any sensor data for this Source
-      if (sensorDataMap == null) {
-        return null;
+      // **** Memory storage code, to be removed after Derby conversion is complete!
+      // // Retrieve this Source's map of timestamps to SensorData
+      // ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+      // this.source2SensorDatasHash.get(sourceName);
+      // // If there is any sensor data for this Source
+      // if (sensorDataMap == null) {
+      // return null;
+      // }
+      // else {
+      // return sensorDataMap.get(timestamp);
+      // }
+
+      String statement = "SELECT * FROM SensorData WHERE Source = ? AND Tstamp = ?";
+      Connection conn = null;
+      PreparedStatement s = null;
+      ResultSet rs = null;
+      boolean hasData = false;
+      SensorData data = new SensorData();
+      String xmlString;
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, Source.sourceToUri(sourceName, this.server));
+        s.setTimestamp(2, Tstamp.makeTimestamp(timestamp));
+        rs = s.executeQuery();
+        while (rs.next()) { // the select statement must guarantee only one row is returned.
+          hasData = true;
+          data.setTimestamp(Tstamp.makeTimestamp(rs.getTimestamp("Tstamp")));
+          data.setTool(rs.getString("Tool"));
+          data.setSource(rs.getString("Source"));
+          xmlString = rs.getString("Properties");
+          if (xmlString != null) {
+            try {
+              Unmarshaller unmarshaller = propertiesJAXB.createUnmarshaller();
+              data.setProperties((Properties) unmarshaller.unmarshal(new StringReader(xmlString)));
+            }
+            catch (JAXBException e) {
+              // Got some XML from DB we can't parse
+              this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
+            }
+          }
+        }
       }
-      else {
-        return sensorDataMap.get(timestamp);
+      catch (SQLException e) {
+        this.logger.info("DB: Error in getSensorData()" + StackTrace.toString(e));
       }
+      finally {
+        try {
+          rs.close();
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
+      return (hasData) ? data : null;
     }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean hasSensorData(String sourceName, XMLGregorianCalendar timestamp) {
+    // Could be made a little faster by doing just the DB query ourselves and not reconstituting
+    // the SensorData object, but that's probably an unneeded optimization.
     return (getSensorData(sourceName, timestamp) != null);
   }
 
@@ -756,6 +900,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       return false;
     }
     else {
+      // **** Memory storage code, to be removed after Derby conversion is complete!
       // SensorData resources contain the URI of their Source, so the source name can be found by
       // taking everything after the last "/" in the URI.
       String sourceName = data.getSource().substring(data.getSource().lastIndexOf('/') + 1);
@@ -773,21 +918,82 @@ public class DerbyStorageImplementation extends DbImplementation {
         // not whether the one we created actually got stored.
       }
       // Try putting the new SensorData into the hash for the appropriate source
-      SensorData previousValue = sensorDataMap.putIfAbsent(data.getTimestamp(), data);
+      sensorDataMap.putIfAbsent(data.getTimestamp(), data);
       // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
       // no value was previously stored, so we succeeded. If we get anything else, then there was
       // already a value in the hash for this username, so we failed.
-      return (previousValue == null);
+
+      Connection conn = null;
+      PreparedStatement s = null;
+      Marshaller propertiesMarshaller = null;
+      try {
+        propertiesMarshaller = propertiesJAXB.createMarshaller();
+      }
+      catch (JAXBException e) {
+        this.logger.info("Unable to create marshaller" + StackTrace.toString(e));
+        return false;
+      }
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        s = conn.prepareStatement("INSERT INTO SensorData VALUES (?, ?, ?, ?, ?)");
+        // Order: Tstamp Tool Source Properties LastMod
+        s.setTimestamp(1, Tstamp.makeTimestamp(data.getTimestamp()));
+        s.setString(2, data.getTool());
+        s.setString(3, data.getSource());
+        if (data.isSetProperties()) {
+          StringWriter writer = new StringWriter();
+          propertiesMarshaller.marshal(data.getProperties(), writer);
+          s.setString(4, writer.toString());
+        }
+        else {
+          s.setString(4, null);
+        }
+        s.setTimestamp(5, new Timestamp(new Date().getTime()));
+        s.executeUpdate();
+        this.logger.fine("Derby: Inserted SensorData" + data.getTimestamp());
+        return true;
+      }
+      catch (SQLException e) {
+        if (DUPLICATE_KEY.equals(e.getSQLState())) {
+          this.logger.fine("Derby: Attempted to overwrite SensorData " + data.getTimestamp());
+          return false;
+        }
+        else {
+          this.logger.info(derbyError + StackTrace.toString(e));
+          return false;
+        }
+      }
+      catch (JAXBException e) {
+        this.logger.info("Unable to marshall XML field" + StackTrace.toString(e));
+        return false;
+      }
+      finally {
+        try {
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
     }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean deleteSensorData(String sourceName, XMLGregorianCalendar timestamp) {
+    boolean succeeded = false;
     if ((sourceName == null) || (timestamp == null)) {
       return false;
     }
     else {
+      String sourceUri = Source.sourceToUri(sourceName, this.server.getHostName());
+      String statement =
+          "DELETE FROM SensorData WHERE Source='" + sourceUri + "' AND Tstamp='"
+              + Tstamp.makeTimestamp(timestamp) + "'";
+      succeeded = deleteResource(statement);
+
+      // **** Memory storage code, to be removed after Derby conversion is complete!
       // Retrieve this Source's map of timestamps to SensorData
       ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
           this.source2SensorDatasHash.get(sourceName);
@@ -798,22 +1004,31 @@ public class DerbyStorageImplementation extends DbImplementation {
       else {
         // remove() returns the value for the key, or null if there was no value in the hash. So
         // return true unless we got a null.
-        return (sensorDataMap.remove(timestamp) != null);
+        sensorDataMap.remove(timestamp);
       }
+      return succeeded;
     }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean deleteSensorData(String sourceName) {
+    boolean succeeded = false;
+
     if (sourceName == null) {
       return false;
     }
     else {
+      String sourceUri = Source.sourceToUri(sourceName, this.server.getHostName());
+      String statement = "DELETE FROM SensorData WHERE Source='" + sourceUri + "'";
+      succeeded = deleteResource(statement);
+
+      // **** Memory storage code, to be removed after Derby conversion is complete!
       // Delete the hash of sensor data for this Source. If the source doesn't exist or there is no
       // sensor data, we'll get a null.
-      return (this.source2SensorDatasHash.remove(sourceName) != null);
+      this.source2SensorDatasHash.remove(sourceName);
     }
+    return succeeded;
   }
 
   /**
@@ -1104,8 +1319,7 @@ public class DerbyStorageImplementation extends DbImplementation {
             }
             catch (JAXBException e) {
               // Got some XML from DB we can't parse
-              this.logger.warning("Unable to parse property XML from database "
-                  + StackTrace.toString(e));
+              this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
             }
           }
         }
