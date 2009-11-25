@@ -93,8 +93,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
 
     // case #3: after storing three SensorDatas should have SensorDataIndex with three
     // SensorDataRefs that match original SensorDatas
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data2));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data3));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data2));
     assertSame("getSensorData returned wrong number of SensorDataRefs", manager.getSensorDataIndex(
         this.source1.getName()).getSensorDataRef().size(), 3);
     // Now compare the SensorDataRefs to the original SensorData
@@ -107,7 +107,11 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
         retrievedRefs, origData));
 
-    // TODO Should test that SensorDataIndex is sorted in increasing timestamp order
+    // Confirm that SensorData list is sorted
+    for (int i = 0; i < origData.size(); i++) {
+      assertTrue("getSensorDataIndex index not sorted", retrievedRefs.get(i).equalsSensorData(
+          origData.get(i)));
+    }
 
     // case #4: deleting a SensorData should leave two SensorDataRefs in SensorDataIndex
     assertTrue("Unable to delete data1", manager.deleteSensorData(this.source1.getName(), data1
@@ -238,7 +242,11 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
         retrievedRefs, origData));
 
-    // TODO Should test that SensorDataIndex is sorted in increasing timestamp order
+    // Confirm that SensorData list is sorted
+    for (int i = 0; i < origData.size(); i++) {
+      assertTrue("getSensorDataIndex index not sorted", retrievedRefs.get(i).equalsSensorData(
+          origData.get(i)));
+    }
 
     // case #8: deleting data2 should leave data1 & data3 if interval covers all three
     assertTrue("Unable to delete data2", manager.deleteSensorData(this.source1.getName(), data2

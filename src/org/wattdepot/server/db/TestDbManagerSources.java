@@ -112,8 +112,17 @@ public class TestDbManagerSources extends DbManagerTestHelper {
       }
       assertSame("SourceRefs from getSources do not match input Sources", found, 1);
     }
-
-    // TODO Should test that SourceRefs come in sorted order
+    // Confirm that Source list is sorted
+    // clear list
+    origSources.clear();
+    // Add items in sorted order
+    origSources.add(this.source2);
+    origSources.add(this.source1);
+    origSources.add(this.source3);
+    for (int i = 0; i < origSources.size(); i++) {
+      assertTrue("getSources index not sorted", retrievedRefs.get(i).equalsSource(
+          origSources.get(i)));
+    }
 
     // case #4: deleting a Source should leave two SourceRefs in SourceIndex
     assertTrue("Unable to delete source1", manager.deleteSource(this.source1.getName()));

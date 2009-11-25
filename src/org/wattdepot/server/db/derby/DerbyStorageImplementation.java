@@ -10,7 +10,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -339,7 +338,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     // }
 
     String statement =
-        "SELECT Name, Owner, PublicP, Virtual, Coordinates, Location, Description FROM Source";
+        "SELECT Name, Owner, PublicP, Virtual, Coordinates, Location, Description FROM Source ORDER BY Name";
     Connection conn = null;
     PreparedStatement s = null;
     ResultSet rs = null;
@@ -376,7 +375,7 @@ public class DerbyStorageImplementation extends DbImplementation {
         this.logger.warning(errorClosingMsg + StackTrace.toString(e));
       }
     }
-    Collections.sort(index.getSourceRef());
+    // Collections.sort(index.getSourceRef());
     return index;
   }
 
@@ -1254,7 +1253,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     // // Convert each Source to SourceRef, add to index
     // index.getUserRef().add(new UserRef(user, this.server));
     // }
-    String statement = "SELECT Username FROM WattDepotUser";
+    String statement = "SELECT Username FROM WattDepotUser ORDER BY Username";
     Connection conn = null;
     PreparedStatement s = null;
     ResultSet rs = null;
@@ -1280,7 +1279,7 @@ public class DerbyStorageImplementation extends DbImplementation {
         this.logger.warning(errorClosingMsg + StackTrace.toString(e));
       }
     }
-    Collections.sort(index.getUserRef());
+    // Collections.sort(index.getUserRef());
     return index;
   }
 

@@ -87,9 +87,16 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
       }
       assertSame("UserRefs from getUsers do not match input Users", found, 1);
     }
+    // Confirm that user list is sorted
+    // clear list
+    origUsers.clear();
+    // user1's name comes before user2, so add in opposite order
+    origUsers.add(this.user2);
+    origUsers.add(this.user1);
+    for (int i = 0; i < origUsers.size(); i++) {
+      assertTrue("getUsers index not sorted", refs.get(i).equalsUser(origUsers.get(i)));
+    }
 
-    // TODO should test that user list is sorted.
-    
     // case #4: after deleting a User should have single UserRef in UserIndex.
     assertTrue("Unable to delete user1", manager.deleteUser(this.user1.getEmail()));
     assertSame("getUsers returned wrong number of UserRefs",
