@@ -1,6 +1,7 @@
 package org.wattdepot.server.db;
 
 import static org.junit.Assert.assertTrue;
+import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.wattdepot.resource.property.jaxb.Property;
@@ -43,11 +44,10 @@ public class DbManagerTestHelper {
    */
   @Before
   public void makeDb() {
-    // TODO should loop over all DbImplementations once we have more than one
-//    this.manager =
-//      new DbManager(server, "org.wattdepot.server.db.memory.MemoryStorageImplementation", true);
-    this.manager =
-        new DbManager(server, "org.wattdepot.server.db.derby.DerbyStorageImplementation", true);
+    // Will test whatever DbImplementation has been specified in ServerProperties. Note that this
+    // can be changed using system Properties, which is useful for running JUnit tests with a
+    // particular implementation specified.
+    this.manager = new DbManager(server, server.getServerProperties().get(DB_IMPL_KEY), true);
     // Need to create default data for each fresh DbManager
     assertTrue("Unable to create default data", this.manager.createDefaultData());
   }

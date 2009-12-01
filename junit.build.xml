@@ -12,7 +12,7 @@
 
   <target name="junit.tool" depends="compile" description="Run JUnit tests.">
     <mkdir dir="${junit.build.dir}" />
-    <!-- Run the tests, which are all classes whose name starts with 'Test'. -->
+    <!-- Run all non-DB tests. -->
     <junit printsummary="withOutAndErr" haltonfailure="${junit.haltonfailure}" failureproperty="junit.failed" fork="yes">
       <classpath>
         <pathelement location="${build.dir}/classes" />
@@ -20,7 +20,31 @@
       </classpath>
       <formatter type="xml" />
       <batchtest todir="${junit.build.dir}">
-        <fileset dir="${src.dir}" includes="**/Test*.java" excludes="**/tinker/**"/>
+        <fileset dir="${src.dir}" includes="**/Test*.java" excludes="**/tinker/**, **/TestDb*.java"/>
+      </batchtest>
+    </junit>
+    <!-- Run DB tests using MemoryStorageImplementation -->
+    <junit printsummary="withOutAndErr" haltonfailure="${junit.haltonfailure}" failureproperty="junit.failed" fork="yes">
+      <classpath>
+        <pathelement location="${build.dir}/classes" />
+        <path refid="compile.classpath"/>
+      </classpath>
+      <formatter type="xml" />
+      <sysproperty key="wattdepot-server.db.impl" value="org.wattdepot.server.db.memory.MemoryStorageImplementation"/>
+      <batchtest todir="${junit.build.dir}">
+        <fileset dir="${src.dir}" includes="**/TestDb*.java" excludes="**/tinker/**"/>
+      </batchtest>
+    </junit>
+    <!-- Run DB tests using DerbyStorageImplementation -->
+    <junit printsummary="withOutAndErr" haltonfailure="${junit.haltonfailure}" failureproperty="junit.failed" fork="yes">
+      <classpath>
+        <pathelement location="${build.dir}/classes" />
+        <path refid="compile.classpath"/>
+      </classpath>
+      <formatter type="xml" />
+      <sysproperty key="wattdepot-server.db.impl" value="org.wattdepot.server.db.derby.DerbyStorageImplementation"/>
+      <batchtest todir="${junit.build.dir}">
+        <fileset dir="${src.dir}" includes="**/TestDb*.java" excludes="**/tinker/**"/>
       </batchtest>
     </junit>
   </target>
@@ -45,6 +69,3 @@
     </hacky-junit>
   </target>
 </project>
-
-
-
