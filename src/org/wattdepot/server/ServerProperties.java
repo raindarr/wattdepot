@@ -94,9 +94,8 @@ public class ServerProperties {
     properties.setProperty(CONTEXT_ROOT_KEY, "wattdepot");
     properties.setProperty(GVIZ_CONTEXT_ROOT_KEY, "gviz");
     properties.setProperty(DB_DIR_KEY, serverHome + "/db");
-    // TODO Replace with actual class name of storage implementation that actually persists things
     properties.setProperty(DB_IMPL_KEY,
-        "org.wattdepot.server.db.memory.MemoryStorageImplementation");
+        "org.wattdepot.server.db.derby.DerbyStorageImplementation");
     properties.setProperty(HOSTNAME_KEY, "localhost");
     properties.setProperty(LOGGING_LEVEL_KEY, "INFO");
     properties.setProperty(RESTLET_LOGGING_KEY, FALSE);

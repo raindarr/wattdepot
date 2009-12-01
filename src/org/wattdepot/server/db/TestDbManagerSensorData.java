@@ -14,7 +14,6 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.user.jaxb.User;
-import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
 
 /**
@@ -374,9 +373,11 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
 
   /**
    * Tests the storeSensorData method.
+   * 
+   * @throws Exception If there are timestamp conversion problems.
    */
   @Test
-  public void testStoreSensorData() {
+  public void testStoreSensorData() throws Exception {
     // Add test data.
     createTestData();
 
@@ -384,6 +385,12 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
     assertEquals(DATA_DOES_NOT_MATCH, this.data1, manager.getSensorData(source1.getName(),
         this.data1.getTimestamp()));
+    XMLGregorianCalendar source1Time2 = Tstamp.makeTimestamp("2009-07-28T09:12:00.000-10:00");
+    String source1Uri = source1.toUri(server);
+    SensorData dataFoo = new SensorData(source1Time2, "JUnit", source1Uri);
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(dataFoo));
+    assertEquals("Unable to retrieve stored data", dataFoo, this.manager.getSensorData(source1
+        .getName(), source1Time2));
 
     // case #2: attempt to overwrite existing SensorData
     assertFalse("Able to overwrite SensorData", manager.storeSensorData(this.data1));
@@ -518,15 +525,15 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     XMLGregorianCalendar afterAll = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
 
     String tool = "JUnit";
-    String source1 = UriUtils.getUriSuffix(makeTestSource1().toUri(server));
+    String source1Uri = this.source1.toUri(server);
     // String source2 = UriUtils.getUriSuffix(sourceToUri(makeTestSource2(), server));
-    String virtualSource = UriUtils.getUriSuffix(makeTestSource3().toUri(server));
+    String virtualSource = this.source3.getName();
 
-    SensorData data1 = new SensorData(source1Time1, tool, source1);
-    SensorData data2 = new SensorData(source1Time2, tool, source1);
-    SensorData data3 = new SensorData(source1Time3, tool, source1);
-    SensorData data4 = new SensorData(source1Time4, tool, source1);
-    SensorData data5 = new SensorData(source1Time5, tool, source1);
+    SensorData data1 = new SensorData(source1Time1, tool, source1Uri);
+    SensorData data2 = new SensorData(source1Time2, tool, source1Uri);
+    SensorData data3 = new SensorData(source1Time3, tool, source1Uri);
+    SensorData data4 = new SensorData(source1Time4, tool, source1Uri);
+    SensorData data5 = new SensorData(source1Time5, tool, source1Uri);
     SensorDataStraddle straddle;
 
     assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data1));
@@ -549,22 +556,25 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         virtualSource, beforeAll));
     // timestamp before stored data
     assertNull("Could getSensorDataStraddle where timestamp is before all stored data",
-        this.manager.getSensorDataStraddle(source1, beforeAll));
+        this.manager.getSensorDataStraddle(this.source1.getName(), beforeAll));
     // timestamp after stored data
     assertNull("Could getSensorDataStraddle where timestamp is after all stored data", this.manager
-        .getSensorDataStraddle(source1, afterAll));
+        .getSensorDataStraddle(this.source1.getName(), afterAll));
+    // DEBUG
+    assertEquals("Unable to retrieve stored data", data2, this.manager.getSensorData(this.source1.getName(),
+        source1Time2));
     // timestamp equal to stored data
-    straddle = this.manager.getSensorDataStraddle(source1, source1Time2);
+    straddle = this.manager.getSensorDataStraddle(this.source1.getName(), source1Time2);
     assertEquals("timestamp equal to sensorData, but beforeData not set correctly", straddle
         .getBeforeData(), data2);
     assertEquals("timestamp equal to beforeData, but afterData not set correctly", straddle
         .getBeforeData(), straddle.getAfterData());
     // timestamp between data1 & data2
-    straddle = this.manager.getSensorDataStraddle(source1, source1Time1_2);
+    straddle = this.manager.getSensorDataStraddle(this.source1.getName(), source1Time1_2);
     assertEquals("beforeData not set correctly", straddle.getBeforeData(), data1);
     assertEquals("afterData not set correctly", straddle.getAfterData(), data2);
     // timestamp between data4 & data5
-    straddle = this.manager.getSensorDataStraddle(source1, source1Time4_5);
+    straddle = this.manager.getSensorDataStraddle(this.source1.getName(), source1Time4_5);
     assertEquals("beforeData not set correctly", straddle.getBeforeData(), data4);
     assertEquals("afterData not set correctly", straddle.getAfterData(), data5);
   }
@@ -600,18 +610,18 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     XMLGregorianCalendar afterAll = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
 
     String tool = "JUnit";
-    String source1 = UriUtils.getUriSuffix(makeTestSource1().toUri(server));
-    String source2 = UriUtils.getUriSuffix(makeTestSource2().toUri(server));
-    String virtualSource = UriUtils.getUriSuffix(makeTestSource3().toUri(server));
+    String source1Uri = this.source1.toUri(server);
+    String source2Uri = this.source2.toUri(server);
+    String virtualSource = this.source3.getName();
 
-    SensorData source1Data1 = new SensorData(source1Time1, tool, source1);
-    SensorData source1Data2 = new SensorData(source1Time2, tool, source1);
-    SensorData source1Data3 = new SensorData(source1Time3, tool, source1);
-    SensorData source1Data4 = new SensorData(source1Time4, tool, source1);
-    SensorData source1Data5 = new SensorData(source1Time5, tool, source1);
-    SensorData source2Data1 = new SensorData(source2Time1, tool, source2);
-    SensorData source2Data2 = new SensorData(source2Time2, tool, source2);
-    SensorData source2Data3 = new SensorData(source2Time3, tool, source2);
+    SensorData source1Data1 = new SensorData(source1Time1, tool, source1Uri);
+    SensorData source1Data2 = new SensorData(source1Time2, tool, source1Uri);
+    SensorData source1Data3 = new SensorData(source1Time3, tool, source1Uri);
+    SensorData source1Data4 = new SensorData(source1Time4, tool, source1Uri);
+    SensorData source1Data5 = new SensorData(source1Time5, tool, source1Uri);
+    SensorData source2Data1 = new SensorData(source2Time1, tool, source2Uri);
+    SensorData source2Data2 = new SensorData(source2Time2, tool, source2Uri);
+    SensorData source2Data3 = new SensorData(source2Time3, tool, source2Uri);
     List<SensorDataStraddle> straddleList;
 
     assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data1));
