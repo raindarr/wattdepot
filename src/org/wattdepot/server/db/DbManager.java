@@ -389,6 +389,18 @@ public class DbManager {
   }
 
   /**
+   * Returns the power in SensorData format for the Source name given in the URI and the given
+   * timestamp, or null if no power data exists.
+   * 
+   * @param sourceName The source name.
+   * @param timestamp The timestamp requested.
+   * @return The requested power in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getPower(String sourceName, XMLGregorianCalendar timestamp) {
+    return this.dbImpl.getPower(sourceName, timestamp);
+  }
+
+  /**
    * Returns a UserIndex of all Users in the system. The list is sorted by username.
    * 
    * @return a UserIndex object containing a List of UserRef objects for all User resources.

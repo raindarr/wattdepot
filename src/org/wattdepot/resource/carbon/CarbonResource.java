@@ -36,7 +36,7 @@ public class CarbonResource extends WattDepotResource {
     super(context, request, response);
     this.startTime = (String) request.getAttributes().get("startTime");
     this.endTime = (String) request.getAttributes().get("endTime");
-    this.interval = (String) request.getAttributes().get("interval");
+    this.interval = (String) request.getAttributes().get("samplingInterval");
   }
 
   /**

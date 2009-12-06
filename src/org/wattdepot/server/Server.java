@@ -371,13 +371,13 @@ public class Server extends Application {
         PowerResource.class);
     // Energy does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI
-        + "/?startTime={startTime}&endTime={endTime}&samplingInterval={interval}",
+        + "/?startTime={startTime}&endTime={endTime}&samplingInterval={samplingInterval}",
         EnergyResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI
         + "/?startTime={startTime}&endTime={endTime}", EnergyResource.class);
     // Carbon does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + CARBON_URI
-        + "/?startTime={startTime}&endTime={endTime}&samplingInterval={interval}",
+        + "/?startTime={startTime}&endTime={endTime}&samplingInterval={samplingInterval}",
         CarbonResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + CARBON_URI
         + "/?startTime={startTime}&endTime={endTime}", CarbonResource.class);

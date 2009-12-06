@@ -364,21 +364,7 @@ public class WattDepotResource extends Resource {
   public String getPower(XMLGregorianCalendar timestamp) throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
-    SensorData powerData;
-    if (this.dbManager.getSource(this.uriSource).isVirtual()) {
-      List<SensorDataStraddle> straddleList =
-          this.dbManager.getSensorDataStraddleList(this.uriSource, timestamp);
-      powerData =
-          SensorDataStraddle.getPowerFromList(straddleList, Source.sourceToUri(this.uriSource,
-              server));
-    }
-    else {
-      SensorDataStraddle straddle = this.dbManager.getSensorDataStraddle(this.uriSource, timestamp);
-      if (straddle == null) {
-        return null;
-      }
-      powerData = straddle.getPower();
-    }
+    SensorData powerData = this.dbManager.getPower(this.uriSource, timestamp);
     if (powerData == null) {
       return null;
     }
@@ -448,8 +434,7 @@ public class WattDepotResource extends Resource {
     }
     else {
       energyData =
-          Energy.getEnergyFromListOfLists(masterList, Source.sourceToUri(this.uriSource,
-              server));
+          Energy.getEnergyFromListOfLists(masterList, Source.sourceToUri(this.uriSource, server));
     }
     if (energyData == null) {
       return null;

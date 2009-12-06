@@ -180,6 +180,42 @@ public abstract class DbImplementation {
   public abstract boolean deleteSensorData(String sourceName);
 
   /**
+   * Returns a UserIndex of all Users in the system. The list is sorted by username.
+   * 
+   * @return a UserIndex object containing a List of UserRef objects for all User resources.
+   */
+  public abstract UserIndex getUsers();
+
+  /**
+   * Returns the User instance for a particular username, or null if not found.
+   * 
+   * @param username The user's username.
+   * @return The requested User object, or null.
+   */
+  public abstract User getUser(String username);
+
+  /**
+   * Persists a User instance. If a User with this name already exists in the storage system, no
+   * action is performed and the method returns false.
+   * 
+   * @param user The user to be stored.
+   * @return True if the user was successfully stored.
+   */
+  public abstract boolean storeUser(User user);
+
+  /**
+   * Ensures that the User with the given username is no longer present in storage. All Sources
+   * owned by the given User and their associated Sensor Data will be deleted as well.
+   * 
+   * @param username The user's username.
+   * @return True if the User was deleted, or false if it was not deleted or the requested User does
+   * not exist.
+   */
+  public abstract boolean deleteUser(String username);
+
+  // End of methods based on REST API
+
+  /**
    * Returns a SensorDataStraddle that straddles the given timestamp, using SensorData from the
    * given source. Note that a virtual source contains no SensorData directly, so this method will
    * always return null if the given sourceName is a virtual source. To obtain a list of
@@ -248,40 +284,29 @@ public abstract class DbImplementation {
       String sourceName, List<XMLGregorianCalendar> timestampList);
 
   /**
-   * Returns a UserIndex of all Users in the system. The list is sorted by username.
+   * Returns the power in SensorData format for the Source name given in the URI and the given
+   * timestamp, or null if no power data exists.
    * 
-   * @return a UserIndex object containing a List of UserRef objects for all User resources.
+   * @param sourceName The source name.
+   * @param timestamp The timestamp requested.
+   * @return The requested power in SensorData format, or null if it cannot be found/calculated.
    */
-  public abstract UserIndex getUsers();
-
-  /**
-   * Returns the User instance for a particular username, or null if not found.
-   * 
-   * @param username The user's username.
-   * @return The requested User object, or null.
-   */
-  public abstract User getUser(String username);
-
-  /**
-   * Persists a User instance. If a User with this name already exists in the storage system, no
-   * action is performed and the method returns false.
-   * 
-   * @param user The user to be stored.
-   * @return True if the user was successfully stored.
-   */
-  public abstract boolean storeUser(User user);
-
-  /**
-   * Ensures that the User with the given username is no longer present in storage. All Sources
-   * owned by the given User and their associated Sensor Data will be deleted as well.
-   * 
-   * @param username The user's username.
-   * @return True if the User was deleted, or false if it was not deleted or the requested User does
-   * not exist.
-   */
-  public abstract boolean deleteUser(String username);
-
-  // End of methods based on REST API
+  public SensorData getPower(String sourceName, XMLGregorianCalendar timestamp) {
+    if (getSource(sourceName).isVirtual()) {
+      List<SensorDataStraddle> straddleList = getSensorDataStraddleList(sourceName, timestamp);
+      return SensorDataStraddle.getPowerFromList(straddleList, Source.sourceToUri(sourceName,
+          this.server));
+    }
+    else {
+      SensorDataStraddle straddle = getSensorDataStraddle(sourceName, timestamp);
+      if (straddle == null) {
+        return null;
+      }
+      else {
+        return straddle.getPower();
+      }
+    }
+  }
 
   /**
    * Some databases require periodic maintenance (ex. Derby requires an explicit compress command to
