@@ -401,6 +401,36 @@ public class DbManager {
   }
 
   /**
+   * Returns the energy in SensorData format for the Source name given over the range of time
+   * between startTime and endTime, or null if no energy data exists.
+   * 
+   * @param sourceName The source name.
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getEnergy(String sourceName, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int interval) {
+    return this.dbImpl.getEnergy(sourceName, startTime, endTime, interval);
+  }
+
+  /**
+   * Returns the carbon emitted in SensorData format for the Source name given over the range of
+   * time between startTime and endTime, or null if no carbon data exists.
+   * 
+   * @param sourceName The source name.
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested carbon in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getCarbon(String sourceName, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int interval) {
+    return this.dbImpl.getCarbon(sourceName, startTime, endTime, interval);
+  }
+  
+  /**
    * Returns a UserIndex of all Users in the system. The list is sorted by username.
    * 
    * @return a UserIndex object containing a List of UserRef objects for all User resources.

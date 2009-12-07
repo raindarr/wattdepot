@@ -255,63 +255,6 @@ public final class Tstamp {
   }
 
   /**
-   * Returns an XMLGregorianCalendar corresponding to 01-Jan-2000.
-   * @return The timestamp.
-   */
-  public static XMLGregorianCalendar getDefaultProjectStartTime() {
-    try {
-      DatatypeFactory factory = DatatypeFactory.newInstance();
-      XMLGregorianCalendar startTime = factory.newXMLGregorianCalendar();
-      startTime.setDay(1);
-      startTime.setMonth(1);
-      startTime.setYear(2000);
-      startTime.setTime(0, 0, 0);
-      startTime.setMillisecond(000); // NOPMD
-      return Tstamp.makeTimestamp(startTime.toGregorianCalendar().getTimeInMillis());
-    }
-    catch (Exception e) {
-      throw new RuntimeException(factoryErrorMsg, e);
-    }
-  }
-
-  /**
-   * Returns an XMLGregorianCalendar corresponding to 01-Jan-2010.
-   * @return The timestamp.
-   */
-  public static XMLGregorianCalendar getDefaultProjectEndTime() {
-    try {
-      DatatypeFactory factory = DatatypeFactory.newInstance();
-      XMLGregorianCalendar endTime = factory.newXMLGregorianCalendar();
-      endTime.setDay(1);
-      endTime.setMonth(1);
-      endTime.setYear(2010);
-      endTime.setTime(23, 59, 59);
-      endTime.setMillisecond(999);
-      return Tstamp.makeTimestamp(endTime.toGregorianCalendar().getTimeInMillis());
-    }
-    catch (Exception e) {
-      throw new RuntimeException(factoryErrorMsg, e);
-    }
-  }
-  
-  /**
-   * In the early days of Hackystat, default project start times were 1000-01-01.
-   * This was stupid.  The following hack exists to correct projects containing this old 
-   * value.  This code and its callers can be removed when the disease is eradicated.
-   * @param startTime The startTime in question.
-   * @return True if it's before 1950.
-   */
-  public static boolean isBogusStartTime(XMLGregorianCalendar startTime) {
-    try {
-      XMLGregorianCalendar bogusTime = Tstamp.makeTimestamp("1950-01-01");
-      return Tstamp.lessThan(startTime, bogusTime);
-    }
-    catch (Exception e) {
-      return true;
-    }
-  }
-
-  /**
    * Returns true if tstamp is equal to or between start and end.
    * @param start The start time.
    * @param tstamp The timestamp to test.

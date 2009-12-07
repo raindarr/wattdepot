@@ -1,8 +1,11 @@
 package org.wattdepot.server.db;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 import javax.xml.datatype.XMLGregorianCalendar;
+import org.wattdepot.resource.carbon.Carbon;
+import org.wattdepot.resource.energy.Energy;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
@@ -13,6 +16,7 @@ import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Provides a specification of the operations that must be implemented by every WattDepot server
@@ -284,8 +288,8 @@ public abstract class DbImplementation {
       String sourceName, List<XMLGregorianCalendar> timestampList);
 
   /**
-   * Returns the power in SensorData format for the Source name given in the URI and the given
-   * timestamp, or null if no power data exists.
+   * Returns the power in SensorData format for the Source name given and the given timestamp, or
+   * null if no power data exists.
    * 
    * @param sourceName The source name.
    * @param timestamp The timestamp requested.
@@ -305,6 +309,102 @@ public abstract class DbImplementation {
       else {
         return straddle.getPower();
       }
+    }
+  }
+
+  /**
+   * Helper function that prepares a List timestamps, between the start time and end time, at the
+   * given sampling interval.
+   * 
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The List of XMLGregorianCalendar, which can be used to calculate energy or carbon over
+   * the interval.
+   */
+  private List<XMLGregorianCalendar> getTimestampList(XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int interval) {
+    long intervalMilliseconds;
+    long rangeLength = Tstamp.diff(startTime, endTime);
+    long minutesToMilliseconds = 60L * 1000L;
+
+    if (interval < 0) {
+      return null;
+    }
+    else if (interval == 0) {
+      // use default interval
+      intervalMilliseconds = rangeLength / 10;
+    }
+    else if ((interval * minutesToMilliseconds) > rangeLength) {
+      // TODO BOGUS, should throw an exception so callers can distinguish between problems
+      return null;
+    }
+    else {
+      // got a good interval
+      intervalMilliseconds = interval * minutesToMilliseconds;
+    }
+    // DEBUG
+    // System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
+    // intervalMilliseconds / minutesToMilliseconds);
+
+    // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
+    List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
+    XMLGregorianCalendar timestamp = startTime;
+    while (Tstamp.lessThan(timestamp, endTime)) {
+      timestampList.add(timestamp);
+      // System.out.format("timestamp=%s%n", timestamp);
+      timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
+    }
+    // add endTime to cover the last runt interval which is <= intervalMilliseconds
+    timestampList.add(endTime);
+    // System.out.format("timestamp=%s%n", endTime);
+    return timestampList;
+  }
+
+  /**
+   * Returns the energy in SensorData format for the Source name given over the range of time
+   * between startTime and endTime, or null if no energy data exists.
+   * 
+   * @param sourceName The source name.
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getEnergy(String sourceName, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int interval) {
+    List<List<SensorDataStraddle>> masterList =
+        getSensorDataStraddleListOfLists(sourceName, getTimestampList(startTime, endTime, interval));
+
+    if ((masterList == null) || (masterList.isEmpty())) {
+      return null;
+    }
+    else {
+      return Energy.getEnergyFromListOfLists(masterList, Source
+          .sourceToUri(sourceName, this.server));
+    }
+  }
+
+  /**
+   * Returns the carbon emitted in SensorData format for the Source name given over the range of
+   * time between startTime and endTime, or null if no carbon data exists.
+   * 
+   * @param sourceName The source name.
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested carbon in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getCarbon(String sourceName, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int interval) {
+    List<StraddleList> masterList =
+        getStraddleLists(sourceName, getTimestampList(startTime, endTime, interval));
+    if ((masterList == null) || (masterList.isEmpty())) {
+      return null;
+    }
+    else {
+      // Make list of carbon intensities, one from each source
+      return Carbon.getCarbonFromStraddleList(masterList, Source.sourceToUri(sourceName, server));
     }
   }
 

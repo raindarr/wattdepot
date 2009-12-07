@@ -2,7 +2,6 @@ package org.wattdepot.resource;
 
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import javax.xml.bind.JAXBContext;
@@ -20,10 +19,6 @@ import org.restlet.data.Status;
 import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
-import org.wattdepot.resource.carbon.Carbon;
-import org.wattdepot.resource.energy.Energy;
-import org.wattdepot.resource.sensordata.SensorDataStraddle;
-import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -390,7 +385,6 @@ public class WattDepotResource extends Resource {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorData energyData = null;
-    long intervalMilliseconds;
     long rangeLength = Tstamp.diff(startTime, endTime);
     long minutesToMilliseconds = 60L * 1000L;
 
@@ -399,43 +393,12 @@ public class WattDepotResource extends Resource {
       // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
       return null;
     }
-    else if (interval == 0) {
-      // use default interval
-      intervalMilliseconds = rangeLength / 10;
-    }
     else if ((interval * minutesToMilliseconds) > rangeLength) {
       setStatusBadSamplingInterval(Integer.toString(interval));
       // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
       return null;
     }
-    else {
-      // got a good interval
-      intervalMilliseconds = interval * minutesToMilliseconds;
-    }
-    // DEBUG
-    // System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
-    // intervalMilliseconds / minutesToMilliseconds);
-
-    // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
-    List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
-    XMLGregorianCalendar timestamp = startTime;
-    while (Tstamp.lessThan(timestamp, endTime)) {
-      timestampList.add(timestamp);
-      // System.out.format("timestamp=%s%n", timestamp);
-      timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
-    }
-    // add endTime to cover the last runt interval which is <= intervalMilliseconds
-    timestampList.add(endTime);
-    // System.out.format("timestamp=%s%n", endTime);
-    List<List<SensorDataStraddle>> masterList =
-        this.dbManager.getSensorDataStraddleListOfLists(this.uriSource, timestampList);
-    if ((masterList == null) || (masterList.isEmpty())) {
-      return null;
-    }
-    else {
-      energyData =
-          Energy.getEnergyFromListOfLists(masterList, Source.sourceToUri(this.uriSource, server));
-    }
+    energyData = this.dbManager.getEnergy(this.uriSource, startTime, endTime, interval);
     if (energyData == null) {
       return null;
     }
@@ -461,7 +424,6 @@ public class WattDepotResource extends Resource {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorData carbonData = null;
-    long intervalMilliseconds;
     long rangeLength = Tstamp.diff(startTime, endTime);
     long minutesToMilliseconds = 60L * 1000L;
 
@@ -470,37 +432,12 @@ public class WattDepotResource extends Resource {
       // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
       return null;
     }
-    else if (interval == 0) {
-      // use default interval
-      intervalMilliseconds = rangeLength / 10;
-    }
     else if ((interval * minutesToMilliseconds) > rangeLength) {
       setStatusBadSamplingInterval(Integer.toString(interval));
       // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
       return null;
     }
-    else {
-      // got a good interval
-      intervalMilliseconds = interval * minutesToMilliseconds;
-    }
-    // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
-    List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
-    XMLGregorianCalendar timestamp = startTime;
-    while (Tstamp.lessThan(timestamp, endTime)) {
-      timestampList.add(timestamp);
-      timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
-    }
-    // add endTime to cover the last runt interval which is <= intervalMilliseconds
-    timestampList.add(endTime);
-    List<StraddleList> masterList = this.dbManager.getStraddleLists(this.uriSource, timestampList);
-    if ((masterList == null) || (masterList.isEmpty())) {
-      return null;
-    }
-    else {
-      // Make list of carbon intensities, one from each source
-      carbonData =
-          Carbon.getCarbonFromStraddleList(masterList, Source.sourceToUri(this.uriSource, server));
-    }
+    carbonData = this.dbManager.getCarbon(this.uriSource, startTime, endTime, interval);
     if (carbonData == null) {
       return null;
     }

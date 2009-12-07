@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.resource.property.jaxb.Properties;
-import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -15,13 +13,18 @@ import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.tstamp.Tstamp;
+import com.google.common.collect.Lists;
+import com.google.visualization.datasource.Capabilities;
 import com.google.visualization.datasource.DataSourceServlet;
 import com.google.visualization.datasource.base.DataSourceException;
 import com.google.visualization.datasource.base.ReasonType;
 import com.google.visualization.datasource.base.TypeMismatchException;
 import com.google.visualization.datasource.datatable.ColumnDescription;
 import com.google.visualization.datasource.datatable.DataTable;
+import com.google.visualization.datasource.datatable.TableRow;
+import com.google.visualization.datasource.datatable.value.DateTimeValue;
 import com.google.visualization.datasource.datatable.value.ValueType;
+import com.google.visualization.datasource.query.AbstractColumn;
 import com.google.visualization.datasource.query.Query;
 import com.ibm.icu.util.TimeZone;
 
@@ -29,6 +32,10 @@ import com.ibm.icu.util.TimeZone;
  * Accepts requests using the Google Visualization API and fulfills then with data from the
  * WattDepot database. Currently does not use authentication, and therefore does not obey the
  * WattDepot security model.
+ * 
+ * Portions of this class were derived from the AdvancedExampleServlet example class from the Google
+ * Visualization data source library, which is distributed under the Apache License, Version 2.0.
+ * See http://www.apache.org/licenses/LICENSE-2.0 for full text of the Apache license.
  * 
  * @author Robert Brewer
  */
@@ -45,6 +52,42 @@ public class GVisualizationServlet extends DataSourceServlet {
 
   /** Conversion factor for milliseconds per minute. */
   private static final long MILLISECONDS_PER_MINUTE = 60L * 1000;
+
+  /** Name for timestamp column of data table. */
+  private static final String TIME_POINT_COLUMN = "timePoint";
+  /** Name for power consumed column of data table. */
+  private static final String POWER_CONSUMED_COLUMN = "powerConsumed";
+  /** Name for power consumed column of data table. */
+  private static final String POWER_GENERATED_COLUMN = "powerGenerated";
+  /** Name for energy consumed to date (a counter) column of data table. */
+  private static final String ENERGY_CONSUMED_TO_DATE_COLUMN = "energyConsumedToDate";
+
+  /** List of all possible columns for sensor data requests. */
+  private static final ColumnDescription[] SENSOR_DATA_TABLE_COLUMNS =
+      new ColumnDescription[] {
+          new ColumnDescription(TIME_POINT_COLUMN, ValueType.DATETIME, "Date & Time"),
+          new ColumnDescription(POWER_CONSUMED_COLUMN, ValueType.NUMBER, "Power Consumed (W)"),
+          new ColumnDescription(POWER_GENERATED_COLUMN, ValueType.NUMBER, "Power Generated (W)"),
+          new ColumnDescription(ENERGY_CONSUMED_TO_DATE_COLUMN, ValueType.NUMBER,
+              "Energy Consumed To Date (Wh)") };
+
+  /** Name for energy consumed column of data table. */
+  private static final String ENERGY_CONSUMED_COLUMN = "energyConsumed";
+  /** Name for energy generated column of data table. */
+  private static final String ENERGY_GENERATED_COLUMN = "energyGenerated";
+  /** Name for carbon emitted column of data table. */
+  private static final String CARBON_EMITTED_COLUMN = "carbonEmitted";
+
+  /** List of all possible columns for calculated value requests. */
+  private static final ColumnDescription[] CALCULATED_TABLE_COLUMNS =
+      new ColumnDescription[] {
+          new ColumnDescription(TIME_POINT_COLUMN, ValueType.DATETIME, "Date & Time"),
+          new ColumnDescription(POWER_CONSUMED_COLUMN, ValueType.NUMBER, "Power Consumed (W)"),
+          new ColumnDescription(POWER_GENERATED_COLUMN, ValueType.NUMBER, "Power Generated (W)"),
+          new ColumnDescription(ENERGY_CONSUMED_COLUMN, ValueType.NUMBER, "Energy Consumed (Wh)"),
+          new ColumnDescription(ENERGY_GENERATED_COLUMN, ValueType.NUMBER, "Energy Generated (Wh)"),
+          new ColumnDescription(CARBON_EMITTED_COLUMN, ValueType.NUMBER,
+              "Carbon Emitted (lbs CO2)") };
 
   /**
    * Create the new servlet, and record the provided Server to make queries on the DB.
@@ -96,15 +139,6 @@ public class GVisualizationServlet extends DataSourceServlet {
           + "\".");
     }
 
-    // DEBUG code, printing query string parameters
-    // Map<String, String[]> requestMap = getParameterMapGenerics(request);
-    // Set<Map.Entry<String, String []>> entries = requestMap.entrySet();
-    // System.err.println("query string: " + request.getQueryString()); // DEBUG
-    // System.err.println("request.getParameterMap(): "); // DEBUG
-    // for (Map.Entry<String, String []> entry : entries) {
-    // System.err.println(entry.getKey() + ": " + Arrays.toString(entry.getValue()));
-    // }
-
     String startTimeString = getQueryParameter(request, "startTime");
     String endTimeString = getQueryParameter(request, "endTime");
     XMLGregorianCalendar startTime = null;
@@ -127,95 +161,12 @@ public class GVisualizationServlet extends DataSourceServlet {
       }
     }
 
-    // Create a data table,
-    DataTable data = new DataTable();
-    ArrayList<ColumnDescription> cd = new ArrayList<ColumnDescription>();
-
     if (sensorDataRequested) {
-      cd.add(new ColumnDescription("timePoint", ValueType.DATETIME, "Date & Time"));
-      cd.add(new ColumnDescription("powerConsumed", ValueType.NUMBER, "Power (W)"));
-      cd
-          .add(new ColumnDescription("energyConsumedToDate", ValueType.NUMBER,
-              "Energy Consumed (Wh)"));
-      cd.add(new ColumnDescription("powerGenerated", ValueType.NUMBER, "Power Generated (W)"));
-      data.addColumns(cd);
-
-      SensorDataIndex index;
-      // Get all sensor data for this Source
-      if ((startTime == null) && (endTime == null)) {
-        index = dbManager.getSensorDataIndex(sourceName);
-      }
-      // If we received valid start and end times, retrieve just that data
-      else {
-        try {
-          index = dbManager.getSensorDataIndex(sourceName, startTime, endTime);
-        }
-        catch (DbBadIntervalException e) {
-          log("startTime came after endTime", e);
-          throw new DataSourceException(ReasonType.INVALID_REQUEST, // NOPMD
-              "startTime parameter was after endTime parameter."); // NOPMD
-        }
-      }
-      Properties props;
-      // Iterate over each SensorDataRef
-      for (SensorDataRef ref : index.getSensorDataRef()) {
-        Double powerConsumed = null, energyConsumedToDate = null, powerGenerated = null;
-        props = dbManager.getSensorData(sourceName, ref.getTimestamp()).getProperties();
-        // Look for properties on this SensorData that we are interested in
-        for (Property prop : props.getProperty()) {
-          try {
-            if (prop.getKey().equals(SensorData.POWER_CONSUMED)) {
-              powerConsumed = new Double(prop.getValue());
-            }
-            else if (prop.getKey().equals(SensorData.ENERGY_CONSUMED_TO_DATE)) {
-              energyConsumedToDate = new Double(prop.getValue());
-            }
-            else if (prop.getKey().equals(SensorData.POWER_GENERATED)) {
-              powerGenerated = new Double(prop.getValue());
-            }
-          }
-          catch (NumberFormatException e) {
-            // String value in database couldn't be converted to a number.
-            throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Found bad number in database"); // NOPMD
-          }
-        }
-        // System.err.format("timestamp: %s, power: %f, energy: %f%n",
-        // ref.getTimestamp().toString(),
-        // powerConsumed, energyConsumedToDate); // DEBUG
-        try {
-          // Add a row into the table
-          data.addRowFromValues(convertTimestamp(ref.getTimestamp()), powerConsumed,
-              energyConsumedToDate, powerGenerated);
-        }
-        catch (TypeMismatchException e) {
-          throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Problem adding data to table"); // NOPMD
-        }
-      }
+      return generateSensorDataTable(query, sourceName, startTime, endTime);
     }
+    // Calculated data: power, energy, carbon
     else {
-      // String resourcesString = getQueryParameter(request, "resources");
-      // String [] resourcesArray = null;
-      // if (resourcesString == null) {
-      // throw new DataSourceException(ReasonType.INVALID_REQUEST,
-      // "No resource type(s) specified.");
-      // }
-      // else {
-      // resourcesArray = resourcesString.split(" *, *", 100);
-      // }
-      if ((startTime == null) || (endTime == null)) {
-        throw new DataSourceException(ReasonType.INVALID_REQUEST,
-            "Valid startTime and endTime parameters are required.");
-      }
-      else if (Tstamp.greaterThan(startTime, endTime)) {
-        throw new DataSourceException(ReasonType.INVALID_REQUEST,
-            "startTime parameter later than endTime parameter");
-      }
-
       String intervalString = getQueryParameter(request, "samplingInterval");
-      SensorData powerData = null;
-      long intervalMilliseconds;
-      long rangeLength = Tstamp.diff(startTime, endTime);
-      long minutesToMilliseconds = 60L * 1000L;
       int intervalMinutes = 0;
 
       if (intervalString != null) {
@@ -229,72 +180,254 @@ public class GVisualizationServlet extends DataSourceServlet {
               "samplingInterval parameter was invalid."); // NOPMD
         }
       }
-
-      if (intervalMinutes < 0) {
-        log("samplingInterval parameter less than 0");
-        throw new DataSourceException(ReasonType.INVALID_REQUEST,
-            "samplingInterval parameter was less than 0.");
-      }
-      else if (intervalMinutes == 0) {
-        // use default interval
-        intervalMilliseconds = rangeLength / 10;
-      }
-      else if ((intervalMinutes * minutesToMilliseconds) > rangeLength) {
-        log("samplingInterval parameter less than 0");
-        throw new DataSourceException(ReasonType.INVALID_REQUEST,
-            "samplingInterval parameter was larger than time range.");
-      }
-      else {
-        // got a good interval
-        intervalMilliseconds = intervalMinutes * minutesToMilliseconds;
-      }
-      // DEBUG
-      System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
-          intervalMilliseconds / minutesToMilliseconds);
-
-      cd.add(new ColumnDescription("timePoint", ValueType.DATETIME, "Date & Time"));
-      cd.add(new ColumnDescription("powerGenerated", ValueType.NUMBER, "Power Generated (W)"));
-      data.addColumns(cd);
-
-      // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
-      List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
-      XMLGregorianCalendar timestamp = startTime;
-      while (Tstamp.lessThan(timestamp, endTime)) {
-        timestampList.add(timestamp);
-        System.out.format("timestamp=%s%n", timestamp);
-        timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
-      }
-      // add endTime to cover the last runt interval which is <= intervalMilliseconds
-      timestampList.add(endTime);
-      System.out.format("timestamp=%s%n", endTime);
-      for (XMLGregorianCalendar powerTime : timestampList) {
-        powerData = this.dbManager.getPower(sourceName, powerTime);
-        System.out.println("powerData = " + powerData);
-        System.out.println("convertTimestamp(powerTime) = " + convertTimestamp(powerTime)
-            + ", powerGenerated = " + powerData.getPropertyAsDouble(SensorData.POWER_GENERATED));
-        try {
-          // Add a row into the table
-          data.addRowFromValues(convertTimestamp(powerTime), powerData
-              .getPropertyAsDouble(SensorData.POWER_GENERATED));
-        }
-        catch (TypeMismatchException e) {
-          throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Problem adding data to table"); // NOPMD
-        }
-      }
-      // List<List<SensorDataStraddle>> masterList =
-      // this.dbManager.getSensorDataStraddleListOfLists(this.uriSource, timestampList);
-      // if ((masterList == null) || (masterList.isEmpty())) {
-      // return null;
-      // }
-      // else {
-      // energyData =
-      // Energy.getEnergyFromListOfLists(masterList, Source.sourceToUri(this.uriSource, server));
-      // }
-      // if (energyData == null) {
-      // return null;
-      // }
+      return generateCalculatedTable(query, sourceName, startTime, endTime, intervalMinutes);
     }
-    System.out.println(data);
+  }
+
+  /**
+   * Generates a DataTable of sensor data, given the query parameters. Supports the SELECT
+   * capability, so only columns that are SELECTed will be retrieved and added to the table. The
+   * startTime and endTime parameters can be null, in which case all sensor data for the source will
+   * be retrieved (which can be very big).
+   * 
+   * @param query The query from the data source client.
+   * @param sourceName The name of the source.
+   * @param startTime The starting time for the interval.
+   * @param endTime The ending time for the interval.
+   * @return A DataTable with the selected columns for every sensor data resource within the
+   * interval.
+   * @throws DataSourceException If there are problems fulfilling the request.
+   */
+  private DataTable generateSensorDataTable(Query query, String sourceName,
+      XMLGregorianCalendar startTime, XMLGregorianCalendar endTime) throws DataSourceException {
+    DataTable data = new DataTable();
+    // Sets up the columns requested by any SELECT in the data source query
+    List<ColumnDescription> requiredColumns = getRequiredColumns(query, SENSOR_DATA_TABLE_COLUMNS);
+    data.addColumns(requiredColumns);
+
+    SensorDataIndex index;
+    // Get all sensor data for this Source
+    if ((startTime == null) && (endTime == null)) {
+      index = dbManager.getSensorDataIndex(sourceName);
+    }
+    // If we received valid start and end times, retrieve just that data
+    else {
+      try {
+        index = dbManager.getSensorDataIndex(sourceName, startTime, endTime);
+      }
+      catch (DbBadIntervalException e) {
+        log("startTime came after endTime", e);
+        throw new DataSourceException(ReasonType.INVALID_REQUEST, // NOPMD
+            "startTime parameter was after endTime parameter."); // NOPMD
+      }
+    }
+    // Iterate over each SensorDataRef
+    for (SensorDataRef ref : index.getSensorDataRef()) {
+      SensorData sensorData = dbManager.getSensorData(sourceName, ref.getTimestamp());
+      TableRow row = new TableRow();
+      for (ColumnDescription selectionColumn : requiredColumns) {
+        String columnName = selectionColumn.getId();
+        try {
+          if (columnName.equals(TIME_POINT_COLUMN)) {
+            row.addCell(new DateTimeValue(convertTimestamp(ref.getTimestamp())));
+          }
+          else if (columnName.equals(POWER_CONSUMED_COLUMN)) {
+            row.addCell(sensorData.getPropertyAsDouble(SensorData.POWER_CONSUMED));
+          }
+          else if (columnName.equals(POWER_GENERATED_COLUMN)) {
+            row.addCell(sensorData.getPropertyAsDouble(SensorData.POWER_GENERATED));
+          }
+          else if (columnName.equals(ENERGY_CONSUMED_TO_DATE_COLUMN)) {
+            row.addCell(sensorData.getPropertyAsDouble(SensorData.ENERGY_CONSUMED_TO_DATE));
+          }
+        }
+        catch (NumberFormatException e) {
+          // String value in database couldn't be converted to a number.
+          throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Found bad number in database"); // NOPMD
+        }
+      }
+      try {
+        data.addRow(row);
+      }
+      catch (TypeMismatchException e) {
+        throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Problem adding data to table"); // NOPMD
+      }
+    }
+    return data;
+  }
+
+  /**
+   * Generates a DataTable of sensor data, given the query parameters. Supports the SELECT
+   * capability, so only columns that are SELECTed will be retrieved and added to the table. The
+   * startTime and endTime paramters can be null, in which case all sensor data for the source will
+   * be retrieved (which can be voluminous).
+   * 
+   * @param query The query from the data source client.
+   * @param sourceName The name of the source.
+   * @param startTime The starting time for the interval.
+   * @param endTime The ending time for the interval.
+   * @return A DataTable with the selected columns for every sensor data resource within the
+   * interval.
+   * @throws DataSourceException If there are problems fulfilling the request.
+   */
+
+  /**
+   * Generates a DataTable of calculated data, given the query parameters. Supports the SELECT
+   * capability, so only columns that are SELECTed will be retrieved and added to the table. The
+   * startTime and endTime parameters are required, as is the sampling interval.
+   * 
+   * @param query The query from the data source client.
+   * @param sourceName The name of the source.
+   * @param startTime The starting time for the interval.
+   * @param endTime The ending time for the interval.
+   * @param intervalMinutes the rate at which the selected columns should be sampled, in minutes.
+   * @return A DataTable with the selected columns sampled at the given rate within the interval.
+   * @throws DataSourceException If there are problems fulfilling the request.
+   */
+  private DataTable generateCalculatedTable(Query query, String sourceName,
+      XMLGregorianCalendar startTime, XMLGregorianCalendar endTime, int intervalMinutes)
+      throws DataSourceException {
+    DataTable data = new DataTable();
+
+    if ((startTime == null) || (endTime == null)) {
+      throw new DataSourceException(ReasonType.INVALID_REQUEST,
+          "Valid startTime and endTime parameters are required.");
+    }
+    else if (Tstamp.greaterThan(startTime, endTime)) {
+      throw new DataSourceException(ReasonType.INVALID_REQUEST,
+          "startTime parameter later than endTime parameter");
+    }
+
+    SensorData powerData = null, energyData = null, carbonData = null;
+    long intervalMilliseconds;
+    long rangeLength = Tstamp.diff(startTime, endTime);
+    long minutesToMilliseconds = 60L * 1000L;
+
+    if (intervalMinutes < 0) {
+      log("samplingInterval parameter less than 0");
+      throw new DataSourceException(ReasonType.INVALID_REQUEST,
+          "samplingInterval parameter was less than 0.");
+    }
+    else if (intervalMinutes == 0) {
+      // use default interval
+      intervalMilliseconds = rangeLength / 10;
+    }
+    else if ((intervalMinutes * minutesToMilliseconds) > rangeLength) {
+      log("samplingInterval parameter less than 0");
+      throw new DataSourceException(ReasonType.INVALID_REQUEST,
+          "samplingInterval parameter was larger than time range.");
+    }
+    else {
+      // got a good interval
+      intervalMilliseconds = intervalMinutes * minutesToMilliseconds;
+    }
+    // DEBUG
+//    System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
+//        intervalMilliseconds / minutesToMilliseconds);
+
+    // Sets up the columns requested by any SELECT in the datasource query
+    List<ColumnDescription> requiredColumns = getRequiredColumns(query, CALCULATED_TABLE_COLUMNS);
+    data.addColumns(requiredColumns);
+
+    // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
+    List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
+    XMLGregorianCalendar timestamp = startTime;
+    while (Tstamp.lessThan(timestamp, endTime)) {
+      timestampList.add(timestamp);
+//      System.out.format("timestamp=%s%n", timestamp);
+      timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
+    }
+    // add endTime to cover the last runt interval which is <= intervalMilliseconds
+    timestampList.add(endTime);
+//    System.out.format("timestamp=%s%n", endTime);
+    for (int i = 0; i < timestampList.size(); i++, powerData = null, energyData = null, carbonData =
+        null) {
+      XMLGregorianCalendar currentTimestamp = timestampList.get(i);
+      TableRow row = new TableRow();
+      for (ColumnDescription selectionColumn : requiredColumns) {
+        String columnName = selectionColumn.getId();
+        try {
+          if (columnName.equals(TIME_POINT_COLUMN)) {
+            row.addCell(new DateTimeValue(convertTimestamp(currentTimestamp)));
+          }
+          else if (columnName.equals(POWER_CONSUMED_COLUMN)) {
+            // fetch data if now yet retrieved for this row
+            if (powerData == null) {
+              powerData = this.dbManager.getPower(sourceName, currentTimestamp);
+            }
+            row.addCell(powerData.getPropertyAsDouble(SensorData.POWER_CONSUMED));
+          }
+          else if (columnName.equals(POWER_GENERATED_COLUMN)) {
+            // fetch data if now yet retrieved for this row
+            if (powerData == null) {
+              powerData = this.dbManager.getPower(sourceName, currentTimestamp);
+            }
+            row.addCell(powerData.getPropertyAsDouble(SensorData.POWER_GENERATED));
+          }
+          else if (columnName.equals(ENERGY_CONSUMED_COLUMN)) {
+            if (i == 0) {
+              // First timestamp in list doesn't have a previous timestamp we can use to make an
+              // interval, so just use 0.
+              row.addCell(0);
+            }
+            else {
+              XMLGregorianCalendar previousTimestamp = timestampList.get(i - 1);
+              // fetch data if now yet retrieved for this row
+              if (energyData == null) {
+                energyData =
+                    this.dbManager
+                        .getEnergy(sourceName, previousTimestamp, currentTimestamp, (int) (Tstamp
+                            .diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
+              }
+              row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_CONSUMED));
+            }
+          }
+          else if (columnName.equals(ENERGY_GENERATED_COLUMN)) {
+            if (i == 0) {
+              // First timestamp in list doesn't have a previous timestamp we can use to make an
+              // interval, so just use 0.
+              row.addCell(0);
+            }
+            else {
+              XMLGregorianCalendar previousTimestamp = timestampList.get(i - 1);
+              // fetch data if now yet retrieved for this row
+              if (energyData == null) {
+                energyData =
+                    this.dbManager
+                        .getEnergy(sourceName, previousTimestamp, currentTimestamp, (int) (Tstamp
+                            .diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
+              }
+              row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_GENERATED));
+            }
+          }
+          else if (columnName.equals(CARBON_EMITTED_COLUMN)) {
+            if (i == 0) {
+              // First timestamp in list doesn't have a previous timestamp we can use to make an
+              // interval, so just use 0.
+              row.addCell(0);
+            }
+            else {
+              XMLGregorianCalendar previousTimestamp = timestampList.get(i - 1);
+              carbonData =
+                  this.dbManager
+                      .getCarbon(sourceName, previousTimestamp, currentTimestamp, (int) (Tstamp
+                          .diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
+              row.addCell(carbonData.getPropertyAsDouble(SensorData.CARBON_EMITTED));
+            }
+          }
+        }
+        catch (NumberFormatException e) {
+          // String value in database couldn't be converted to a number.
+          throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Found bad number in database"); // NOPMD
+        }
+      }
+      try {
+        data.addRow(row);
+      }
+      catch (TypeMismatchException e) {
+        throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Problem adding data to table"); // NOPMD
+      }
+    }
     return data;
   }
 
@@ -411,5 +544,57 @@ public class GVisualizationServlet extends DataSourceServlet {
   @Override
   protected boolean isRestrictedAccessMode() {
     return false;
+  }
+
+  /**
+   * Indicates that this data source can select specified columns, rather than fetching or computing
+   * data for all possible columns and making the visualization library do the selection.
+   * 
+   * @return The SELECT capability.
+   */
+  @Override
+  public Capabilities getCapabilities() {
+    return Capabilities.SELECT;
+  }
+
+  /**
+   * Returns true if the given column name is requested in the given query. If the query is empty,
+   * all columnNames returns true.
+   * 
+   * @param query The given query.
+   * @param columnName The requested column name.
+   * @return True if the given column name is requested in the given query.
+   */
+  private boolean isColumnRequested(Query query, String columnName) {
+    // If the query is empty returns true, as if all columns were specified.
+    if (query.isEmpty()) {
+      return true;
+    }
+    // Returns true if the requested column id was specified (not case sensitive).
+    List<AbstractColumn> columns = query.getSelection().getColumns();
+    for (AbstractColumn column : columns) {
+      if (column.getId().equalsIgnoreCase(columnName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns a list of required columns based on the query and the actual columns.
+   * 
+   * @param query The user selection query.
+   * @param availableColumns The list of possible columns.
+   * @return A List of required columns for the requested data table.
+   */
+  private List<ColumnDescription> getRequiredColumns(Query query,
+      ColumnDescription[] availableColumns) {
+    List<ColumnDescription> requiredColumns = Lists.newArrayList();
+    for (ColumnDescription column : availableColumns) {
+      if (isColumnRequested(query, column.getId())) {
+        requiredColumns.add(column);
+      }
+    }
+    return requiredColumns;
   }
 }
