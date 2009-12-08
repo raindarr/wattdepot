@@ -106,8 +106,8 @@ public class GVisualizationServlet extends DataSourceServlet {
     String remainingUri, sourceName;
     boolean sensorDataRequested = false;
 
-//    System.out.println(request.getRequestURL() + "?" + request.getQueryString()); // DEBUG
-    
+    // System.out.println(request.getRequestURL() + "?" + request.getQueryString()); // DEBUG
+
     // This is everything following the URI, which should start with "/gviz/source/"
     String rawPath = request.getPathInfo();
     // Check for incomplete URIs
@@ -322,7 +322,7 @@ public class GVisualizationServlet extends DataSourceServlet {
     List<Source> subSources = null;
     if (displaySubsources && source.isVirtual()) {
       subSources = this.dbManager.getAllNonVirtualSubSources(source);
-      System.out.println("subSources: " + subSources);
+//      System.out.println("subSources: " + subSources); // DEBUG
     }
 
     // Sets up the columns requested by any SELECT in the datasource query
@@ -344,6 +344,18 @@ public class GVisualizationServlet extends DataSourceServlet {
     for (int i = 0; i < timestampList.size(); i++, powerData = null, energyData = null, carbonData =
         null) {
       XMLGregorianCalendar currentTimestamp = timestampList.get(i);
+      XMLGregorianCalendar previousTimestamp;
+      if (i == 0) {
+        // First timestamp in list doesn't have a previous timestamp we can use to make an
+        // interval, so we look one interval _before_ the first timestamp.
+        previousTimestamp = Tstamp.incrementMilliseconds(currentTimestamp, -intervalMilliseconds);
+      }
+      else {
+        previousTimestamp = timestampList.get(i - 1);
+      }
+      int currentInterval =
+          (int) (Tstamp.diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds);
+
       TableRow row = new TableRow();
       for (ColumnDescription selectionColumn : requiredColumns) {
         String columnName = selectionColumn.getId();
@@ -371,58 +383,22 @@ public class GVisualizationServlet extends DataSourceServlet {
             row.addCell(powerData.getPropertyAsDouble(SensorData.POWER_GENERATED));
           }
           else if (columnName.endsWith(ENERGY_CONSUMED_COLUMN)) {
-            if (i == 0) {
-              // First timestamp in list doesn't have a previous timestamp we can use to make an
-              // interval, so just use 0.
-              row.addCell(0);
-            }
-            else {
-              XMLGregorianCalendar previousTimestamp = timestampList.get(i - 1);
-              energyData =
-                  this.dbManager
-                      .getEnergy(
-                          currentSourceName,
-                          previousTimestamp,
-                          currentTimestamp,
-                          (int) (Tstamp.diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
-              row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_CONSUMED));
-            }
+            energyData =
+                this.dbManager.getEnergy(currentSourceName, previousTimestamp, currentTimestamp,
+                    currentInterval);
+            row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_CONSUMED));
           }
           else if (columnName.endsWith(ENERGY_GENERATED_COLUMN)) {
-            if (i == 0) {
-              // First timestamp in list doesn't have a previous timestamp we can use to make an
-              // interval, so just use 0.
-              row.addCell(0);
-            }
-            else {
-              XMLGregorianCalendar previousTimestamp = timestampList.get(i - 1);
-              energyData =
-                  this.dbManager
-                      .getEnergy(
-                          currentSourceName,
-                          previousTimestamp,
-                          currentTimestamp,
-                          (int) (Tstamp.diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
-              row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_GENERATED));
-            }
+            energyData =
+                this.dbManager.getEnergy(currentSourceName, previousTimestamp, currentTimestamp,
+                    currentInterval);
+            row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_GENERATED));
           }
           else if (columnName.endsWith(CARBON_EMITTED_COLUMN)) {
-            if (i == 0) {
-              // First timestamp in list doesn't have a previous timestamp we can use to make an
-              // interval, so just use 0.
-              row.addCell(0);
-            }
-            else {
-              XMLGregorianCalendar previousTimestamp = timestampList.get(i - 1);
-              carbonData =
-                  this.dbManager
-                      .getCarbon(
-                          currentSourceName,
-                          previousTimestamp,
-                          currentTimestamp,
-                          (int) (Tstamp.diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
-              row.addCell(carbonData.getPropertyAsDouble(SensorData.CARBON_EMITTED));
-            }
+            carbonData =
+                this.dbManager.getCarbon(currentSourceName, previousTimestamp, currentTimestamp,
+                    currentInterval);
+            row.addCell(carbonData.getPropertyAsDouble(SensorData.CARBON_EMITTED));
           }
         }
         catch (NumberFormatException e) {
@@ -611,8 +587,9 @@ public class GVisualizationServlet extends DataSourceServlet {
             String subsourceName = subsource.getName();
             String subsourceColumnId = subsourceName + column.getId();
             String subsourceLabel = subsourceName + " " + column.getLabel();
-//            System.out.println("Column subsource ID: " + subsourceColumnId + ", subsource label: "
-//                + subsourceLabel); // DEBUG
+            // System.out.println("Column subsource ID: " + subsourceColumnId +
+            // ", subsource label: "
+            // + subsourceLabel); // DEBUG
             ColumnDescription colDec =
                 new ColumnDescription(subsourceColumnId, column.getType(), subsourceLabel);
             colDec.setCustomProperty("sourceName", subsourceName);

@@ -409,4 +409,52 @@ public final class Tstamp {
     Collections.sort(tstampList, new TstampComparator());
     return tstampList;
   }
+  
+  /**
+   * Helper function that prepares a List timestamps, between the start time and end time, at the
+   * given sampling interval.
+   * 
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param intervalMinutes The sampling interval requested in minutes.
+   * @return The List of XMLGregorianCalendars.
+   */
+  public static List<XMLGregorianCalendar> getTimestampList(XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int intervalMinutes) {
+    long intervalMilliseconds;
+    long rangeLength = Tstamp.diff(startTime, endTime);
+    long minutesToMilliseconds = 60L * 1000L;
+
+    if (intervalMinutes < 0) {
+      return null;
+    }
+    else if (intervalMinutes == 0) {
+      // use default interval
+      intervalMilliseconds = rangeLength / 10;
+    }
+    else if ((intervalMinutes * minutesToMilliseconds) > rangeLength) {
+      // TODO BOGUS, should throw an exception so callers can distinguish between problems
+      return null;
+    }
+    else {
+      // got a good interval
+      intervalMilliseconds = intervalMinutes * minutesToMilliseconds;
+    }
+    // DEBUG
+    // System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
+    // intervalMilliseconds / minutesToMilliseconds);
+
+    // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
+    List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
+    XMLGregorianCalendar timestamp = startTime;
+    while (Tstamp.lessThan(timestamp, endTime)) {
+      timestampList.add(timestamp);
+      // System.out.format("timestamp=%s%n", timestamp);
+      timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
+    }
+    // add endTime to cover the last runt interval which is <= intervalMilliseconds
+    timestampList.add(endTime);
+    // System.out.format("timestamp=%s%n", endTime);
+    return timestampList;
+  }
 }

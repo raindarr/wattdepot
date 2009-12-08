@@ -314,55 +314,6 @@ public abstract class DbImplementation {
   }
 
   /**
-   * Helper function that prepares a List timestamps, between the start time and end time, at the
-   * given sampling interval.
-   * 
-   * @param startTime The start of the range requested.
-   * @param endTime The start of the range requested.
-   * @param interval The sampling interval requested.
-   * @return The List of XMLGregorianCalendar, which can be used to calculate energy or carbon over
-   * the interval.
-   */
-  private List<XMLGregorianCalendar> getTimestampList(XMLGregorianCalendar startTime,
-      XMLGregorianCalendar endTime, int interval) {
-    long intervalMilliseconds;
-    long rangeLength = Tstamp.diff(startTime, endTime);
-    long minutesToMilliseconds = 60L * 1000L;
-
-    if (interval < 0) {
-      return null;
-    }
-    else if (interval == 0) {
-      // use default interval
-      intervalMilliseconds = rangeLength / 10;
-    }
-    else if ((interval * minutesToMilliseconds) > rangeLength) {
-      // TODO BOGUS, should throw an exception so callers can distinguish between problems
-      return null;
-    }
-    else {
-      // got a good interval
-      intervalMilliseconds = interval * minutesToMilliseconds;
-    }
-    // DEBUG
-    // System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
-    // intervalMilliseconds / minutesToMilliseconds);
-
-    // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
-    List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
-    XMLGregorianCalendar timestamp = startTime;
-    while (Tstamp.lessThan(timestamp, endTime)) {
-      timestampList.add(timestamp);
-      // System.out.format("timestamp=%s%n", timestamp);
-      timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
-    }
-    // add endTime to cover the last runt interval which is <= intervalMilliseconds
-    timestampList.add(endTime);
-    // System.out.format("timestamp=%s%n", endTime);
-    return timestampList;
-  }
-
-  /**
    * Returns the energy in SensorData format for the Source name given over the range of time
    * between startTime and endTime, or null if no energy data exists.
    * 
@@ -375,7 +326,7 @@ public abstract class DbImplementation {
   public SensorData getEnergy(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
     List<List<SensorDataStraddle>> masterList =
-        getSensorDataStraddleListOfLists(sourceName, getTimestampList(startTime, endTime, interval));
+        getSensorDataStraddleListOfLists(sourceName, Tstamp.getTimestampList(startTime, endTime, interval));
 
     if ((masterList == null) || (masterList.isEmpty())) {
       return null;
@@ -443,7 +394,7 @@ public abstract class DbImplementation {
   public SensorData getCarbon(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
     List<StraddleList> masterList =
-        getStraddleLists(sourceName, getTimestampList(startTime, endTime, interval));
+        getStraddleLists(sourceName, Tstamp.getTimestampList(startTime, endTime, interval));
     if ((masterList == null) || (masterList.isEmpty())) {
       return null;
     }
