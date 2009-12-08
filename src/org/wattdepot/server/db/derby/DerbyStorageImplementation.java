@@ -37,7 +37,6 @@ import org.wattdepot.server.ServerProperties;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbImplementation;
 import org.wattdepot.util.StackTrace;
-import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
 
 /**
@@ -477,50 +476,6 @@ public class DerbyStorageImplementation extends DbImplementation {
     summary.setLastSensorData(lastTimestamp);
     summary.setTotalSensorDatas(dataCount);
     return summary;
-  }
-
-  /**
-   * Given a base Source, return a list of all non-virtual Sources that are subsources of the base
-   * Source. This is done recursively, so virtual sources can point to other virtual sources.
-   * 
-   * @param baseSource The Source to start from.
-   * @return A list of all non-virtual Sources that are subsources of the base Source.
-   */
-  private List<Source> getAllNonVirtualSubSources(Source baseSource) {
-    List<Source> sourceList = new ArrayList<Source>();
-    if (baseSource.isVirtual()) {
-      List<Source> subSources = getAllSubSources(baseSource);
-      for (Source subSource : subSources) {
-        sourceList.addAll(getAllNonVirtualSubSources(subSource));
-      }
-      return sourceList;
-    }
-    else {
-      sourceList.add(baseSource);
-      return sourceList;
-    }
-  }
-
-  /**
-   * Given a Source, returns a List of Sources corresponding to any subsources of the given Source.
-   * 
-   * @param source The parent Source.
-   * @return A List of Sources that are subsources of the given Source, or null if there are none.
-   */
-  private List<Source> getAllSubSources(Source source) {
-    if (source.isSetSubSources()) {
-      List<Source> sourceList = new ArrayList<Source>();
-      for (String subSourceUri : source.getSubSources().getHref()) {
-        Source subSource = getSource(UriUtils.getUriSuffix(subSourceUri));
-        if (subSource != null) {
-          sourceList.add(subSource);
-        }
-      }
-      return sourceList;
-    }
-    else {
-      return null;
-    }
   }
 
   /** {@inheritDoc} */

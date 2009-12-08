@@ -9,6 +9,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
+import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbManager;
@@ -66,8 +67,8 @@ public class GVisualizationServlet extends DataSourceServlet {
   private static final ColumnDescription[] SENSOR_DATA_TABLE_COLUMNS =
       new ColumnDescription[] {
           new ColumnDescription(TIME_POINT_COLUMN, ValueType.DATETIME, "Date & Time"),
-          new ColumnDescription(POWER_CONSUMED_COLUMN, ValueType.NUMBER, "Power Consumed (W)"),
-          new ColumnDescription(POWER_GENERATED_COLUMN, ValueType.NUMBER, "Power Generated (W)"),
+          new ColumnDescription(POWER_CONSUMED_COLUMN, ValueType.NUMBER, "Power Cons. (W)"),
+          new ColumnDescription(POWER_GENERATED_COLUMN, ValueType.NUMBER, "Power Gen. (W)"),
           new ColumnDescription(ENERGY_CONSUMED_TO_DATE_COLUMN, ValueType.NUMBER,
               "Energy Consumed To Date (Wh)") };
 
@@ -82,12 +83,11 @@ public class GVisualizationServlet extends DataSourceServlet {
   private static final ColumnDescription[] CALCULATED_TABLE_COLUMNS =
       new ColumnDescription[] {
           new ColumnDescription(TIME_POINT_COLUMN, ValueType.DATETIME, "Date & Time"),
-          new ColumnDescription(POWER_CONSUMED_COLUMN, ValueType.NUMBER, "Power Consumed (W)"),
-          new ColumnDescription(POWER_GENERATED_COLUMN, ValueType.NUMBER, "Power Generated (W)"),
-          new ColumnDescription(ENERGY_CONSUMED_COLUMN, ValueType.NUMBER, "Energy Consumed (Wh)"),
-          new ColumnDescription(ENERGY_GENERATED_COLUMN, ValueType.NUMBER, "Energy Generated (Wh)"),
-          new ColumnDescription(CARBON_EMITTED_COLUMN, ValueType.NUMBER,
-              "Carbon Emitted (lbs CO2)") };
+          new ColumnDescription(POWER_CONSUMED_COLUMN, ValueType.NUMBER, "Power Cons. (W)"),
+          new ColumnDescription(POWER_GENERATED_COLUMN, ValueType.NUMBER, "Power Gen. (W)"),
+          new ColumnDescription(ENERGY_CONSUMED_COLUMN, ValueType.NUMBER, "Energy Cons. (Wh)"),
+          new ColumnDescription(ENERGY_GENERATED_COLUMN, ValueType.NUMBER, "Energy Gen. (Wh)"),
+          new ColumnDescription(CARBON_EMITTED_COLUMN, ValueType.NUMBER, "Carbon (lbs CO2)") };
 
   /**
    * Create the new servlet, and record the provided Server to make queries on the DB.
@@ -106,6 +106,8 @@ public class GVisualizationServlet extends DataSourceServlet {
     String remainingUri, sourceName;
     boolean sensorDataRequested = false;
 
+//    System.out.println(request.getRequestURL() + "?" + request.getQueryString()); // DEBUG
+    
     // This is everything following the URI, which should start with "/gviz/source/"
     String rawPath = request.getPathInfo();
     // Check for incomplete URIs
@@ -180,7 +182,10 @@ public class GVisualizationServlet extends DataSourceServlet {
               "samplingInterval parameter was invalid."); // NOPMD
         }
       }
-      return generateCalculatedTable(query, sourceName, startTime, endTime, intervalMinutes);
+      String displaySubsourcesString = getQueryParameter(request, "displaySubsources");
+      boolean displaySubsources = "true".equals(displaySubsourcesString);
+      return generateCalculatedTable(query, sourceName, startTime, endTime, intervalMinutes,
+          displaySubsources);
     }
   }
 
@@ -202,7 +207,8 @@ public class GVisualizationServlet extends DataSourceServlet {
       XMLGregorianCalendar startTime, XMLGregorianCalendar endTime) throws DataSourceException {
     DataTable data = new DataTable();
     // Sets up the columns requested by any SELECT in the data source query
-    List<ColumnDescription> requiredColumns = getRequiredColumns(query, SENSOR_DATA_TABLE_COLUMNS);
+    List<ColumnDescription> requiredColumns =
+        getRequiredColumns(query, SENSOR_DATA_TABLE_COLUMNS, null);
     data.addColumns(requiredColumns);
 
     SensorDataIndex index;
@@ -257,21 +263,6 @@ public class GVisualizationServlet extends DataSourceServlet {
   }
 
   /**
-   * Generates a DataTable of sensor data, given the query parameters. Supports the SELECT
-   * capability, so only columns that are SELECTed will be retrieved and added to the table. The
-   * startTime and endTime paramters can be null, in which case all sensor data for the source will
-   * be retrieved (which can be voluminous).
-   * 
-   * @param query The query from the data source client.
-   * @param sourceName The name of the source.
-   * @param startTime The starting time for the interval.
-   * @param endTime The ending time for the interval.
-   * @return A DataTable with the selected columns for every sensor data resource within the
-   * interval.
-   * @throws DataSourceException If there are problems fulfilling the request.
-   */
-
-  /**
    * Generates a DataTable of calculated data, given the query parameters. Supports the SELECT
    * capability, so only columns that are SELECTed will be retrieved and added to the table. The
    * startTime and endTime parameters are required, as is the sampling interval.
@@ -281,12 +272,14 @@ public class GVisualizationServlet extends DataSourceServlet {
    * @param startTime The starting time for the interval.
    * @param endTime The ending time for the interval.
    * @param intervalMinutes the rate at which the selected columns should be sampled, in minutes.
+   * @param displaySubsources True if subsources are to be included as additional columns in the
+   * DataTable, false otherwise.
    * @return A DataTable with the selected columns sampled at the given rate within the interval.
    * @throws DataSourceException If there are problems fulfilling the request.
    */
   private DataTable generateCalculatedTable(Query query, String sourceName,
-      XMLGregorianCalendar startTime, XMLGregorianCalendar endTime, int intervalMinutes)
-      throws DataSourceException {
+      XMLGregorianCalendar startTime, XMLGregorianCalendar endTime, int intervalMinutes,
+      boolean displaySubsources) throws DataSourceException {
     DataTable data = new DataTable();
 
     if ((startTime == null) || (endTime == null)) {
@@ -322,11 +315,19 @@ public class GVisualizationServlet extends DataSourceServlet {
       intervalMilliseconds = intervalMinutes * minutesToMilliseconds;
     }
     // DEBUG
-//    System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
-//        intervalMilliseconds / minutesToMilliseconds);
+    // System.out.format("%nstartTime=%s, endTime=%s, interval=%d min%n", startTime, endTime,
+    // intervalMilliseconds / minutesToMilliseconds);
+
+    Source source = this.dbManager.getSource(sourceName);
+    List<Source> subSources = null;
+    if (displaySubsources && source.isVirtual()) {
+      subSources = this.dbManager.getAllNonVirtualSubSources(source);
+      System.out.println("subSources: " + subSources);
+    }
 
     // Sets up the columns requested by any SELECT in the datasource query
-    List<ColumnDescription> requiredColumns = getRequiredColumns(query, CALCULATED_TABLE_COLUMNS);
+    List<ColumnDescription> requiredColumns =
+        getRequiredColumns(query, CALCULATED_TABLE_COLUMNS, subSources);
     data.addColumns(requiredColumns);
 
     // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
@@ -334,37 +335,42 @@ public class GVisualizationServlet extends DataSourceServlet {
     XMLGregorianCalendar timestamp = startTime;
     while (Tstamp.lessThan(timestamp, endTime)) {
       timestampList.add(timestamp);
-//      System.out.format("timestamp=%s%n", timestamp);
+      // System.out.format("timestamp=%s%n", timestamp);
       timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
     }
     // add endTime to cover the last runt interval which is <= intervalMilliseconds
     timestampList.add(endTime);
-//    System.out.format("timestamp=%s%n", endTime);
+    // System.out.format("timestamp=%s%n", endTime);
     for (int i = 0; i < timestampList.size(); i++, powerData = null, energyData = null, carbonData =
         null) {
       XMLGregorianCalendar currentTimestamp = timestampList.get(i);
       TableRow row = new TableRow();
       for (ColumnDescription selectionColumn : requiredColumns) {
         String columnName = selectionColumn.getId();
+        // If this is a subsource, then the custom property sourceName will be set
+        String propertySourceName = selectionColumn.getCustomProperty("sourceName");
+        String currentSourceName;
+        if (propertySourceName == null) {
+          // normal column, not subsource
+          currentSourceName = sourceName;
+        }
+        else {
+          // subsource, so use source name from column's custom property
+          currentSourceName = propertySourceName;
+        }
         try {
           if (columnName.equals(TIME_POINT_COLUMN)) {
             row.addCell(new DateTimeValue(convertTimestamp(currentTimestamp)));
           }
-          else if (columnName.equals(POWER_CONSUMED_COLUMN)) {
-            // fetch data if now yet retrieved for this row
-            if (powerData == null) {
-              powerData = this.dbManager.getPower(sourceName, currentTimestamp);
-            }
+          else if (columnName.endsWith(POWER_CONSUMED_COLUMN)) {
+            powerData = this.dbManager.getPower(currentSourceName, currentTimestamp);
             row.addCell(powerData.getPropertyAsDouble(SensorData.POWER_CONSUMED));
           }
-          else if (columnName.equals(POWER_GENERATED_COLUMN)) {
-            // fetch data if now yet retrieved for this row
-            if (powerData == null) {
-              powerData = this.dbManager.getPower(sourceName, currentTimestamp);
-            }
+          else if (columnName.endsWith(POWER_GENERATED_COLUMN)) {
+            powerData = this.dbManager.getPower(currentSourceName, currentTimestamp);
             row.addCell(powerData.getPropertyAsDouble(SensorData.POWER_GENERATED));
           }
-          else if (columnName.equals(ENERGY_CONSUMED_COLUMN)) {
+          else if (columnName.endsWith(ENERGY_CONSUMED_COLUMN)) {
             if (i == 0) {
               // First timestamp in list doesn't have a previous timestamp we can use to make an
               // interval, so just use 0.
@@ -372,17 +378,17 @@ public class GVisualizationServlet extends DataSourceServlet {
             }
             else {
               XMLGregorianCalendar previousTimestamp = timestampList.get(i - 1);
-              // fetch data if now yet retrieved for this row
-              if (energyData == null) {
-                energyData =
-                    this.dbManager
-                        .getEnergy(sourceName, previousTimestamp, currentTimestamp, (int) (Tstamp
-                            .diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
-              }
+              energyData =
+                  this.dbManager
+                      .getEnergy(
+                          currentSourceName,
+                          previousTimestamp,
+                          currentTimestamp,
+                          (int) (Tstamp.diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
               row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_CONSUMED));
             }
           }
-          else if (columnName.equals(ENERGY_GENERATED_COLUMN)) {
+          else if (columnName.endsWith(ENERGY_GENERATED_COLUMN)) {
             if (i == 0) {
               // First timestamp in list doesn't have a previous timestamp we can use to make an
               // interval, so just use 0.
@@ -390,17 +396,17 @@ public class GVisualizationServlet extends DataSourceServlet {
             }
             else {
               XMLGregorianCalendar previousTimestamp = timestampList.get(i - 1);
-              // fetch data if now yet retrieved for this row
-              if (energyData == null) {
-                energyData =
-                    this.dbManager
-                        .getEnergy(sourceName, previousTimestamp, currentTimestamp, (int) (Tstamp
-                            .diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
-              }
+              energyData =
+                  this.dbManager
+                      .getEnergy(
+                          currentSourceName,
+                          previousTimestamp,
+                          currentTimestamp,
+                          (int) (Tstamp.diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
               row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_GENERATED));
             }
           }
-          else if (columnName.equals(CARBON_EMITTED_COLUMN)) {
+          else if (columnName.endsWith(CARBON_EMITTED_COLUMN)) {
             if (i == 0) {
               // First timestamp in list doesn't have a previous timestamp we can use to make an
               // interval, so just use 0.
@@ -410,8 +416,11 @@ public class GVisualizationServlet extends DataSourceServlet {
               XMLGregorianCalendar previousTimestamp = timestampList.get(i - 1);
               carbonData =
                   this.dbManager
-                      .getCarbon(sourceName, previousTimestamp, currentTimestamp, (int) (Tstamp
-                          .diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
+                      .getCarbon(
+                          currentSourceName,
+                          previousTimestamp,
+                          currentTimestamp,
+                          (int) (Tstamp.diff(previousTimestamp, currentTimestamp) / minutesToMilliseconds));
               row.addCell(carbonData.getPropertyAsDouble(SensorData.CARBON_EMITTED));
             }
           }
@@ -585,14 +594,31 @@ public class GVisualizationServlet extends DataSourceServlet {
    * 
    * @param query The user selection query.
    * @param availableColumns The list of possible columns.
+   * @param subsourceList The list of subsources, or null if subsource display is not desired.
    * @return A List of required columns for the requested data table.
    */
   private List<ColumnDescription> getRequiredColumns(Query query,
-      ColumnDescription[] availableColumns) {
+      ColumnDescription[] availableColumns, List<Source> subsourceList) {
     List<ColumnDescription> requiredColumns = Lists.newArrayList();
     for (ColumnDescription column : availableColumns) {
       if (isColumnRequested(query, column.getId())) {
+        // Always add the column without prefix
         requiredColumns.add(column);
+        // Only create subsource columns if we have subsources, and don't do it for timePoint
+        if ((subsourceList != null) && (!subsourceList.isEmpty())
+            && (!column.getId().equals(TIME_POINT_COLUMN))) {
+          for (Source subsource : subsourceList) {
+            String subsourceName = subsource.getName();
+            String subsourceColumnId = subsourceName + column.getId();
+            String subsourceLabel = subsourceName + " " + column.getLabel();
+//            System.out.println("Column subsource ID: " + subsourceColumnId + ", subsource label: "
+//                + subsourceLabel); // DEBUG
+            ColumnDescription colDec =
+                new ColumnDescription(subsourceColumnId, column.getType(), subsourceLabel);
+            colDec.setCustomProperty("sourceName", subsourceName);
+            requiredColumns.add(colDec);
+          }
+        }
       }
     }
     return requiredColumns;

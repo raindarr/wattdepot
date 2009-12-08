@@ -429,7 +429,28 @@ public class DbManager {
       XMLGregorianCalendar endTime, int interval) {
     return this.dbImpl.getCarbon(sourceName, startTime, endTime, interval);
   }
-  
+
+  /**
+   * Given a base Source, return a list of all non-virtual Sources that are subsources of the base
+   * Source. This is done recursively, so virtual sources can point to other virtual sources.
+   * 
+   * @param baseSource The Source to start from.
+   * @return A list of all non-virtual Sources that are subsources of the base Source.
+   */
+  public List<Source> getAllNonVirtualSubSources(Source baseSource) {
+    return this.dbImpl.getAllNonVirtualSubSources(baseSource);
+  }
+
+  /**
+   * Given a Source, returns a List of Sources corresponding to any subsources of the given Source.
+   * 
+   * @param source The parent Source.
+   * @return A List of Sources that are subsources of the given Source, or null if there are none.
+   */
+  public List<Source> getAllSubSources(Source source) {
+    return this.dbImpl.getAllSubSources(source);
+  }
+
   /**
    * Returns a UserIndex of all Users in the system. The list is sorted by username.
    * 
