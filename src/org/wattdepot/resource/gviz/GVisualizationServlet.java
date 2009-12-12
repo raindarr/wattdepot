@@ -1,6 +1,5 @@
 package org.wattdepot.resource.gviz;
 
-import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
@@ -322,7 +321,7 @@ public class GVisualizationServlet extends DataSourceServlet {
     List<Source> subSources = null;
     if (displaySubsources && source.isVirtual()) {
       subSources = this.dbManager.getAllNonVirtualSubSources(source);
-//      System.out.println("subSources: " + subSources); // DEBUG
+      // System.out.println("subSources: " + subSources); // DEBUG
     }
 
     // Sets up the columns requested by any SELECT in the datasource query
@@ -331,16 +330,9 @@ public class GVisualizationServlet extends DataSourceServlet {
     data.addColumns(requiredColumns);
 
     // Build list of timestamps, starting with startTime, separated by intervalMilliseconds
-    List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>();
-    XMLGregorianCalendar timestamp = startTime;
-    while (Tstamp.lessThan(timestamp, endTime)) {
-      timestampList.add(timestamp);
-      // System.out.format("timestamp=%s%n", timestamp);
-      timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
-    }
-    // add endTime to cover the last runt interval which is <= intervalMilliseconds
-    timestampList.add(endTime);
-    // System.out.format("timestamp=%s%n", endTime);
+    List<XMLGregorianCalendar> timestampList =
+        Tstamp.getTimestampList(startTime, endTime, intervalMinutes);
+
     for (int i = 0; i < timestampList.size(); i++, powerData = null, energyData = null, carbonData =
         null) {
       XMLGregorianCalendar currentTimestamp = timestampList.get(i);
