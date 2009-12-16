@@ -169,15 +169,14 @@ public class Server extends Application {
     // Put server and serverProperties in first, because dbManager() will look at serverProperties
     attributes.put("WattDepotServer", server);
     attributes.put("ServerProperties", server.serverProperties);
-    DbManager dbManager = new DbManager(server);
+    DbManager dbManager;
+    // If we are in test mode
     if (server.serverProperties.get(TEST_INSTALL_KEY).equalsIgnoreCase("true")) {
-      // In test mode, use programmatically created test data
-      // Create default data to support short-term demo
-      if (!dbManager.createDefaultData()) {
-        server.logger.severe("Unable to create default data");
-      }
+      // Make sure database starts off wiped
+      dbManager = new DbManager(server, true);
     }
     else {
+      dbManager = new DbManager(server);
       try {
         server.loadDefaultResources(dbManager);
       }

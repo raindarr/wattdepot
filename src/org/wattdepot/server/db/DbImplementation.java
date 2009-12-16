@@ -64,6 +64,14 @@ public abstract class DbImplementation {
    */
   public abstract boolean isFreshlyCreated();
 
+  /**
+   * Wipes all data from the underlying storage implementation. Obviously, this is serious
+   * operation. Exposed so that tests can ensure that the database is clean before testing.
+   * 
+   * @return True if data could be wiped, or false if there was a problem wiping data.
+   */
+  public abstract boolean wipeData();
+
   // Start of methods based on REST API
 
   /**

@@ -4,19 +4,16 @@ import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
 import java.lang.reflect.Constructor;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
-import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
-import org.wattdepot.server.ServerProperties;
 import org.wattdepot.util.StackTrace;
 
 /**
@@ -34,26 +31,26 @@ public class DbManager {
   /** The server using this DbManager. */
   protected Server server;
 
-  /** Name of the default public source for demo. */
-  public static final String defaultPublicSource = "saunders-hall";
-
-  /** Name of the default private source for demo. */
-  public static final String defaultPrivateSource = "secret-place";
-
-  /** Name of the default virtual source for demo. */
-  public static final String defaultVirtualSource = "virtual-source";
-
-  /** Username of the default user that owns both default sources for demo. */
-  public static final String defaultOwnerUsername = "joebogus@example.com";
-
-  /** Password of the default user that owns both default sources for demo. */
-  public static final String defaultOwnerPassword = "totally-bogus";
-
-  /** Username of the default user that owns no sources for demo. */
-  public static final String defaultNonOwnerUsername = "jimbogus@example.com";
-
-  /** Password of the default user that owns no sources for demo. */
-  public static final String defaultNonOwnerPassword = "super-bogus";
+//  /** Name of the default public source for demo. */
+//  public static final String defaultPublicSource = "saunders-hall";
+//
+//  /** Name of the default private source for demo. */
+//  public static final String defaultPrivateSource = "secret-place";
+//
+//  /** Name of the default virtual source for demo. */
+//  public static final String defaultVirtualSource = "virtual-source";
+//
+//  /** Username of the default user that owns both default sources for demo. */
+//  public static final String defaultOwnerUsername = "joebogus@example.com";
+//
+//  /** Password of the default user that owns both default sources for demo. */
+//  public static final String defaultOwnerPassword = "totally-bogus";
+//
+//  /** Username of the default user that owns no sources for demo. */
+//  public static final String defaultNonOwnerUsername = "jimbogus@example.com";
+//
+//  /** Password of the default user that owns no sources for demo. */
+//  public static final String defaultNonOwnerPassword = "super-bogus";
 
   /**
    * Creates a new DbManager which manages access to the underlying persistency layer(s). Choice of
@@ -64,6 +61,18 @@ public class DbManager {
    */
   public DbManager(Server server) {
     this(server, server.getServerProperties().get(DB_IMPL_KEY), false);
+  }
+
+  /**
+   * Creates a new DbManager which manages access to the underlying persistency layer(s). Choice of
+   * which implementation of persistency layer to use is based on the ServerProperties of the server
+   * provided. Instantiates the underlying storage system for use.
+   * 
+   * @param server The Restlet server instance.
+   * @param wipe If true, all stored data in the system should be discarded and reinitialized.
+   */
+  public DbManager(Server server, boolean wipe) {
+    this(server, server.getServerProperties().get(DB_IMPL_KEY), wipe);
   }
 
   /**
@@ -109,66 +118,6 @@ public class DbManager {
       throw new IllegalArgumentException(e);
     }
     this.dbImpl.initialize(wipe);
-  }
-
-  /**
-   * Kludges up some default data so that SensorData can be stored. This is a total hack, and should
-   * be removed as soon as the all the resources have been fully implemented.
-   * 
-   * @return True if the default data could be created, or false otherwise.
-   */
-  public boolean createDefaultData() {
-    // Always want there to be an admin user
-    ServerProperties serverProps =
-        (ServerProperties) server.getContext().getAttributes().get("ServerProperties");
-    String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
-    String adminPassword = serverProps.get(ServerProperties.ADMIN_PASSWORD_KEY);
-    // create the admin User object based on the server properties
-    User adminUser = new User(adminUsername, adminPassword, true, null);
-    // stick admin user into database
-    if (!this.storeUser(adminUser)) {
-      // server.getLogger().severe("Unable to create admin user from properties!");
-      return false;
-    }
-    // create a non-admin user that owns a source for testing
-    User ownerUser = new User(defaultOwnerUsername, defaultOwnerPassword, false, null);
-    if (!this.storeUser(ownerUser)) {
-      return false;
-    }
-    // create a non-admin user that owns nothing for testing
-    User nonOwnerUser = new User(defaultNonOwnerUsername, defaultNonOwnerPassword, false, null);
-    if (!this.storeUser(nonOwnerUser)) {
-      return false;
-    }
-
-    // create public source
-    Source source1 =
-        new Source(defaultPublicSource, ownerUser.toUri(this.server), true, false,
-            "21.30078,-157.819129,41", "Saunders Hall on the University of Hawaii at Manoa campus",
-            "Obvius-brand power meter", null, null);
-    source1.addProperty(new Property("carbonIntensity", "1000"));
-    // stick public source into database
-    if (!this.storeSource(source1)) {
-      return false;
-    }
-
-    Source source2 =
-        new Source(defaultPrivateSource, ownerUser.toUri(this.server), false, false,
-            "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", null, null);
-    source2.addProperty(new Property("carbonIntensity", "3000"));
-    // stick public source into database
-    if (!this.storeSource(source2)) {
-      return false;
-    }
-
-    SubSources subSources = new SubSources();
-    subSources.getHref().add(source1.toUri(server));
-    subSources.getHref().add(source2.toUri(server));
-
-    Source virtualSource =
-        new Source(defaultVirtualSource, ownerUser.toUri(server), true, true,
-            "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null, subSources);
-    return (this.storeSource(virtualSource));
   }
 
   /**
@@ -514,5 +463,15 @@ public class DbManager {
    */
   public boolean indexTables() {
     return this.dbImpl.indexTables();
+  }
+
+  /**
+   * Wipes all data from the underlying storage implementation. Obviously, this is serious
+   * operation. Exposed so that tests can ensure that the database is clean before testing.
+   * 
+   * @return True if data could be wiped, or false if there was a problem wiping data.
+   */
+  public boolean wipeData() {
+    return this.dbImpl.wipeData();
   }
 }

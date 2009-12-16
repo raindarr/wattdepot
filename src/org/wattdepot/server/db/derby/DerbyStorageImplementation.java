@@ -1328,4 +1328,15 @@ public class DerbyStorageImplementation extends DbImplementation {
     // ConcurrentHashMaps don't need indexes, so just return true.
     return true;
   }
+
+  @Override
+  public boolean wipeData() {
+    try {
+      wipeTables();
+      return true;
+    }
+    catch (SQLException e) {
+      return false;
+    }
+  }
 }

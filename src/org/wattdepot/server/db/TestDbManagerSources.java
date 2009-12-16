@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -49,21 +48,6 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user1));
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user2));
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user3));
-  }
-
-  /**
-   * We are temporarily creating some default sources for a demo, which throws off tests that expect
-   * a fresh database to be empty. To solve this, before the Source tests run we will delete the
-   * default sources.
-   */
-  @Before
-  public void deleteDefaultSources() {
-    assertTrue("Unable to delete default public source", this.manager
-        .deleteSource(DbManager.defaultPublicSource));
-    assertTrue("Unable to delete default private source", this.manager
-        .deleteSource(DbManager.defaultPrivateSource));
-    assertTrue("Unable to delete default virtual source", this.manager
-        .deleteSource(DbManager.defaultVirtualSource));
   }
 
   /**

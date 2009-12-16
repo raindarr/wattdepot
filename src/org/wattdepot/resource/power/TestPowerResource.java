@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.wattdepot.resource.sensordata.jaxb.SensorData.POWER_GENERATED;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
@@ -14,7 +13,6 @@ import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
-import org.wattdepot.server.db.DbManager;
 import org.wattdepot.test.ServerTestHelper;
 import org.wattdepot.util.tstamp.Tstamp;
 
@@ -25,19 +23,6 @@ import org.wattdepot.util.tstamp.Tstamp;
  */
 public class TestPowerResource extends ServerTestHelper {
 
-  /**
-   * Creates a fresh DbManager for each test. This might prove too expensive for some
-   * DbImplementations, but we'll cross that bridge when we get there.
-   */
-  @Before
-  public void makeDb() {
-    DbManager manager =
-        new DbManager(server, "org.wattdepot.server.db.memory.MemoryStorageImplementation", true);
-    // Need to create default data for each fresh DbManager
-    assertTrue("Unable to create default data", manager.createDefaultData());
-    server.getContext().getAttributes().put("DbManager", manager);
-  }
-
   // TODO Skipping authentication tests for now
   // /**
   // * Tests retrieval of all SensorData from a Source. Type: public Source with no credentials.
@@ -47,7 +32,7 @@ public class TestPowerResource extends ServerTestHelper {
   // @Test
   // public void testPowerPublicWithNoCredentials() throws WattDepotClientException {
   // WattDepotClient client = new WattDepotClient(getHostName());
-  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(DbManager.defaultPublicSource)
+  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(defaultPublicSource)
   // .getSensorDataRef());
   // }
   //
@@ -61,7 +46,7 @@ public class TestPowerResource extends ServerTestHelper {
   // public void testFullIndexPublicBadAuth() throws WattDepotClientException {
   // // Shouldn't authenticate with invalid credentials.
   // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, "foo");
-  // client.getSensorDataIndex(DbManager.defaultPublicSource);
+  // client.getSensorDataIndex(defaultPublicSource);
   // }
   //
   // /**
@@ -73,7 +58,7 @@ public class TestPowerResource extends ServerTestHelper {
   // @Test
   // public void testFullIndexPublicWithAdminCredentials() throws WattDepotClientException {
   // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(DbManager.defaultPublicSource)
+  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(defaultPublicSource)
   // .getSensorDataRef());
   // }
   //
@@ -86,9 +71,9 @@ public class TestPowerResource extends ServerTestHelper {
   // @Test
   // public void testFullIndexPublicWithOwnerCredentials() throws WattDepotClientException {
   // WattDepotClient client =
-  // new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
-  // DbManager.defaultOwnerPassword);
-  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(DbManager.defaultPublicSource)
+  // new WattDepotClient(getHostName(), defaultOwnerUsername,
+  // defaultOwnerPassword);
+  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(defaultPublicSource)
   // .getSensorDataRef());
   // }
   //
@@ -101,9 +86,9 @@ public class TestPowerResource extends ServerTestHelper {
   // @Test
   // public void testFullIndexPublicWithNonOwnerCredentials() throws WattDepotClientException {
   // WattDepotClient client =
-  // new WattDepotClient(getHostName(), DbManager.defaultNonOwnerUsername,
-  // DbManager.defaultNonOwnerPassword);
-  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(DbManager.defaultPublicSource)
+  // new WattDepotClient(getHostName(), defaultNonOwnerUsername,
+  // defaultNonOwnerPassword);
+  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(defaultPublicSource)
   // .getSensorDataRef());
   // }
   //
@@ -115,7 +100,7 @@ public class TestPowerResource extends ServerTestHelper {
   // @Test(expected = NotAuthorizedException.class)
   // public void testFullIndexPrivateWithNoCredentials() throws WattDepotClientException {
   // WattDepotClient client = new WattDepotClient(getHostName());
-  // client.getSensorDataIndex(DbManager.defaultPrivateSource);
+  // client.getSensorDataIndex(defaultPrivateSource);
   // }
   //
   // /**
@@ -128,7 +113,7 @@ public class TestPowerResource extends ServerTestHelper {
   // public void testFullIndexPrivateBadAuth() throws WattDepotClientException {
   // // Shouldn't authenticate with no username or password
   // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, "wrong-password");
-  // client.getSensorDataIndex(DbManager.defaultPrivateSource);
+  // client.getSensorDataIndex(defaultPrivateSource);
   // }
   //
   // /**
@@ -141,7 +126,7 @@ public class TestPowerResource extends ServerTestHelper {
   // // Shouldn't authenticate with no username or password
   // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
   // assertNotNull(MISSING_SENSORDATAREFS,
-  // client.getSensorDataIndex(DbManager.defaultPrivateSource));
+  // client.getSensorDataIndex(defaultPrivateSource));
   // }
   //
   // /**
@@ -153,10 +138,10 @@ public class TestPowerResource extends ServerTestHelper {
   // public void testFullIndexPrivateOwnerAuth() throws WattDepotClientException {
   // // Shouldn't authenticate with no username or password
   // WattDepotClient client =
-  // new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
-  // DbManager.defaultOwnerPassword);
+  // new WattDepotClient(getHostName(), defaultOwnerUsername,
+  // defaultOwnerPassword);
   // assertNotNull(MISSING_SENSORDATAREFS,
-  // client.getSensorDataIndex(DbManager.defaultPrivateSource));
+  // client.getSensorDataIndex(defaultPrivateSource));
   // }
   //
   // /**
@@ -169,9 +154,9 @@ public class TestPowerResource extends ServerTestHelper {
   // public void testFullIndexPrivateNonOwnerAuth() throws WattDepotClientException {
   // // Shouldn't authenticate with no username or password
   // WattDepotClient client =
-  // new WattDepotClient(getHostName(), DbManager.defaultNonOwnerUsername,
-  // DbManager.defaultNonOwnerPassword);
-  // client.getSensorDataIndex(DbManager.defaultPrivateSource);
+  // new WattDepotClient(getHostName(), defaultNonOwnerUsername,
+  // defaultNonOwnerPassword);
+  // client.getSensorDataIndex(defaultPrivateSource);
   // }
   //
   // /**
@@ -209,10 +194,10 @@ public class TestPowerResource extends ServerTestHelper {
   // @Test
   // public void testFullIndexStartsEmpty() throws WattDepotClientException {
   // WattDepotClient client =
-  // new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
-  // DbManager.defaultOwnerPassword);
+  // new WattDepotClient(getHostName(), defaultOwnerUsername,
+  // defaultOwnerPassword);
   // assertTrue("Fresh DB contains SensorData", client.getSensorDataIndex(
-  // DbManager.defaultPublicSource).getSensorDataRef().isEmpty());
+  // defaultPublicSource).getSensorDataRef().isEmpty());
   // }
   //
   // /**
@@ -224,18 +209,18 @@ public class TestPowerResource extends ServerTestHelper {
   // @Test
   // public void testFullIndexAfterStores() throws Exception {
   // WattDepotClient client =
-  // new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
-  // DbManager.defaultOwnerPassword);
+  // new WattDepotClient(getHostName(), defaultOwnerUsername,
+  // defaultOwnerPassword);
   // SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
   // makeTestSensorData3();
   // assertTrue(DATA_STORE_FAILED, client.storeSensorData(data1));
   // List<SensorDataRef> index =
-  // client.getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef();
+  // client.getSensorDataIndex(defaultPublicSource).getSensorDataRef();
   // assertEquals("Wrong number of SensorDataRefs after store", 1, index.size());
   // assertTrue("getSensorDataIndex didn't return expected SensorDataRef",
   // sensorDataRefEqualsSensorData(index.get(0), data1));
   // assertTrue(DATA_STORE_FAILED, client.storeSensorData(data2));
-  // index = client.getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef();
+  // index = client.getSensorDataIndex(defaultPublicSource).getSensorDataRef();
   // assertEquals("Wrong number of SensorDataRefs after store", 2, index.size());
   // List<SensorData> origData = new ArrayList<SensorData>();
   // origData.add(data1);
@@ -243,7 +228,7 @@ public class TestPowerResource extends ServerTestHelper {
   // assertTrue("getSensorDataIndex didn't return expected SensorDataRefs",
   // compareSensorDataRefsToSensorDatas(index, origData));
   // assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
-  // index = client.getSensorDataIndex(DbManager.defaultPublicSource).getSensorDataRef();
+  // index = client.getSensorDataIndex(defaultPublicSource).getSensorDataRef();
   // assertEquals("Wrong number of SensorDataRefs after store", 3, index.size());
   // origData.add(data3);
   // assertTrue("getSensorDataIndex didn't return expected SensorDataRefs",
@@ -261,14 +246,14 @@ public class TestPowerResource extends ServerTestHelper {
   @SuppressWarnings("PMD.AvoidDuplicateLiterals")
   public void testGetPower() throws Exception {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
-            DbManager.defaultOwnerPassword);
+        new WattDepotClient(getHostName(), defaultOwnerUsername,
+            defaultOwnerPassword);
 
     XMLGregorianCalendar beforeTime, afterTime, timestamp;
     SensorData beforeData, afterData, powerData;
     String tool = "JUnit";
-    String source = Source.sourceToUri(DbManager.defaultPublicSource, server);
-    String sourceName = DbManager.defaultPublicSource;
+    String source = Source.sourceToUri(defaultPublicSource, server);
+    String sourceName = defaultPublicSource;
     double interpolatedPower;
 
     // timestamp == beforeData == afterData, getPower should just return beforeData
@@ -339,15 +324,15 @@ public class TestPowerResource extends ServerTestHelper {
   @SuppressWarnings("PMD.AvoidDuplicateLiterals")
   public void testGetVirtualSourcePower() throws Exception {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
-            DbManager.defaultOwnerPassword);
+        new WattDepotClient(getHostName(), defaultOwnerUsername,
+            defaultOwnerPassword);
 
     XMLGregorianCalendar beforeTime, afterTime, timestamp;
     SensorData beforeData, afterData, powerData;
     String tool = "JUnit";
-    String source1Name = DbManager.defaultPublicSource;
-    String source2Name = DbManager.defaultPrivateSource;
-    String virtualSourceName = DbManager.defaultVirtualSource;
+    String source1Name = defaultPublicSource;
+    String source2Name = defaultPrivateSource;
+    String virtualSourceName = defaultVirtualSource;
     String source1 = Source.sourceToUri(source1Name, server);
     String source2 = Source.sourceToUri(source2Name, server);
     Property beforeProp;
@@ -419,14 +404,14 @@ public class TestPowerResource extends ServerTestHelper {
   @SuppressWarnings("PMD.AvoidDuplicateLiterals")
   public void testGetVirtualPowerEndpoint() throws Exception {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
-            DbManager.defaultOwnerPassword);
+        new WattDepotClient(getHostName(), defaultOwnerUsername,
+            defaultOwnerPassword);
 
     XMLGregorianCalendar beforeTime, timestamp;
     SensorData beforeData, powerData;
-    String source1Name = DbManager.defaultPublicSource;
-    String source2Name = DbManager.defaultPrivateSource;
-    String virtualSourceName = DbManager.defaultVirtualSource;
+    String source1Name = defaultPublicSource;
+    String source2Name = defaultPrivateSource;
+    String virtualSourceName = defaultVirtualSource;
     String source1 = Source.sourceToUri(source1Name, server);
     String source2 = Source.sourceToUri(source2Name, server);
     double interpolatedPower = -1;

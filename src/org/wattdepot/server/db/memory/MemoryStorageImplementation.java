@@ -629,4 +629,19 @@ public class MemoryStorageImplementation extends DbImplementation {
     // ConcurrentHashMaps don't need indexes, so just return true.
     return true;
   }
+
+  @Override
+  public boolean wipeData() {
+    if ((this.name2SourceHash == null) || (this.source2SensorDatasHash == null)
+        || (this.name2UserHash == null)) {
+      return false;
+    }
+    else {
+      // Wipe the hash maps
+      this.name2SourceHash.clear();
+      this.source2SensorDatasHash.clear();
+      this.name2UserHash.clear();
+      return true;
+    }
+  }
 }

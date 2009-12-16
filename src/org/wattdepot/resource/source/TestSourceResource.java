@@ -1,7 +1,6 @@
 package org.wattdepot.resource.source;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import java.util.Collections;
 import org.junit.Before;
@@ -12,7 +11,6 @@ import org.wattdepot.client.WattDepotClientException;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
-import org.wattdepot.server.db.DbManager;
 import org.wattdepot.test.ServerTestHelper;
 
 /**
@@ -31,22 +29,16 @@ public class TestSourceResource extends ServerTestHelper {
   private SourceRef publicSourceRef, privateSourceRef, virtualSourceRef;
 
   /**
-   * Creates a fresh DbManager for each test. This might prove too expensive for some
-   * DbImplementations, but we'll cross that bridge when we get there.
+   * Initializes variables used for tests.
    */
   @Before
-  public void makeDb() {
-    DbManager manager =
-        new DbManager(server, "org.wattdepot.server.db.memory.MemoryStorageImplementation", true);
-    // Need to create default data for each fresh DbManager
-    assertTrue("Unable to create default data", manager.createDefaultData());
-    this.publicSource = manager.getSource(DbManager.defaultPublicSource);
+  public void initializeVars() {
+    this.publicSource = manager.getSource(defaultPublicSource);
     this.publicSourceRef = new SourceRef(this.publicSource, server);
-    this.privateSource = manager.getSource(DbManager.defaultPrivateSource);
+    this.privateSource = manager.getSource(defaultPrivateSource);
     this.privateSourceRef = new SourceRef(this.privateSource, server);
-    this.virtualSource = manager.getSource(DbManager.defaultVirtualSource);
+    this.virtualSource = manager.getSource(defaultVirtualSource);
     this.virtualSourceRef = new SourceRef(this.virtualSource, server);
-    server.getContext().getAttributes().put("DbManager", manager);
   }
 
   // Tests for GET {host}/sources
@@ -104,8 +96,8 @@ public class TestSourceResource extends ServerTestHelper {
   @Test
   public void testFullIndexWithOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
-            DbManager.defaultOwnerPassword);
+        new WattDepotClient(getHostName(), defaultOwnerUsername,
+            defaultOwnerPassword);
     SourceIndex index = new SourceIndex();
     index.getSourceRef().add(this.publicSourceRef);
     index.getSourceRef().add(this.privateSourceRef);
@@ -125,8 +117,8 @@ public class TestSourceResource extends ServerTestHelper {
   @Test
   public void testFullIndexWithNonOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), DbManager.defaultNonOwnerUsername,
-            DbManager.defaultNonOwnerPassword);
+        new WattDepotClient(getHostName(), defaultNonOwnerUsername,
+            defaultNonOwnerPassword);
     // index should just have the public source
     assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSourceIndex().getSourceRef().get(0),
         this.publicSourceRef);
@@ -206,8 +198,8 @@ public class TestSourceResource extends ServerTestHelper {
   @Test
   public void testSourceWithOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), DbManager.defaultOwnerUsername,
-            DbManager.defaultOwnerPassword);
+        new WattDepotClient(getHostName(), defaultOwnerUsername,
+            defaultOwnerPassword);
     assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSource(publicSource.getName()),
         this.publicSource);
     assertEquals("Expected private source not found", client.getSource(privateSource.getName()),
@@ -222,8 +214,8 @@ public class TestSourceResource extends ServerTestHelper {
   @Test
   public void testPublicSourceWithNonOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), DbManager.defaultNonOwnerUsername,
-            DbManager.defaultNonOwnerPassword);
+        new WattDepotClient(getHostName(), defaultNonOwnerUsername,
+            defaultNonOwnerPassword);
     assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSource(publicSource.getName()),
         this.publicSource);
   }
@@ -236,8 +228,8 @@ public class TestSourceResource extends ServerTestHelper {
   @Test(expected = NotAuthorizedException.class)
   public void testPrivateSourceWithNonOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), DbManager.defaultNonOwnerUsername,
-            DbManager.defaultNonOwnerPassword);
+        new WattDepotClient(getHostName(), defaultNonOwnerUsername,
+            defaultNonOwnerPassword);
     client.getSource(privateSource.getName());
     fail("Able to get private Source with non-owner credentials");
   }
