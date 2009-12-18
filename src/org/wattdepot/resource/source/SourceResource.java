@@ -20,6 +20,9 @@ import org.wattdepot.resource.source.jaxb.Source;
 
 public class SourceResource extends WattDepotResource {
 
+  /** fetchAll parameter from the URI, or else null if not found. */
+  private boolean fetchAll = false;
+
   /**
    * Creates a new SourceResource object with the provided parameters, and only a text/xml
    * representation.
@@ -30,6 +33,8 @@ public class SourceResource extends WattDepotResource {
    */
   public SourceResource(Context context, Request request, Response response) {
     super(context, request, response);
+    String fetchAllString = (String) request.getAttributes().get("fetchAll");
+    this.fetchAll = "true".equalsIgnoreCase(fetchAllString);
   }
 
   /**
@@ -52,15 +57,15 @@ public class SourceResource extends WattDepotResource {
         try {
           if (isAnonymous()) {
             // anonymous users get only the public sources
-            xmlString = getPublicSources();
+            xmlString = getPublicSources(fetchAll);
           }
           else if (isAdminUser()) {
             // admin user can see all sources
-            xmlString = getAllSources();
+            xmlString = getAllSources(fetchAll);
           }
           else {
             // Authenticated as some user
-            xmlString = getOwnerSources();
+            xmlString = getOwnerSources(fetchAll);
           }
         }
         catch (JAXBException e) {

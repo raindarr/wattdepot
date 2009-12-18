@@ -51,7 +51,7 @@ import org.wattdepot.server.Server;
 @XmlType(name = "", propOrder = { "name", "owner", "_public", "virtual", "coordinates", "location",
     "description", "subSources", "properties" })
 @XmlRootElement(name = "Source")
-public class Source implements Serializable {
+public class Source implements Serializable, Comparable<Source>  {
 
   private final static long serialVersionUID = 12343L;
   @XmlElement(name = "Name", required = true)
@@ -344,6 +344,12 @@ public class Source implements Serializable {
     return (this.properties != null);
   }
 
+  // Broke down and added these manually to the generated code. It would be better if they were
+  // automatically generated via XJC plugins, but that required a bunch of dependencies that I
+  // was unwilling to deal with right now. If the schema files change, this code will be blown
+  // away, so there are unit tests that confirm that equals and hashCode work to guard against
+  // that.
+
   /*
    * (non-Javadoc)
    * 
@@ -364,12 +370,6 @@ public class Source implements Serializable {
     result = prime * result + (virtual ? 1231 : 1237);
     return result;
   }
-
-  // Broke down and added these manually to the generated code. It would be better if they were
-  // automatically generated via XJC plugins, but that required a bunch of dependencies that I
-  // was unwilling to deal with right now. If the schema files change, this code will be blown
-  // away, so there are unit tests that confirm that equals and hashCode work to guard against
-  // that.
 
   /*
    * (non-Javadoc)
@@ -453,6 +453,69 @@ public class Source implements Serializable {
     return true;
   }
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Comparable<T>#compareTo(java.lang.Comparable<T>)
+   */
+  @Override
+  public int compareTo(Source o) {
+    // if o is null, throw NullPointerException, per Comparable JavaDoc
+    if (o == null) {
+      throw new NullPointerException("Tried to compare Source with null");
+    }
+    if (o.equals(this)) {
+      return 0;
+    }
+    // move on to the other fields for comparison
+    int comparison;
+    comparison = name.compareTo(o.getName());
+    if (comparison != 0) {
+      // names differ, so just return the comparison value
+      return comparison;
+    }
+    // names are the same, so check owner field
+    comparison = owner.compareTo(o.getOwner());
+    if (comparison != 0) {
+      // owners differ, so just return the comparison value
+      return comparison;
+    }
+    // Check public flag, ordering true before false
+    if (_public && !o.isPublic()) {
+      return -1;
+    }
+    else if (!_public && o.isPublic()) {
+      return 1;
+    }
+    // Check virtual flag, ordering true before false
+    if (virtual && !o.isVirtual()) {
+      return -1;
+    }
+    else if (!virtual && o.isVirtual()) {
+      return 1;
+    }
+    comparison = coordinates.compareTo(o.getCoordinates());
+    if (comparison != 0) {
+      // coordinates differ, so just return the comparison value
+      return comparison;
+    }
+    comparison = location.compareTo(o.getLocation());
+    if (comparison != 0) {
+      // locations differ, so just return the comparison value
+      return comparison;
+    }
+    comparison = description.compareTo(o.getDescription());
+    if (comparison != 0) {
+      // description differ, so just return the comparison value
+      return comparison;
+    }
+    // TODO Punting on SubSources and Properties, should really be compared for completeness
+    
+    // Should never get here, since testing every field individually should have same result as
+    // equals() which we do first. Anyway, give up and say they are the same.
+    return 0;
+  }
+  
   /*
    * (non-Javadoc)
    * 

@@ -15,6 +15,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
@@ -89,7 +90,7 @@ public class MemoryStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
-  public SourceIndex getSources() {
+  public SourceIndex getSourceIndex() {
     SourceIndex index = new SourceIndex(this.name2SourceHash.size());
     // Loop over all Sources in hash
     for (Source source : this.name2SourceHash.values()) {
@@ -98,6 +99,19 @@ public class MemoryStorageImplementation extends DbImplementation {
     }
     Collections.sort(index.getSourceRef());
     return index;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Sources getSources() {
+    Sources sources = new Sources();
+    // Loop over all Sources in hash
+    for (Source source : this.name2SourceHash.values()) {
+      // Convert each Source to SourceRef, add to index
+      sources.getSource().add(source);
+    }
+    Collections.sort(sources.getSource());
+    return sources;
   }
 
   /** {@inheritDoc} */

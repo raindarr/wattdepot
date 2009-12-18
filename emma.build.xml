@@ -33,6 +33,7 @@
     </emma>
     <!-- Run JUnit with the instrumented class files. -->
     <mkdir dir="${junit.dir}" />
+    <!-- Run all non-DB tests. -->
     <junit printsummary="withOutAndErr" fork="yes">
       <classpath>
         <pathelement location="${build.dir}/classes" />
@@ -45,6 +46,43 @@
       <batchtest todir="${junit.dir}">
         <fileset dir="${src.dir}">
           <include name="**/Test*.java" />
+          <exclude name="**/tinker/**, **/TestDb*.java"/>
+        </fileset>
+      </batchtest>
+    </junit>
+    <!-- Run DB tests using MemoryStorageImplementation -->
+    <junit printsummary="withOutAndErr" fork="yes">
+      <classpath>
+        <pathelement location="${build.dir}/classes" />
+        <path refid="compile.classpath"/>
+        <path refid="emma.lib.dir"/>
+      </classpath>
+      <sysproperty key="emma.coverage.out.file" value="${build.dir}/emma/coverage.emma" />
+      <sysproperty key="emma.coverage.out.merge" value="true" />
+      <sysproperty key="wattdepot-server.db.impl" value="org.wattdepot.server.db.memory.MemoryStorageImplementation"/>
+      <formatter type="xml" />
+      <batchtest todir="${junit.dir}">
+        <fileset dir="${src.dir}">
+          <include name="**/TestDb*.java" />
+          <exclude name="**/tinker/**"/>
+        </fileset>
+      </batchtest>
+    </junit>
+    <!-- Run DB tests using DerbyStorageImplementation -->
+    <junit printsummary="withOutAndErr" fork="yes">
+      <classpath>
+        <pathelement location="${build.dir}/classes" />
+        <path refid="compile.classpath"/>
+        <path refid="emma.lib.dir"/>
+      </classpath>
+      <sysproperty key="emma.coverage.out.file" value="${build.dir}/emma/coverage.emma" />
+      <sysproperty key="emma.coverage.out.merge" value="true" />
+      <sysproperty key="wattdepot-server.db.impl" value="org.wattdepot.server.db.derby.DerbyStorageImplementation"/>
+      <formatter type="xml" />
+      <batchtest todir="${junit.dir}">
+        <fileset dir="${src.dir}">
+          <include name="**/TestDb*.java" />
+          <exclude name="**/tinker/**"/>
         </fileset>
       </batchtest>
     </junit>

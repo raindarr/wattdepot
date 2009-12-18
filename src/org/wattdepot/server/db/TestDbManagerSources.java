@@ -11,7 +11,9 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.Test;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.util.tstamp.Tstamp;
@@ -51,10 +53,12 @@ public class TestDbManagerSources extends DbManagerTestHelper {
   }
 
   /**
-   * Tests the getSources method.
+   * Tests the getSourceIndex and getSources methods.
    */
   @Test
   public void testGetSources() {
+    SourceIndex index;
+    Sources sources;
     // Test cases: empty database should have no Sources, after storing a single Source should
     // have SourceIndex with one SourceRef that matches Source, after storing three Sources should
     // have SourceIndex with three SourceRefs that match Sources, after deleting a Source should
@@ -64,37 +68,45 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     storeTestUsers();
 
     // case #1: empty database should have no Sources
-    assertTrue("Freshly created database contains Sources", manager.getSources().getSourceRef()
+    assertTrue("Freshly created database contains Sources", manager.getSourceIndex().getSourceRef()
+        .isEmpty());
+    assertTrue("Freshly created database contains Sources", manager.getSources().getSource()
         .isEmpty());
 
     // case #2: after storing a single Source should have SourceIndex with one SourceRef that
     // matches Source
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source1));
-    assertSame("getSources returned wrong number of SourceRefs", manager.getSources()
-        .getSourceRef().size(), 1);
-    SourceRef aRef = manager.getSources().getSourceRef().get(0);
-    assertTrue("getSources didn't return expected SourceRef", aRef.equalsSource(this.source1));
+    index = manager.getSourceIndex();
+    sources = manager.getSources();
+    assertSame("getSourceIndex returned wrong number of SourceRefs", index.getSourceRef().size(), 1);
+    assertSame("getSources returned wrong number of SourceRefs", sources.getSource().size(), 1);
+    SourceRef aRef = index.getSourceRef().get(0);
+    Source source = sources.getSource().get(0);
+    assertTrue("getSourceIndex didn't return expected SourceRef", aRef.equalsSource(this.source1));
+    assertEquals("getSources didn't return expected Source", source, this.source1);
 
     // case #3:after storing three Sources should have SourceIndex with three SourceRefs that match
     // Sources
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source2));
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source3));
-    assertSame("getSources returned wrong number of SourceRefs", manager.getSources()
-        .getSourceRef().size(), 3);
+    index = manager.getSourceIndex();
+    sources = manager.getSources();
+    assertSame("getSourceIndex returned wrong number of SourceRefs", index.getSourceRef().size(), 3);
+    assertSame("getSources returned wrong number of Sources", sources.getSource().size(), 3);
     // Now compare the SourceRefs to the original Sources
-    List<SourceRef> retrievedRefs = manager.getSources().getSourceRef();
+    List<SourceRef> retrievedRefs = manager.getSourceIndex().getSourceRef();
     List<Source> origSources = new ArrayList<Source>();
     origSources.add(this.source1);
     origSources.add(this.source2);
     origSources.add(this.source3);
     for (SourceRef ref : retrievedRefs) {
-      int found = 0;
-      for (Source source : origSources) {
-        if (ref.equalsSource(source)) {
-          found++;
+      int foundRef = 0;
+      for (Source s : origSources) {
+        if (ref.equalsSource(s)) {
+          foundRef++;
         }
       }
-      assertSame("SourceRefs from getSources do not match input Sources", found, 1);
+      assertSame("SourceRefs from getSources do not match input Sources", foundRef, 1);
     }
     // Confirm that Source list is sorted
     // clear list
@@ -107,11 +119,15 @@ public class TestDbManagerSources extends DbManagerTestHelper {
       assertTrue("getSources index not sorted", retrievedRefs.get(i).equalsSource(
           origSources.get(i)));
     }
+    assertEquals("getSources returned incorrect list", origSources, manager.getSources()
+        .getSource());
 
     // case #4: deleting a Source should leave two SourceRefs in SourceIndex
     assertTrue("Unable to delete source1", manager.deleteSource(this.source1.getName()));
-    assertSame("getSources returned wrong number of SourceRefs", manager.getSources()
+    assertSame("getSources returned wrong number of SourceRefs", manager.getSourceIndex()
         .getSourceRef().size(), 2);
+    assertSame("getSources returned wrong number of SourceRefs", manager.getSources()
+        .getSource().size(), 2);
   }
 
   /**
@@ -268,7 +284,7 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertFalse("Able to delete null Source name", manager.deleteSource(null));
 
     // case #7: no more Sources after all Sources have been deleted
-    assertTrue("After deleting all known Sources, Sources remain in DB", manager.getSources()
+    assertTrue("After deleting all known Sources, Sources remain in DB", manager.getSourceIndex()
         .getSourceRef().isEmpty());
 
     // TODO add case to check that sensor data for source is deleted when source is deleted

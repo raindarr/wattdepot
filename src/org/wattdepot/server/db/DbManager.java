@@ -10,6 +10,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
@@ -126,7 +127,17 @@ public class DbManager {
    * 
    * @return a SourceIndex object containing a List of SourceRefs to all Source objects.
    */
-  public SourceIndex getSources() {
+  public SourceIndex getSourceIndex() {
+    return this.dbImpl.getSourceIndex();
+  }
+
+  /**
+   * Returns a list of all Sources in the system as a Sources element. An empty Sources element will
+   * be returned if there are no Sources in the system. The list is sorted by source name.
+   * 
+   * @return a Sources object containing Source objects.
+   */
+  public Sources getSources() {
     return this.dbImpl.getSources();
   }
 

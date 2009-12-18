@@ -355,6 +355,8 @@ public class Server extends Application {
     router.attach("/" + HEALTH_URI, HealthResource.class);
     // Source does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI, SourceResource.class);
+    router.attach("/" + SOURCES_URI  + "/?fetchAll={fetchAll}",
+        SourceResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM, SourceResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SUMMARY_URI,
         SourceSummaryResource.class);

@@ -27,6 +27,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
@@ -292,7 +293,7 @@ public class DerbyStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
-  public SourceIndex getSources() {
+  public SourceIndex getSourceIndex() {
     SourceIndex index = new SourceIndex();
     String statement =
         "SELECT Name, Owner, PublicP, Virtual, Coordinates, Location, Description FROM Source ORDER BY Name";
@@ -336,6 +337,88 @@ public class DerbyStorageImplementation extends DbImplementation {
     return index;
   }
 
+  /**
+   * Converts a database row from source table to a Source object. The caller should have advanced
+   * the cursor to the next row via rs.next() before calling this method.
+   * 
+   * @param rs The result set to be examined.
+   * @return The new Source object.
+   */
+  private Source resultSetToSource(ResultSet rs) {
+    Source source = new Source();
+    String xmlString;
+
+    try {
+      source.setName(rs.getString("Name"));
+      source.setOwner(rs.getString("Owner"));
+      source.setPublic(rs.getBoolean("PublicP"));
+      source.setVirtual(rs.getBoolean("Virtual"));
+      source.setCoordinates(rs.getString("Coordinates"));
+      source.setLocation(rs.getString("Location"));
+      source.setDescription(rs.getString("Description"));
+      xmlString = rs.getString("SubSources");
+      if (xmlString != null) {
+        try {
+          Unmarshaller unmarshaller = subSourcesJAXB.createUnmarshaller();
+          source.setSubSources((SubSources) unmarshaller.unmarshal(new StringReader(xmlString)));
+        }
+        catch (JAXBException e) {
+          // Got some XML from DB we can't parse
+          this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
+        }
+      }
+      xmlString = rs.getString("Properties");
+      if (xmlString != null) {
+        try {
+          Unmarshaller unmarshaller = propertiesJAXB.createUnmarshaller();
+          source.setProperties((Properties) unmarshaller.unmarshal(new StringReader(xmlString)));
+        }
+        catch (JAXBException e) {
+          // Got some XML from DB we can't parse
+          this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
+        }
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info("DB: Error in getSource()" + StackTrace.toString(e));
+      return null;
+    }
+    return source;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Sources getSources() {
+    Sources sources = new Sources();
+    String statement = "SELECT * FROM Source ORDER BY Name";
+    Connection conn = null;
+    PreparedStatement s = null;
+    ResultSet rs = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      server.getLogger().fine(executeQueryMsg + statement);
+      s = conn.prepareStatement(statement);
+      rs = s.executeQuery();
+      while (rs.next()) {
+        sources.getSource().add(resultSetToSource(rs));
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info("DB: Error in getSources()" + StackTrace.toString(e));
+    }
+    finally {
+      try {
+        rs.close();
+        s.close();
+        conn.close();
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+      }
+    }
+    return sources;
+  }
+
   /** {@inheritDoc} */
   @Override
   public Source getSource(String sourceName) {
@@ -347,9 +430,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       Connection conn = null;
       PreparedStatement s = null;
       ResultSet rs = null;
-      boolean hasData = false;
-      Source source = new Source();
-      String xmlString;
+      Source source = null;
       try {
         conn = DriverManager.getConnection(connectionURL);
         server.getLogger().fine(executeQueryMsg + statement);
@@ -357,38 +438,7 @@ public class DerbyStorageImplementation extends DbImplementation {
         s.setString(1, sourceName);
         rs = s.executeQuery();
         while (rs.next()) { // the select statement must guarantee only one row is returned.
-          hasData = true;
-          source.setName(rs.getString("Name"));
-          source.setOwner(rs.getString("Owner"));
-          source.setPublic(rs.getBoolean("PublicP"));
-          source.setVirtual(rs.getBoolean("Virtual"));
-          source.setCoordinates(rs.getString("Coordinates"));
-          source.setLocation(rs.getString("Location"));
-          source.setDescription(rs.getString("Description"));
-          xmlString = rs.getString("SubSources");
-          if (xmlString != null) {
-            try {
-              Unmarshaller unmarshaller = subSourcesJAXB.createUnmarshaller();
-              source
-                  .setSubSources((SubSources) unmarshaller.unmarshal(new StringReader(xmlString)));
-            }
-            catch (JAXBException e) {
-              // Got some XML from DB we can't parse
-              this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
-            }
-          }
-          xmlString = rs.getString("Properties");
-          if (xmlString != null) {
-            try {
-              Unmarshaller unmarshaller = propertiesJAXB.createUnmarshaller();
-              source
-                  .setProperties((Properties) unmarshaller.unmarshal(new StringReader(xmlString)));
-            }
-            catch (JAXBException e) {
-              // Got some XML from DB we can't parse
-              this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
-            }
-          }
+          source = resultSetToSource(rs);
         }
       }
       catch (SQLException e) {
@@ -404,7 +454,7 @@ public class DerbyStorageImplementation extends DbImplementation {
           this.logger.warning(errorClosingMsg + StackTrace.toString(e));
         }
       }
-      return (hasData) ? source : null;
+      return source;
     }
   }
 

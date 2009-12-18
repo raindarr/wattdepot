@@ -31,6 +31,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
@@ -967,9 +968,7 @@ public class WattDepotClient {
 
   /**
    * Requests a List of Sources representing all Sources accessible to the authenticated user on the
-   * server. Currently just a convenience method, but if the REST API is extended to support getting
-   * Sources directly without going through a SourceIndex, this method will use that more efficient
-   * API call.
+   * server. Uses the fetchAll parameter in the REST API, so only one HTTP request is made.
    * 
    * @return The List of Sources accessible to the user.
    * @throws NotAuthorizedException If the client's credentials are bad.
@@ -979,18 +978,40 @@ public class WattDepotClient {
    */
   public List<Source> getSources() throws NotAuthorizedException, BadXmlException,
       MiscClientException {
-    List<Source> sourceList = new ArrayList<Source>();
-    SourceIndex index = getSourceIndex();
-    for (SourceRef ref : index.getSourceRef()) {
+    String uri = Server.SOURCES_URI + "/?fetchAll=true";
+    Response response =
+        makeRequest(Method.GET, uri, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // User credentials are invalid
+      throw new NotAuthorizedException(status);
+    }
+    if (status.isSuccess()) {
       try {
-        sourceList.add(getSource(ref));
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sourceJAXB.createUnmarshaller();
+        Sources sources = (Sources) unmarshaller.unmarshal(new StringReader(xmlString));
+        if (sources == null) {
+          return null;
+        }
+        else {
+          return sources.getSource();
+        }
       }
-      catch (ResourceNotFoundException e) {
-        // We got the SourceIndex already, so we know the source exists. this should never happen
-        throw new MiscClientException("SourceRef from Source index had non-existent source name", e);
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
       }
     }
-    return sourceList;
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
   }
 
   /**

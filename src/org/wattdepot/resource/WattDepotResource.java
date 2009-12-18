@@ -24,6 +24,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
@@ -170,67 +171,106 @@ public class WattDepotResource extends Resource {
   }
 
   /**
-   * Returns the XML string containing a SourceIndex of SourceRefs for all public Sources.
+   * Returns an XML string containing either a SourceIndex of SourceRefs or a Sources element for
+   * all public Sources.
    * 
+   * @param fetchAll True if a Sources element is desired, false for SourceIndex
    * @return The XML string with all the public sources.
    * @throws JAXBException If there are problems marshalling the SourceIndex.
    */
-  public String getPublicSources() throws JAXBException {
-    SourceIndex index = this.dbManager.getSources();
-    List<SourceRef> sourceList = index.getSourceRef();
-    ListIterator<SourceRef> iterator = sourceList.listIterator();
-    // Use ListIterator to loop over all SourceRefs, removing those that aren't public
-    while (iterator.hasNext()) {
-      if (!iterator.next().isPublic()) {
-        iterator.remove();
-      }
-    }
+  public String getPublicSources(boolean fetchAll) throws JAXBException {
     Marshaller marshaller = sourceJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
 
-    marshaller.marshal(index, writer);
+    if (fetchAll) {
+      Sources sources = this.dbManager.getSources();
+      List<Source> sourceList = sources.getSource();
+      ListIterator<Source> iterator = sourceList.listIterator();
+      // Use ListIterator to loop over all Sources, removing those that aren't public
+      while (iterator.hasNext()) {
+        if (!iterator.next().isPublic()) {
+          iterator.remove();
+        }
+      }
+      marshaller.marshal(sources, writer);
+    }
+    else {
+      SourceIndex index = this.dbManager.getSourceIndex();
+      List<SourceRef> sourceRefList = index.getSourceRef();
+      ListIterator<SourceRef> iterator = sourceRefList.listIterator();
+      // Use ListIterator to loop over all SourceRefs, removing those that aren't public
+      while (iterator.hasNext()) {
+        if (!iterator.next().isPublic()) {
+          iterator.remove();
+        }
+      }
+      marshaller.marshal(index, writer);
+    }
     return writer.toString();
   }
 
   /**
-   * Returns the XML string containing a SourceIndex of SourceRefs for all Sources (public and
-   * private). Only appropriate for an admin user.
+   * Returns an XML string containing either a SourceIndex of SourceRefs or a Sources element for
+   * all Sources (public and private). Only appropriate for an admin user.
    * 
+   * @param fetchAll True if a Sources element is desired, false for SourceIndex
    * @return The XML string with all sources.
    * @throws JAXBException If there are problems marshalling the SourceIndex.
    */
-  public String getAllSources() throws JAXBException {
-    SourceIndex index = this.dbManager.getSources();
+  public String getAllSources(boolean fetchAll) throws JAXBException {
     Marshaller marshaller = sourceJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
 
-    marshaller.marshal(index, writer);
+    if (fetchAll) {
+      Sources sources = this.dbManager.getSources();
+      marshaller.marshal(sources, writer);
+    }
+    else {
+      SourceIndex index = this.dbManager.getSourceIndex();
+      marshaller.marshal(index, writer);
+    }
     return writer.toString();
   }
 
   /**
-   * Returns the XML string containing a SourceIndex of SourceRefs for all public Sources and any
-   * sources owned by the current authenticated user.
+   * Returns an XML string containing either a SourceIndex of SourceRefs or a Sources element for
+   * all public Sources and any sources owned by the current authenticated user.
    * 
+   * @param fetchAll True if a Sources element is desired, false for SourceIndex
    * @return The XML string with all sources.
    * @throws JAXBException If there are problems marshalling the SourceIndex.
    */
-  public String getOwnerSources() throws JAXBException {
-    SourceIndex index = this.dbManager.getSources();
-    List<SourceRef> sourceList = index.getSourceRef();
-    ListIterator<SourceRef> iterator = sourceList.listIterator();
-    // Use ListIterator to loop over all SourceRefs, removing those that aren't public or owned by
-    // current user
-    while (iterator.hasNext()) {
-      SourceRef ref = iterator.next();
-      if (!ref.isPublic() && !isSourceOwner(ref.getName())) {
-        iterator.remove();
-      }
-    }
+  public String getOwnerSources(boolean fetchAll) throws JAXBException {
     Marshaller marshaller = sourceJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
 
-    marshaller.marshal(index, writer);
+    if (fetchAll) {
+      Sources sources = this.dbManager.getSources();
+      List<Source> sourceList = sources.getSource();
+      ListIterator<Source> iterator = sourceList.listIterator();
+      // Use ListIterator to loop over all Sources, removing those that aren't public
+      while (iterator.hasNext()) {
+        Source source = iterator.next();
+        if (!source.isPublic() && !isSourceOwner(source.getName())) {
+          iterator.remove();
+        }
+      }
+      marshaller.marshal(sources, writer);
+    }
+    else {
+      SourceIndex index = this.dbManager.getSourceIndex();
+      List<SourceRef> sourceList = index.getSourceRef();
+      ListIterator<SourceRef> iterator = sourceList.listIterator();
+      // Use ListIterator to loop over all SourceRefs, removing those that aren't public or owned by
+      // current user
+      while (iterator.hasNext()) {
+        SourceRef ref = iterator.next();
+        if (!ref.isPublic() && !isSourceOwner(ref.getName())) {
+          iterator.remove();
+        }
+      }
+      marshaller.marshal(index, writer);
+    }
     return writer.toString();
   }
 

@@ -2,7 +2,9 @@ package org.wattdepot.resource.source;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.client.NotAuthorizedException;
@@ -54,6 +56,7 @@ public class TestSourceResource extends ServerTestHelper {
     // index should just have the public source
     assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSourceIndex().getSourceRef().get(0),
         this.publicSourceRef);
+    assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSources().get(0), this.publicSource);
   }
 
   /**
@@ -61,22 +64,33 @@ public class TestSourceResource extends ServerTestHelper {
    * 
    * @throws WattDepotClientException If problems are encountered
    */
-  @Test(expected = NotAuthorizedException.class)
+  @Test
   public void testFullIndexBadAuth() throws WattDepotClientException {
     // Shouldn't authenticate with invalid username or password
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, "foo");
-    client.getSourceIndex();
-    fail("Able to get SourceIndex with invalid credentials");
+    try {
+      client.getSourceIndex();
+      fail("Able to get SourceIndex with invalid credentials");
+    }
+    catch (NotAuthorizedException e) { // NOPMD
+      // Expected
+    }
+    try {
+      client.getSources();
+      fail("Able to get Sources with invalid credentials");
+    }
+    catch (NotAuthorizedException e) { // NOPMD
+      // Expected
+    }
   }
 
   /**
-   * Tests retrieval of all Sources. Type: valid admin credentials.
+   * Helper method to test that the full index was received using the client given.
    * 
+   * @param client client to be tested.
    * @throws WattDepotClientException If problems are encountered
    */
-  @Test
-  public void testFullIndexWithAdminCredentials() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+  private void runFullIndex(WattDepotClient client) throws WattDepotClientException {
     SourceIndex index = new SourceIndex();
     index.getSourceRef().add(this.publicSourceRef);
     index.getSourceRef().add(this.privateSourceRef);
@@ -86,6 +100,27 @@ public class TestSourceResource extends ServerTestHelper {
     // Admin should see both sources
     assertEquals("Expected sources not found", client.getSourceIndex().getSourceRef(), index
         .getSourceRef());
+
+    List<Source> sourceList = new ArrayList<Source>();
+    sourceList.add(this.publicSource);
+    sourceList.add(this.privateSource);
+    sourceList.add(this.virtualSource);
+    // We added in sorted order, but just for safety's sake we sort the list
+    Collections.sort(sourceList);
+    // Admin should see both sources
+    assertEquals("Expected sources not found", client.getSources(), sourceList);
+  }
+
+  /**
+   * Tests retrieval of all Sources. Type: valid admin credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test
+  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
+  public void testFullIndexWithAdminCredentials() throws WattDepotClientException {
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    runFullIndex(client);
   }
 
   /**
@@ -94,19 +129,11 @@ public class TestSourceResource extends ServerTestHelper {
    * @throws WattDepotClientException If problems are encountered
    */
   @Test
+  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
   public void testFullIndexWithOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), defaultOwnerUsername,
-            defaultOwnerPassword);
-    SourceIndex index = new SourceIndex();
-    index.getSourceRef().add(this.publicSourceRef);
-    index.getSourceRef().add(this.privateSourceRef);
-    index.getSourceRef().add(this.virtualSourceRef);
-    // We added in sorted order, but just for safety's sake we sort the list
-    Collections.sort(index.getSourceRef());
-    // Owner should see both sources
-    assertEquals("Expected sources not found", client.getSourceIndex().getSourceRef(), index
-        .getSourceRef());
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    runFullIndex(client);
   }
 
   /**
@@ -117,11 +144,11 @@ public class TestSourceResource extends ServerTestHelper {
   @Test
   public void testFullIndexWithNonOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), defaultNonOwnerUsername,
-            defaultNonOwnerPassword);
+        new WattDepotClient(getHostName(), defaultNonOwnerUsername, defaultNonOwnerPassword);
     // index should just have the public source
     assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSourceIndex().getSourceRef().get(0),
         this.publicSourceRef);
+    assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSources().get(0), this.publicSource);
   }
 
   // Tests for GET {host}/sources/{source}
@@ -198,8 +225,7 @@ public class TestSourceResource extends ServerTestHelper {
   @Test
   public void testSourceWithOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), defaultOwnerUsername,
-            defaultOwnerPassword);
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
     assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSource(publicSource.getName()),
         this.publicSource);
     assertEquals("Expected private source not found", client.getSource(privateSource.getName()),
@@ -214,8 +240,7 @@ public class TestSourceResource extends ServerTestHelper {
   @Test
   public void testPublicSourceWithNonOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), defaultNonOwnerUsername,
-            defaultNonOwnerPassword);
+        new WattDepotClient(getHostName(), defaultNonOwnerUsername, defaultNonOwnerPassword);
     assertEquals(PUBLIC_SOURCE_NOT_FOUND, client.getSource(publicSource.getName()),
         this.publicSource);
   }
@@ -228,8 +253,7 @@ public class TestSourceResource extends ServerTestHelper {
   @Test(expected = NotAuthorizedException.class)
   public void testPrivateSourceWithNonOwnerCredentials() throws WattDepotClientException {
     WattDepotClient client =
-        new WattDepotClient(getHostName(), defaultNonOwnerUsername,
-            defaultNonOwnerPassword);
+        new WattDepotClient(getHostName(), defaultNonOwnerUsername, defaultNonOwnerPassword);
     client.getSource(privateSource.getName());
     fail("Able to get private Source with non-owner credentials");
   }

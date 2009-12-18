@@ -12,6 +12,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
+import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
@@ -80,7 +81,15 @@ public abstract class DbImplementation {
    * 
    * @return a SourceIndex object containing a List of SourceRefs to all Source objects.
    */
-  public abstract SourceIndex getSources();
+  public abstract SourceIndex getSourceIndex();
+
+  /**
+   * Returns a list of all Sources in the system as a Sources element. An empty Sources element will
+   * be returned if there are no Sources in the system. The list is sorted by source name.
+   * 
+   * @return a Sources object containing Source objects.
+   */
+  public abstract Sources getSources();
 
   /**
    * Returns the named Source instance, or null if not found.
@@ -334,7 +343,8 @@ public abstract class DbImplementation {
   public SensorData getEnergy(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
     List<List<SensorDataStraddle>> masterList =
-        getSensorDataStraddleListOfLists(sourceName, Tstamp.getTimestampList(startTime, endTime, interval));
+        getSensorDataStraddleListOfLists(sourceName, Tstamp.getTimestampList(startTime, endTime,
+            interval));
 
     if ((masterList == null) || (masterList.isEmpty())) {
       return null;
