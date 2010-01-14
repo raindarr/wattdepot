@@ -117,13 +117,14 @@ public class ServerTestHelper {
   // }
 
   /**
-   * Kludges up some default data so that SensorData can be stored. This is a total hack, and should
-   * be removed as soon as the all the resources have been fully implemented.
+   * Kludges up some default data so that SensorData can be stored. Originally this was to support
+   * a demo (since there was no way to create sources or users), but now some tests use this data,
+   * so it has been moved here.
    * 
    * @return True if the default data could be created, or false otherwise.
    */
   public boolean createDefaultData() {
-   // Always want there to be an admin user
+   // Need to (re)create admin user, since the database gets wiped by each test
    ServerProperties serverProps =
        (ServerProperties) server.getContext().getAttributes().get("ServerProperties");
    String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);

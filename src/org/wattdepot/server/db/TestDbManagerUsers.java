@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.wattdepot.server.ServerProperties.ADMIN_EMAIL_KEY;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
@@ -30,34 +31,35 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
    */
   @Test
   public void testGetUsers() {
-    // Test cases: empty database should have no users, after storing a single User should
-    // have UserIndex with one UserRef that matches User, after storing two Users, should have
-    // UserIndex with two UserRefs that match Users, after deleting a User should have single
-    // UserRef in UserIndex.
-
-    // case #1: Database starts fresh with no Users. Might change if admin user is pre-added.
-    assertTrue("Freshly created database contains users", manager.getUsers().getUserRef().isEmpty());
+    String adminUsername = server.getServerProperties().get(ADMIN_EMAIL_KEY);
+    User adminUser = manager.getUser(adminUsername);
+    UserRef adminUserRef = new UserRef(adminUser, server);
+    
+    // case #1: Database starts fresh with just admin user.
+    assertEquals("Freshly created database contains unexpected users", manager.getUsers()
+        .getUserRef().get(0), adminUserRef);
 
     // case #2: after storing a single User, should have UserIndex with one UserRef that matches
     // User
     assertTrue("Unable to store user1 in DB", manager.storeUser(this.user1));
     // Confirm that getUsers returns a single UserRef now
     assertSame("getUsers returned wrong number of UserRefs",
-        manager.getUsers().getUserRef().size(), 1);
-    // Confirm that the single UserRef is from user1
-    assertTrue("getUsers didn't return expected UserRef", manager.getUsers().getUserRef().get(0)
+        manager.getUsers().getUserRef().size(), 2);
+    // Confirm that the second UserRef is from user1
+    assertTrue("getUsers didn't return expected UserRef", manager.getUsers().getUserRef().get(1)
         .equalsUser(this.user1));
 
     // case #3: after storing two Users, should have UserIndex with two UserRefs that match Users
     assertTrue("Unable to store user2 in DB", manager.storeUser(this.user2));
     // Confirm that getUsers returns two UserRefs now
     assertSame("getUsers returned wrong number of UserRefs",
-        manager.getUsers().getUserRef().size(), 2);
+        manager.getUsers().getUserRef().size(), 3);
     // Confirm that the two UserRefs are equivalent to user1 and user2
     List<UserRef> refs = manager.getUsers().getUserRef();
     List<User> origUsers = new ArrayList<User>();
     origUsers.add(this.user1);
     origUsers.add(this.user2);
+    origUsers.add(adminUser);
     for (UserRef ref : refs) {
       int found = 0;
       for (User user : origUsers) {
@@ -71,6 +73,7 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     // clear list
     origUsers.clear();
     // user1's name comes before user2, so add in opposite order
+    origUsers.add(adminUser);
     origUsers.add(this.user2);
     origUsers.add(this.user1);
     for (int i = 0; i < origUsers.size(); i++) {
@@ -80,9 +83,9 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     // case #4: after deleting a User should have single UserRef in UserIndex.
     assertTrue("Unable to delete user1", manager.deleteUser(this.user1.getEmail()));
     assertSame("getUsers returned wrong number of UserRefs",
-        manager.getUsers().getUserRef().size(), 1);
+        manager.getUsers().getUserRef().size(), 2);
     // Confirm that the single UserRef is from user2
-    assertTrue("getUsers didn't return expected UserRef", manager.getUsers().getUserRef().get(0)
+    assertTrue("getUsers didn't return expected UserRef", manager.getUsers().getUserRef().get(1)
         .equalsUser(this.user2));
   }
 

@@ -136,11 +136,43 @@ public class Carbon extends Energy {
       // iterate over the list of StraddleLists (each one corresponding to a different source)
       for (StraddleList list : masterList) {
         source = list.getSource();
-        carbonEmitted +=
-            getCarbonFromList(list.getStraddleList(), source.getProperties().getPropertyAsDouble(
-                Source.CARBON_INTENSITY));
+        if (sourceSupportsCarbon(source)) {
+          carbonEmitted +=
+              getCarbonFromList(list.getStraddleList(), source
+                  .getPropertyAsDouble(Source.CARBON_INTENSITY));
+        }
       }
       return makeCarbonSensorData(timestamp, sourceUri, carbonEmitted, wasInterpolated);
+    }
+  }
+
+  /**
+   * Indicates whether a particular source has a valid CARBON_INTENSITY property, which would allow
+   * carbon calculations to be performed.
+   * 
+   * @param source The source to be examined.
+   * @return True if the source has a
+   */
+  public static boolean sourceSupportsCarbon(Source source) {
+    if (source == null) {
+      return false;
+    }
+    else {
+      String carbonString = source.getProperty(Source.CARBON_INTENSITY);
+      if (carbonString == null) {
+        return false;
+      }
+      else {
+        try {
+          double carbonIntensity = Double.valueOf(carbonString);
+          // if we got here then the string was parseable as a double
+          return carbonIntensity >= 0;
+        }
+        catch (NumberFormatException e) {
+          // unparseable string
+          return false;
+        }
+      }
     }
   }
 }

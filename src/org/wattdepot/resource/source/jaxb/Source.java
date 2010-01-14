@@ -51,7 +51,7 @@ import org.wattdepot.server.Server;
 @XmlType(name = "", propOrder = { "name", "owner", "_public", "virtual", "coordinates", "location",
     "description", "subSources", "properties" })
 @XmlRootElement(name = "Source")
-public class Source implements Serializable, Comparable<Source>  {
+public class Source implements Serializable, Comparable<Source> {
 
   private final static long serialVersionUID = 12343L;
   @XmlElement(name = "Name", required = true)
@@ -78,7 +78,7 @@ public class Source implements Serializable, Comparable<Source>  {
   public static final String CARBON_INTENSITY = "carbonIntensity";
   /** Property key for fuel type. */
   public static final String FUEL_TYPE = "fuelType";
-  
+
   /**
    * Default no-argument constructor, apparently needed by JAXB. Don't use this, use the one with
    * all the parameters.
@@ -510,12 +510,12 @@ public class Source implements Serializable, Comparable<Source>  {
       return comparison;
     }
     // TODO Punting on SubSources and Properties, should really be compared for completeness
-    
+
     // Should never get here, since testing every field individually should have same result as
     // equals() which we do first. Anyway, give up and say they are the same.
     return 0;
   }
-  
+
   /*
    * (non-Javadoc)
    * 
@@ -550,7 +550,12 @@ public class Source implements Serializable, Comparable<Source>  {
    * @return The key's value as a double.
    */
   public double getPropertyAsDouble(String key) {
-    return this.properties.getPropertyAsDouble(key);
+    if (this.properties != null) {
+      return this.properties.getPropertyAsDouble(key);
+    }
+    else {
+      return 0;
+    }
   }
 
   /**
@@ -562,7 +567,12 @@ public class Source implements Serializable, Comparable<Source>  {
    * @return The key's value as a double.
    */
   public String getProperty(String key) {
-    return this.properties.getProperty(key);
+    if (this.properties != null) {
+      return this.properties.getProperty(key);
+    }
+    else {
+      return null;
+    }
   }
 
   /**

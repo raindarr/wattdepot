@@ -128,6 +128,7 @@ public class DerbyStorageImplementation extends DbImplementation {
           Connection conn = null;
           try {
             conn = DriverManager.getConnection("jdbc:derby:;shutdown=true");
+            System.out.println("Derby successfully shutdown");
           }
           catch (Exception e) {
             System.out.println("Derby shutdown hook results: " + e.getMessage());
@@ -140,6 +141,7 @@ public class DerbyStorageImplementation extends DbImplementation {
               // we tried.
             }
           }
+          System.out.println("Derby successfully shutdown");
         }
       });
       // Initialize the database table structure if necessary.
@@ -272,8 +274,8 @@ public class DerbyStorageImplementation extends DbImplementation {
   private static final String createSourceTableStatement =
       "create table Source  " + "(" + " Name VARCHAR(128) NOT NULL, "
           + " Owner VARCHAR(256) NOT NULL, " + " PublicP SMALLINT NOT NULL, "
-          + " Virtual SMALLINT NOT NULL, " + " Coordinates VARCHAR(80) NOT NULL, "
-          + " Location VARCHAR(256) NOT NULL, " + " Description VARCHAR(1024) NOT NULL, "
+          + " Virtual SMALLINT NOT NULL, " + " Coordinates VARCHAR(80), "
+          + " Location VARCHAR(256), " + " Description VARCHAR(1024), "
           + " SubSources VARCHAR(32000), " + " Properties VARCHAR(32000), "
           + " LastMod TIMESTAMP NOT NULL, " + " PRIMARY KEY (Name) " + ")";
 

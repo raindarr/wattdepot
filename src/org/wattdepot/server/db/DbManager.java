@@ -15,6 +15,7 @@ import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.server.Server;
+import org.wattdepot.server.ServerProperties;
 import org.wattdepot.util.StackTrace;
 
 /**
@@ -31,27 +32,6 @@ public class DbManager {
 
   /** The server using this DbManager. */
   protected Server server;
-
-//  /** Name of the default public source for demo. */
-//  public static final String defaultPublicSource = "saunders-hall";
-//
-//  /** Name of the default private source for demo. */
-//  public static final String defaultPrivateSource = "secret-place";
-//
-//  /** Name of the default virtual source for demo. */
-//  public static final String defaultVirtualSource = "virtual-source";
-//
-//  /** Username of the default user that owns both default sources for demo. */
-//  public static final String defaultOwnerUsername = "joebogus@example.com";
-//
-//  /** Password of the default user that owns both default sources for demo. */
-//  public static final String defaultOwnerPassword = "totally-bogus";
-//
-//  /** Username of the default user that owns no sources for demo. */
-//  public static final String defaultNonOwnerUsername = "jimbogus@example.com";
-//
-//  /** Password of the default user that owns no sources for demo. */
-//  public static final String defaultNonOwnerPassword = "super-bogus";
 
   /**
    * Creates a new DbManager which manages access to the underlying persistency layer(s). Choice of
@@ -119,6 +99,19 @@ public class DbManager {
       throw new IllegalArgumentException(e);
     }
     this.dbImpl.initialize(wipe);
+    ServerProperties serverProps =
+        (ServerProperties) server.getContext().getAttributes().get("ServerProperties");
+    String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
+    String adminPassword = serverProps.get(ServerProperties.ADMIN_PASSWORD_KEY);
+    // Ensure that we have an admin user
+    if (this.dbImpl.getUser(adminUsername) == null) {
+      // create the admin User object based on the server properties
+      User adminUser = new User(adminUsername, adminPassword, true, null);
+      // stick admin user into database
+      if (!this.dbImpl.storeUser(adminUser)) {
+        server.getLogger().severe("Unable to create admin user on DbManager creation!");
+      }
+    }
   }
 
   /**

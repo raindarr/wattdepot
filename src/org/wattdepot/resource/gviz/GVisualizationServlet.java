@@ -124,8 +124,8 @@ public class GVisualizationServlet extends DataSourceServlet {
             "Internal problem with Source name provided.");
       }
       // URIs that start with "sensordata/" set the sensordata flag
-      if (remainingUri.startsWith("sensordata/")) {
-        sourceName = remainingUri.substring(11);
+      if (remainingUri.endsWith("sensordata/")) {
+        sourceName = remainingUri.substring(0, remainingUri.length() - 12);
         sensorDataRequested = true;
       }
       // Otherwise, just grab the source name
@@ -133,6 +133,7 @@ public class GVisualizationServlet extends DataSourceServlet {
         sourceName = remainingUri;
       }
     }
+    // System.out.println(sourceName); // DEBUG
     // TODO Should filter the source name, check for unexpected characters and length
     // Check if the given source name exists in database
     if (dbManager.getSource(sourceName) == null) {
@@ -368,29 +369,54 @@ public class GVisualizationServlet extends DataSourceServlet {
           }
           else if (columnName.endsWith(POWER_CONSUMED_COLUMN)) {
             powerData = this.dbManager.getPower(currentSourceName, currentTimestamp);
-            row.addCell(powerData.getPropertyAsDouble(SensorData.POWER_CONSUMED));
+            if (powerData == null) {
+              row.addCell(0);
+            }
+            else {
+              row.addCell(powerData.getPropertyAsDouble(SensorData.POWER_CONSUMED));
+            }
           }
           else if (columnName.endsWith(POWER_GENERATED_COLUMN)) {
             powerData = this.dbManager.getPower(currentSourceName, currentTimestamp);
-            row.addCell(powerData.getPropertyAsDouble(SensorData.POWER_GENERATED));
+            if (powerData == null) {
+              row.addCell(0);
+            }
+            else {
+              row.addCell(powerData.getPropertyAsDouble(SensorData.POWER_GENERATED));
+            }
           }
           else if (columnName.endsWith(ENERGY_CONSUMED_COLUMN)) {
             energyData =
                 this.dbManager.getEnergy(currentSourceName, previousTimestamp, currentTimestamp,
                     currentInterval);
-            row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_CONSUMED));
+            if (energyData == null) {
+              row.addCell(0);
+            }
+            else {
+              row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_CONSUMED));
+            }
           }
           else if (columnName.endsWith(ENERGY_GENERATED_COLUMN)) {
             energyData =
                 this.dbManager.getEnergy(currentSourceName, previousTimestamp, currentTimestamp,
                     currentInterval);
-            row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_GENERATED));
+            if (energyData == null) {
+              row.addCell(0);
+            }
+            else {
+              row.addCell(energyData.getPropertyAsDouble(SensorData.ENERGY_GENERATED));
+            }
           }
           else if (columnName.endsWith(CARBON_EMITTED_COLUMN)) {
             carbonData =
                 this.dbManager.getCarbon(currentSourceName, previousTimestamp, currentTimestamp,
                     currentInterval);
-            row.addCell(carbonData.getPropertyAsDouble(SensorData.CARBON_EMITTED));
+            if (carbonData == null) {
+              row.addCell(0);
+            }
+            else {
+              row.addCell(carbonData.getPropertyAsDouble(SensorData.CARBON_EMITTED));
+            }
           }
         }
         catch (NumberFormatException e) {
