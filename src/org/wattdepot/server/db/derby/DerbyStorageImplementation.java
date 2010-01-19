@@ -128,7 +128,6 @@ public class DerbyStorageImplementation extends DbImplementation {
           Connection conn = null;
           try {
             conn = DriverManager.getConnection("jdbc:derby:;shutdown=true");
-            System.out.println("Derby successfully shutdown");
           }
           catch (Exception e) {
             System.out.println("Derby shutdown hook results: " + e.getMessage());
@@ -141,7 +140,6 @@ public class DerbyStorageImplementation extends DbImplementation {
               // we tried.
             }
           }
-          System.out.println("Derby successfully shutdown");
         }
       });
       // Initialize the database table structure if necessary.

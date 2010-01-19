@@ -49,28 +49,6 @@ public class ServerTestHelper {
   public static final String defaultNonOwnerUsername = "jimbogus@example.com";
   /** Password of the default user that owns no sources. */
   public static final String defaultNonOwnerPassword = "super-bogus";
-  /** Bulk source name 1. */
-  public static final String source1Name = "source01";
-  /** Bulk source name 2. */
-  public static final String source2Name = "source02";
-  /** Bulk source name 3. */
-  public static final String source3Name = "source03";
-  /** Bulk source name 4. */
-  public static final String source4Name = "source04";
-  /** Bulk source name 5. */
-  public static final String source5Name = "source05";
-  /** Bulk source name 6. */
-  public static final String source6Name = "source06";
-  /** Bulk source name 7. */
-  public static final String source7Name = "source07";
-  /** Bulk source name 8. */
-  public static final String source8Name = "source08";
-  /** Bulk source name 9. */
-  public static final String source9Name = "source09";
-  /** Bulk source name 10. */
-  public static final String source10Name = "source10";
-  /** Bulk source name 11. */
-  public static final String source11Name = "source11";
   
 //  public ServerTestHelper () throws Exception {
 //    ServerTestHelper.server = Server.newTestInstance();

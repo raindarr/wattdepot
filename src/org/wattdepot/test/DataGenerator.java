@@ -24,7 +24,7 @@ public class DataGenerator {
   /** Virtual source containing all other sources. */
   public Source virtualSource;
   /** Array containing all the names of the non-virtual sources. */
-  public static final String[] sourceNames =
+  private static final String[] sourceNames =
       { "source01", "source02", "source03", "source04", "source05", "source06", "source07",
           "source08", "source09", "source10" };
   /** The test Sources in URI form. */
@@ -92,15 +92,32 @@ public class DataGenerator {
     SensorData data;
     while (Tstamp.lessThan(timestamp, endTime)) {
       for (int i = 0; i < 10; i++) {
-        data = new SensorData(timestamp, toolName, sourceURIs[i],
-            new Property(SensorData.POWER_GENERATED, Integer.toString(j * (i + 1))));
-        System.out.println(data);
+        data =
+            new SensorData(timestamp, toolName, sourceURIs[i], new Property(
+                SensorData.POWER_GENERATED, Integer.toString(j * (i + 1))));
+        // System.out.println(data); // DEBUG
         this.dbManager.storeSensorData(data);
       }
       // System.out.format("timestamp=%s%n", timestamp); // DEBUG
       timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);
       // Keep ratcheting up j until we reach 100, then reset to 0
       j = (j < 100) ? j + 10 : 0;
+    }
+  }
+
+  /**
+   * Returns the name of the source given by the index. Basically created to eliminate a FindBugs
+   * warning.
+   * 
+   * @param index A zero-based number indicating which source name is desired.
+   * @return The name of the source as a String.
+   */
+  public static String getSourceName(int index) {
+    if ((index >= 0) && (index <= sourceNames.length)) {
+      return sourceNames[index];
+    }
+    else {
+      return null;
     }
   }
 

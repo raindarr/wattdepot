@@ -80,6 +80,7 @@
     <unjar src="${lib.dir}/icu4j/icu4j.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/google-collections/google-collect.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/google-visualization-java/visualization-datasource.jar" dest="${tmp.dir}" />
+    <unjar src="${lib.dir}/derby/derby.jar" dest="${tmp.dir}" />
 
     <jar destfile="${build.jar.dir}/wattdepot-server.jar" basedir="${tmp.dir}">
       <manifest>
