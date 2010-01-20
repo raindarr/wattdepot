@@ -71,7 +71,7 @@ public class StressTest {
   public void testInterpolatedPowerSingleSource() throws Exception {
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp("2010-01-08T12:03:07.000-10:00");
     Date testStart = new Date();
-    int iterations = 100;
+    int iterations = 1000;
     for (int i = 0; i < iterations; i++) {
       client.getPowerGenerated(DataGenerator.getSourceName(0), timestamp);
     }

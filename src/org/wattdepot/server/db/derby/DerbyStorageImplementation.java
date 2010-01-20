@@ -922,19 +922,7 @@ public class DerbyStorageImplementation extends DbImplementation {
    */
   @Override
   public SensorDataStraddle getSensorDataStraddle(String sourceName, XMLGregorianCalendar timestamp) {
-    // This is a kludge, create sentinels for times way outside our expected range
-    SensorData beforeSentinel, afterSentinel;
-    try {
-      beforeSentinel =
-          new SensorData(Tstamp.makeTimestamp("1700-01-01T00:00:00.000-10:00"), "", "");
-      afterSentinel = new SensorData(Tstamp.makeTimestamp("3000-01-01T00:00:00.000-10:00"), "", "");
-    }
-    catch (Exception e) {
-      throw new RuntimeException(
-          "Creating timestamp from static string failed. This should never happen", e);
-    }
-    // initialize beforeData & afterData to sentinel values
-    SensorData beforeData = beforeSentinel, afterData = afterSentinel;
+    SensorData beforeData = null, afterData = null;
     if ((sourceName == null) || (timestamp == null)) {
       return null;
     }
@@ -945,22 +933,24 @@ public class DerbyStorageImplementation extends DbImplementation {
     XMLGregorianCalendar dataTimestamp;
     int dataTimestampCompare;
 
+    Connection conn = null;
+    PreparedStatement s = null;
+    ResultSet rs = null;
+    String statement;
     SensorData data = getSensorData(sourceName, timestamp);
     if (data == null) {
-      // TODO Seems like there should be a better way to retrieve the row with timestamps that come
-      // just before and just after a given timestamp. Maybe I need better SQL-fu. For now just
-      // iterate over all timestamps for the Source
-      String statement = "SELECT Tstamp FROM SensorData WHERE Source = ? ORDER BY Tstamp";
-      Connection conn = null;
-      PreparedStatement s = null;
-      ResultSet rs = null;
       try {
+        // Find data just before desired timestamp
+        statement =
+            "SELECT Tstamp FROM SensorData WHERE Source = ? AND Tstamp < ? "
+                + "ORDER BY Tstamp DESC FETCH FIRST ROW ONLY";
         conn = DriverManager.getConnection(connectionURL);
         server.getLogger().fine(executeQueryMsg + statement);
         s = conn.prepareStatement(statement);
         s.setString(1, Source.sourceToUri(sourceName, this.server));
+        s.setTimestamp(2, Tstamp.makeTimestamp(timestamp));
         rs = s.executeQuery();
-        // Loop over all SensorData for source
+        // Expecting only one row of data (fetch first row only)
         while (rs.next()) {
           dataTimestamp = Tstamp.makeTimestamp(rs.getTimestamp(1));
           dataTimestampCompare = dataTimestamp.compare(timestamp);
@@ -972,18 +962,40 @@ public class DerbyStorageImplementation extends DbImplementation {
             SensorData tempData = getSensorData(sourceName, dataTimestamp);
             return new SensorDataStraddle(timestamp, tempData, tempData);
           }
-          if ((dataTimestamp.compare(beforeData.getTimestamp()) == DatatypeConstants.GREATER)
-              && (dataTimestampCompare == DatatypeConstants.LESSER)) {
-            // found closer beforeData
+          else {
             beforeData = getSensorData(sourceName, dataTimestamp);
           }
-          else if ((dataTimestamp.compare(afterData.getTimestamp()) == DatatypeConstants.LESSER)
-              && (dataTimestampCompare == DatatypeConstants.GREATER)) {
-            // found closer afterData
+        }
+        // Close those statement and result set resources before we reuse the variables
+        s.close();
+        rs.close();
+
+        // Find data just after desired timestamp
+        statement =
+            "SELECT Tstamp FROM SensorData WHERE Source = ? AND Tstamp > ? "
+                + "ORDER BY Tstamp ASC FETCH FIRST ROW ONLY";
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, Source.sourceToUri(sourceName, this.server));
+        s.setTimestamp(2, Tstamp.makeTimestamp(timestamp));
+        rs = s.executeQuery();
+        // Expecting only one row of data (fetch first row only)
+        while (rs.next()) {
+          dataTimestamp = Tstamp.makeTimestamp(rs.getTimestamp(1));
+          dataTimestampCompare = dataTimestamp.compare(timestamp);
+          if (dataTimestampCompare == DatatypeConstants.EQUAL) {
+            // There is SensorData for the requested timestamp, but we already checked for this.
+            // Thus there is a logic error somewhere
+            this.logger
+                .warning("Found sensordata that matches timestamp, but after already checked!");
+            SensorData tempData = getSensorData(sourceName, dataTimestamp);
+            return new SensorDataStraddle(timestamp, tempData, tempData);
+          }
+          else {
             afterData = getSensorData(sourceName, dataTimestamp);
           }
         }
-        if (beforeData.equals(beforeSentinel) || afterData.equals(afterSentinel)) {
+        if ((beforeData == null) || (afterData == null)) {
           // one of the sentinels never got changed, so no straddle
           return null;
         }
@@ -997,8 +1009,8 @@ public class DerbyStorageImplementation extends DbImplementation {
       }
       finally {
         try {
-          rs.close();
           s.close();
+          rs.close();
           conn.close();
         }
         catch (SQLException e) {
