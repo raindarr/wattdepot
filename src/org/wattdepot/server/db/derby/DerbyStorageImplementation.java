@@ -473,21 +473,20 @@ public class DerbyStorageImplementation extends DbImplementation {
     summary.setHref(Source.sourceToUri(sourceName, this.server.getHostName()));
     // Want to go through sensordata for base source, and all subsources recursively
     List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
-    XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null;
+    XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null, currentTimestamp = null;
     Timestamp sqlDataTimestamp = null;
     long dataCount = 0;
-    String statement = "SELECT Tstamp FROM SensorData WHERE Source = ? ORDER BY Tstamp";
+    String statement;
     Connection conn = null;
     PreparedStatement s = null;
     ResultSet rs = null;
-
+    // examine each of the subsources in turn
     for (Source subSource : sourceList) {
       String subSourceName = subSource.getName();
-      // TODO Seems like there should be a better way to retrieve the first, last and total # of
-      // rows without iterating through each one. Maybe I need better SQL-fu
-
-      // Retrieve this Source's SensorData
       try {
+        // Get timestamp of first sensor data for this source
+        statement =
+            "SELECT Tstamp FROM SensorData WHERE Source = ? ORDER BY Tstamp ASC FETCH FIRST ROW ONLY";
         conn = DriverManager.getConnection(connectionURL);
         server.getLogger().fine(executeQueryMsg + statement);
         s = conn.prepareStatement(statement);
@@ -495,17 +494,43 @@ public class DerbyStorageImplementation extends DbImplementation {
         rs = s.executeQuery();
         if (rs.next()) {
           sqlDataTimestamp = rs.getTimestamp(1);
-          firstTimestamp = Tstamp.makeTimestamp(sqlDataTimestamp);
-          lastTimestamp = firstTimestamp;
-          dataCount++;
+          currentTimestamp = Tstamp.makeTimestamp(sqlDataTimestamp);
+          // If this is the first source examined or this source's first data is earlier than
+          // that of any sources examined so far
+          if ((firstTimestamp == null) || (Tstamp.lessThan(currentTimestamp, firstTimestamp))) {
+            firstTimestamp = currentTimestamp;
+          }
         }
-        while (rs.next()) {
+        // Clean up for next query
+        rs.close();
+        s.close();
+        // Get timestamp of last sensor data for this source
+        statement =
+            "SELECT Tstamp FROM SensorData WHERE Source = ? ORDER BY Tstamp DESC FETCH FIRST ROW ONLY";
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, Source.sourceToUri(subSourceName, this.server));
+        rs = s.executeQuery();
+        if (rs.next()) {
           sqlDataTimestamp = rs.getTimestamp(1);
-          dataCount++;
+          currentTimestamp = Tstamp.makeTimestamp(sqlDataTimestamp);
+          // If this is the first source examined or this source's last data is later than
+          // that of any sources examined so far
+          if ((lastTimestamp == null) || (Tstamp.greaterThan(currentTimestamp, lastTimestamp))) {
+            lastTimestamp = currentTimestamp;
+          }
         }
-        // at end of loop, sqlDataTimestamp is the last timestamp
-        if (dataCount > 0) {
-          lastTimestamp = Tstamp.makeTimestamp(sqlDataTimestamp);
+        // Clean up for next query
+        rs.close();
+        s.close();
+        // Get number of sensordata rows for this source
+        statement = "SELECT COUNT(1) FROM SensorData WHERE Source = ?";
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, Source.sourceToUri(subSourceName, this.server));
+        rs = s.executeQuery();
+        if (rs.next()) {
+          dataCount += rs.getInt(1);
         }
       }
       catch (SQLException e) {

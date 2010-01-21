@@ -84,7 +84,7 @@ public class StressTest {
   }
 
   /**
-   * Computes interpolated power for a single source many times and reports how long it took.
+   * Computes interpolated power for a virtual source many times and reports how long it took.
    * 
    * @throws Exception If there are problems.
    */
@@ -103,6 +103,28 @@ public class StressTest {
         "Time to calculate interpolated power for virtual source generated %d times: %.1f ms%n",
         iterations, msElapsed);
     System.out.format("Mean time to calculate interpolated power for virtual source: %.1f ms%n",
+        msElapsed / iterations);
+  }
+
+  /**
+   * Computes interpolated power for a virtual source many times and reports how long it took.
+   * 
+   * @throws Exception If there are problems.
+   */
+  @Test
+  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
+  public void testSourceSummaryVirtualSource() throws Exception {
+    Date testStart = new Date();
+    int iterations = 1;
+    for (int i = 0; i < iterations; i++) {
+      client.getSourceSummary(DataGenerator.source11Name);
+    }
+    Date testEnd = new Date();
+    double msElapsed = testEnd.getTime() - testStart.getTime();
+    System.out.format(
+        "Time to generate source summary for virtual source generated %d times: %.1f ms%n",
+        iterations, msElapsed);
+    System.out.format("Mean time to generate source summary for virtual source: %.1f ms%n",
         msElapsed / iterations);
   }
 }
