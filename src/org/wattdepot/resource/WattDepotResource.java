@@ -171,6 +171,21 @@ public class WattDepotResource extends Resource {
   }
 
   /**
+   * Returns the XML string containing the User specified in the URI.
+   * 
+   * @param user The User resource to be marshalled into XML.
+   * @return The XML string of URI-specified Users.
+   * @throws JAXBException If there are problems marshalling the User.
+   */
+  public String getUser(User user) throws JAXBException {
+    Marshaller marshaller = userJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+
+    marshaller.marshal(user, writer);
+    return writer.toString();
+  }
+
+  /**
    * Returns an XML string containing either a SourceIndex of SourceRefs or a Sources element for
    * all public Sources.
    * 
@@ -703,7 +718,7 @@ public class WattDepotResource extends Resource {
   }
 
   /**
-   * Called when an exception is caught while processing a request. Just sets the response code.
+   * Called if the credentials provided are invalid. Just sets the response code.
    */
   protected void setStatusBadCredentials() {
     this.responseMsg = ResponseMessage.badCredentials(this);

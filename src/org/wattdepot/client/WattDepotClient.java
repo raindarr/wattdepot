@@ -33,7 +33,9 @@ import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
+import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
+import org.wattdepot.resource.user.jaxb.UserRef;
 import org.wattdepot.server.Server;
 import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.logger.RestletLoggerUtil;
@@ -211,7 +213,7 @@ public class WattDepotClient {
       return false;
     }
     else {
-      Response response = makeRequest(Method.HEAD, usersUri, TEXT_MEDIA, null);
+      Response response = makeRequest(Method.HEAD, usersUri, XML_MEDIA, null);
       return response.getStatus().isSuccess();
     }
   }
@@ -868,7 +870,8 @@ public class WattDepotClient {
   }
 
   /**
-   * Returns the UserIndex containing all Users on the server.
+   * Returns the UserIndex containing all Users on the server. Note that only the admin user is
+   * allowed to retrieve the UserIndex.
    * 
    * @return The UserIndex for the server.
    * @throws NotAuthorizedException If the client is not authorized to retrieve the user index.
@@ -908,20 +911,91 @@ public class WattDepotClient {
   }
 
   /**
-   * Returns the stub string from User resource.
+   * Requests a List of all Users on the server. Note that only the admin user is allowed to
+   * retrieve the the list of all Users. Currently this is just a convenience method, but if the
+   * REST API is extended to support getting Users directly without going through a UserIndex, this
+   * method will use that more efficient API call.
+   * 
+   * @return The List of Users accessible to the user.
+   * @throws NotAuthorizedException If the client's credentials are bad.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public List<User> getUsers() throws NotAuthorizedException, BadXmlException, MiscClientException {
+    List<User> userList = new ArrayList<User>();
+    UserIndex index = getUserIndex();
+    for (UserRef ref : index.getUserRef()) {
+      try {
+        userList.add(getUser(ref));
+      }
+      catch (ResourceNotFoundException e) {
+        // We got the SourceIndex already, so we know the source exists. this should never happen
+        throw new MiscClientException("SourceRef from Source index had non-existent source name", e);
+      }
+    }
+    return userList;
+  }
+
+  /**
+   * Returns the named User resource.
    * 
    * @param username The username of the User resource to be retrieved.
-   * @return a String that is just a placeholding stub for the User resource.
+   * @return The requested User.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the User.
+   * @throws ResourceNotFoundException If the username provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
    */
-  public String getUserString(String username) {
-    Response response =
-        makeRequest(Method.GET, Server.USERS_URI + "/" + username, TEXT_MEDIA, null);
-    try {
-      return response.getEntity().getText();
+  public User getUser(String username) throws NotAuthorizedException, ResourceNotFoundException,
+      BadXmlException, MiscClientException {
+    Response response = makeRequest(Method.GET, Server.USERS_URI + "/" + username, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
     }
-    catch (IOException e) {
-      return null;
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown username was specified
+      throw new ResourceNotFoundException(status);
     }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = userJAXB.createUnmarshaller();
+        return (User) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Returns the User resource specified by a UserRef.
+   * 
+   * @param ref The UserRef of the User resource to be retrieved.
+   * @return The requested User.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the User.
+   * @throws ResourceNotFoundException If the username provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public User getUser(UserRef ref) throws NotAuthorizedException, ResourceNotFoundException,
+      BadXmlException, MiscClientException {
+    return getUser(ref.getEmail());
   }
 
   /**
@@ -979,8 +1053,7 @@ public class WattDepotClient {
   public List<Source> getSources() throws NotAuthorizedException, BadXmlException,
       MiscClientException {
     String uri = Server.SOURCES_URI + "/?fetchAll=true";
-    Response response =
-        makeRequest(Method.GET, uri, XML_MEDIA, null);
+    Response response = makeRequest(Method.GET, uri, XML_MEDIA, null);
     Status status = response.getStatus();
 
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {

@@ -1,5 +1,6 @@
 package org.wattdepot.resource.user;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -7,6 +8,8 @@ import org.junit.Test;
 import org.wattdepot.client.NotAuthorizedException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
+import org.wattdepot.resource.user.jaxb.User;
+import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.test.ServerTestHelper;
 
 /**
@@ -42,7 +45,7 @@ public class TestUserResource extends ServerTestHelper {
   }
 
   /**
-   * Test that after authentication, can get placeholder User string.
+   * Test that after authentication, can retrieve Users.
    * 
    * @throws WattDepotClientException If problems occur.
    */
@@ -50,8 +53,10 @@ public class TestUserResource extends ServerTestHelper {
   public void testUserResource() throws WattDepotClientException {
     // Currently authenticating as admin user
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-    assertTrue("User resource returned incorrect string", client.getUserString("foo").equals(
-        "User resource"));
+    // Fresh database should have admin user in it
+    User adminTestUser = new User(adminEmail, adminPassword, true, null);
+    assertEquals("Unable to retrieve proper admin user", adminTestUser, client.getUser(adminEmail));
+
   }
 
   /**
@@ -75,7 +80,11 @@ public class TestUserResource extends ServerTestHelper {
   public void testUsersResource() throws WattDepotClientException {
     // Currently authenticating as admin user
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-    assertNotNull("Unable to retrieve user list with admin account", client.getUserIndex()
-        .getUserRef());
+    User adminUser = client.getUser(adminEmail);
+    UserIndex index = client.getUserIndex();
+    assertNotNull("Unable to retrieve user list with admin account", index.getUserRef());
+    assertEquals("Admin user ref didn't correspond to actual admin user", adminUser, client
+        .getUser(index.getUserRef().get(0)));
+    assertEquals("Expected just admin user from getUsers", adminUser, client.getUsers().get(0));
   }
 }

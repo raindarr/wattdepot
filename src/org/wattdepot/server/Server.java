@@ -17,7 +17,6 @@ import org.mortbay.jetty.servlet.Context;
 import org.mortbay.jetty.servlet.ServletHolder;
 import org.restlet.Application;
 import org.restlet.Component;
-import org.restlet.Guard;
 import org.restlet.Restlet;
 import org.restlet.Router;
 import org.restlet.data.Protocol;
@@ -33,7 +32,6 @@ import org.wattdepot.resource.source.SourceResource;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.summary.SourceSummaryResource;
 import org.wattdepot.resource.user.UserResource;
-import org.wattdepot.resource.user.UsersResource;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.logger.RestletLoggerUtil;
@@ -342,14 +340,14 @@ public class Server extends Application {
    */
   @Override
   public synchronized Restlet createRoot() {
-    // This Router is used to control access to the User resource
-    Router userRouter = new Router(getContext());
-    userRouter.attach("/" + USERS_URI, UsersResource.class);
-    userRouter.attach("/" + USERS_URI + "/{user}", UserResource.class);
-    Guard userGuard = new AdminAuthenticator(getContext());
-    userGuard.setNext(userRouter);
-
     Router router = new Router(getContext());
+
+    // This Router is used to control access to the User resource
+//    Router userRouter = new Router(getContext());
+    router.attach("/" + USERS_URI, UserResource.class);
+    router.attach("/" + USERS_URI + "/{user}", UserResource.class);
+//    Guard userGuard = new AdminAuthenticator(getContext());
+//    userGuard.setNext(userRouter);
 
     // Health resource is public, so no Guard
     router.attach("/" + HEALTH_URI, HealthResource.class);
@@ -389,7 +387,7 @@ public class Server extends Application {
     // route.getTemplate().setMatchingMode(Template.MODE_EQUALS);
     // router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI + "?{parameters}",
     // GVisualizationResource.class);
-    router.attachDefault(userGuard);
+//    router.attachDefault(userGuard);
 
     return router;
   }
