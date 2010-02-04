@@ -1,6 +1,6 @@
 <project name="common" xmlns:ivy="antlib:org.apache.ivy.ant">
   <description>
-  Boilerplate Ant code used by many Hackystat projects. 
+  Boilerplate Ant code used by WattDepot projects. 
   </description>
 
   <!-- Basic directory structure. -->
@@ -30,7 +30,7 @@
 
   <!-- Ivy download and configuration targets -->
   <property name="ivy.jar.path" location="${user.home}/.ivy2/ivyjar/" />
-  <property name="library.versions.path" location="${user.home}/.hackystat/library.versions.properties" />
+  <property name="library.versions.path" location="${user.home}/.wattdepot/library.versions.properties" />
   <property file="${library.versions.path}" />
   <available file="${ivy.jar.path}/ivy.jar" type="file" property="ivy.available" />
 
@@ -48,8 +48,8 @@
   </target>
 
   <target name="download-library-versions-properties">
-    <mkdir dir="${user.home}/.hackystat" />
-    <get src="http://hackystat.googlecode.com/svn/trunk/configfiles/library.versions.properties" dest="${library.versions.path}" usetimestamp="true" />
+    <mkdir dir="${user.home}/.wattdepot" />
+    <get src="http://wattdepot.googlecode.com/svn/trunk/configfiles/library.versions.properties" dest="${library.versions.path}" usetimestamp="true" />
     <property file="${library.versions.path}" />
   </target>
 
