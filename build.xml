@@ -51,7 +51,7 @@
     <!-- Used to process command line arguments in data input clients -->
     <ivy:retrieve organisation="org.apache.commons"
                   module="commons-cli"
-                  revision="1.2"
+                  revision="${commons-cli.version}"
                   pattern="${lib.dir}/commons-cli/[artifact].[ext]"
                   sync="false"
                   inline="true"
@@ -68,7 +68,7 @@
     <!-- Needed by Google Visualization Data Source Library -->
     <ivy:retrieve organisation="org.apache.commons"
                   module="commons-lang"
-                  revision="2.4"
+                  revision="${commons-lang.version}"
                   pattern="${lib.dir}/commons-lang/[artifact].[ext]"
                   sync="false"
                   inline="true"
@@ -85,7 +85,7 @@
     <!-- Needed by Google Visualization Data Source Library -->
     <ivy:retrieve organisation="org.apache.commons"
                   module="commons-logging"
-                  revision="1.1.1"
+                  revision="${commons-logging.version}"
                   pattern="${lib.dir}/commons-logging/[artifact].[ext]"
                   sync="false"
                   inline="true"
@@ -102,7 +102,7 @@
     <!-- Needed by Google Visualization Data Source Library, and TabularFileDataInputClient -->
     <ivy:retrieve organisation="net.sourceforge.opencsv"
                   module="opencsv"
-                  revision="1.8"
+                  revision="${opencsv.version}"
                   pattern="${lib.dir}/opencsv/[artifact].[ext]"
                   sync="false"
                   inline="true"
@@ -136,7 +136,7 @@
     <!-- Needed by Google Visualization Data Source Library -->
     <ivy:retrieve organisation="com.ibm.icu4j"
                   module="icu4j"
-                  revision="4.0.1.1"
+                  revision="${icu4j.version}"
                   pattern="${lib.dir}/icu4j/[artifact].[ext]"
                   sync="true"
                   inline="true"
@@ -152,7 +152,7 @@
     <!-- Needed by Google Visualization Data Source Library -->
     <ivy:retrieve organisation="com.google.common"
                   module="google-collections"
-                  revision="1.0-rc2"
+                  revision="${google-collections.version}"
                   pattern="${lib.dir}/google-collections/[artifact].[ext]"
                   sync="true"
                   inline="true"
@@ -168,7 +168,7 @@
     <!-- Google Visualization Data Source Library itself -->
     <ivy:retrieve organisation="com.google.visualization"
                   module="google-visualization-java"
-                  revision="1.0.2"
+                  revision="${google-visualization-java.version}"
                   pattern="${lib.dir}/google-visualization-java/[artifact].[ext]"
                   sync="true"
                   inline="true"
