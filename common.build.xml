@@ -30,7 +30,8 @@
 
   <!-- Ivy download and configuration targets -->
   <property name="ivy.jar.path" location="${user.home}/.ivy2/ivyjar/" />
-  <property name="library.versions.path" location="${user.home}/.wattdepot/library.versions.properties" />
+  <property name="library.versions.path" location="${basedir}/configfiles/library.versions.properties" />
+<!--  <available file="${library.versions.path}" type="file" property="library.versions.available" /> -->
   <property file="${library.versions.path}" />
   <available file="${ivy.jar.path}/ivy.jar" type="file" property="ivy.available" />
 
@@ -42,9 +43,13 @@
     <antcall target="download-ivy" />
   </target>
 
-  <target name="download-ivy" depends="download-library-versions-properties" description="Downloads ivy.jar and the library.versions.properties files.">
+  <target name="download-ivy" description="Downloads ivy.jar.">
     <mkdir dir="${ivy.jar.path}" />
     <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.version}/ivy-${ivy.version}.jar" dest="${ivy.jar.path}/ivy.jar" usetimestamp="true" />
+  </target>
+
+  <target name="download-library-versions-properties-if-necessary" unless="library.versions.available" description="Only downloads library.versions.properties file if necessary.">
+    <antcall target="download-library-versions-properties" />
   </target>
 
   <target name="download-library-versions-properties">
