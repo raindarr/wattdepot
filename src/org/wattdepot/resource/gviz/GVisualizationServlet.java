@@ -123,9 +123,10 @@ public class GVisualizationServlet extends DataSourceServlet {
         throw new DataSourceException(ReasonType.INTERNAL_ERROR,
             "Internal problem with Source name provided.");
       }
+      // System.out.println(remainingUri); // DEBUG
       // URIs that start with "sensordata/" set the sensordata flag
-      if (remainingUri.endsWith("sensordata/")) {
-        sourceName = remainingUri.substring(0, remainingUri.length() - 12);
+      if (remainingUri.startsWith("sensordata/")) {
+        sourceName = remainingUri.substring(11);
         sensorDataRequested = true;
       }
       // Otherwise, just grab the source name
