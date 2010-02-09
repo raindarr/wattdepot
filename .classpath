@@ -3,11 +3,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry kind="lib" path="lib/restlet/com.noelios.restlet.ext.net.jar" sourcepath="lib/restlet/com.noelios.restlet.ext.net.zip">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/restlet/ext.zip!/"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="lib" path="lib/restlet/com.noelios.restlet.ext.simple_3.1.jar" sourcepath="lib/restlet/com.noelios.restlet.ext.simple_3.1.zip">
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/wattdepot/lib/restlet/ext.zip!/"/>

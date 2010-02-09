@@ -38,7 +38,7 @@
                   pattern="${lib.dir}/restlet/[artifact].[ext]"
                   sync="false"
                   inline="true"
-                  conf="core,net,simple"
+                  conf="core,simple"
                   log="download-only"
                   transitive="false"
                   type="jar, javadoc, source" />

@@ -793,6 +793,11 @@ public class TestSensorDataResource extends ServerTestHelper {
     assertFalse("Able to overwrite existing SensorData resource", client.storeSensorData(data));
   }
 
+//  @Test
+//  public void bogusTest() {
+//    assertTrue("Expected failure", false);
+//  }
+  
   // Tests for DELETE {host}/sources/{source}/sensordata/{timestamp}
   // TODO
 
