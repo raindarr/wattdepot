@@ -26,7 +26,6 @@
     <unjar src="${lib.dir}/restlet/org.simpleframework.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/org.restlet.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/com.noelios.restlet.jar" dest="${tmp.dir}" />
-    <unjar src="${lib.dir}/restlet/com.noelios.restlet.ext.net.jar" dest="${tmp.dir}" />
     <unjar src="${lib.dir}/restlet/com.noelios.restlet.ext.simple_3.1.jar" dest="${tmp.dir}" />
 
     <jar destfile="${build.jar.dir}/wattdepot-lib-client.jar" basedir="${tmp.dir}">
