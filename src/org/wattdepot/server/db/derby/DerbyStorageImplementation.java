@@ -662,6 +662,40 @@ public class DerbyStorageImplementation extends DbImplementation {
           + " Properties = '<Properties><Property><Key>powerGenerated</Key><Value>4.6E7</Value></Property></Properties>', "
           + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
+  /**
+   * Converts a database row from the SensorData table to a SensorData object. The caller should
+   * have advanced the cursor to the next row via rs.next() before calling this method.
+   * 
+   * @param rs The result set to be examined.
+   * @return The new SensorData object.
+   */
+  private SensorData resultSetToSensorData(ResultSet rs) {
+    SensorData data = new SensorData();
+    String xmlString;
+
+    try {
+      data.setTimestamp(Tstamp.makeTimestamp(rs.getTimestamp(1)));
+      data.setTool(rs.getString(2));
+      data.setSource(rs.getString(3));
+      xmlString = rs.getString(4);
+      if (xmlString != null) {
+        try {
+          Unmarshaller unmarshaller = propertiesJAXB.createUnmarshaller();
+          data.setProperties((Properties) unmarshaller.unmarshal(new StringReader(xmlString)));
+        }
+        catch (JAXBException e) {
+          // Got some XML from DB we can't parse
+          this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
+        }
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info("DB: Error in getSource()" + StackTrace.toString(e));
+      return null;
+    }
+    return data;
+  }
+
   /** {@inheritDoc} */
   @Override
   public SensorDataIndex getSensorDataIndex(String sourceName) {
@@ -781,7 +815,6 @@ public class DerbyStorageImplementation extends DbImplementation {
       ResultSet rs = null;
       boolean hasData = false;
       SensorData data = new SensorData();
-      String xmlString;
       try {
         conn = DriverManager.getConnection(connectionURL);
         server.getLogger().fine(executeQueryMsg + statement);
@@ -791,20 +824,7 @@ public class DerbyStorageImplementation extends DbImplementation {
         rs = s.executeQuery();
         while (rs.next()) { // the select statement must guarantee only one row is returned.
           hasData = true;
-          data.setTimestamp(Tstamp.makeTimestamp(rs.getTimestamp(1)));
-          data.setTool(rs.getString(2));
-          data.setSource(rs.getString(3));
-          xmlString = rs.getString(4);
-          if (xmlString != null) {
-            try {
-              Unmarshaller unmarshaller = propertiesJAXB.createUnmarshaller();
-              data.setProperties((Properties) unmarshaller.unmarshal(new StringReader(xmlString)));
-            }
-            catch (JAXBException e) {
-              // Got some XML from DB we can't parse
-              this.logger.warning(UNABLE_TO_PARSE_PROPERTY_XML + StackTrace.toString(e));
-            }
-          }
+          data = resultSetToSensorData(rs);
         }
       }
       catch (SQLException e) {
@@ -822,6 +842,47 @@ public class DerbyStorageImplementation extends DbImplementation {
       }
       return (hasData) ? data : null;
     }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected SensorData getLatestNonVirtualSensorData(String sourceName) {
+    if (sourceName == null) {
+      return null;
+    }
+    Connection conn = null;
+    PreparedStatement s = null;
+    ResultSet rs = null;
+    boolean hasData = false;
+    SensorData data = new SensorData();
+    try {
+      // Get timestamp of first sensor data for this source
+      String statement =
+          "SELECT * FROM SensorData WHERE Source = ? ORDER BY Tstamp DESC FETCH FIRST ROW ONLY";
+      conn = DriverManager.getConnection(connectionURL);
+      server.getLogger().fine(executeQueryMsg + statement);
+      s = conn.prepareStatement(statement);
+      s.setString(1, Source.sourceToUri(sourceName, this.server));
+      rs = s.executeQuery();
+      if (rs.next()) {
+        hasData = true;
+        data = resultSetToSensorData(rs);
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info("DB: Error in getSensorData()" + StackTrace.toString(e));
+    }
+    finally {
+      try {
+        rs.close();
+        s.close();
+        conn.close();
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+      }
+    }
+    return (hasData) ? data : null;
   }
 
   /** {@inheritDoc} */

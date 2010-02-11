@@ -108,7 +108,7 @@ public class Energy {
   public static SensorData makeEnergySensorData(XMLGregorianCalendar timestamp, String source,
       double energyGeneratedValue, double energyConsumedValue, boolean interpolated) {
     Property generatedProp, consumedProp;
-    SensorData data = new SensorData(timestamp, "WattDepot Server", source);
+    SensorData data = new SensorData(timestamp, SensorData.SERVER_TOOL, source);
     generatedProp =
         new Property(SensorData.ENERGY_GENERATED, Double.toString(energyGeneratedValue));
     data.addProperty(generatedProp);

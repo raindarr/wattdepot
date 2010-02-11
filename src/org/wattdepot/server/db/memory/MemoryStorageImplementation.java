@@ -299,6 +299,40 @@ public class MemoryStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
+  protected SensorData getLatestNonVirtualSensorData(String sourceName) {
+    if (sourceName == null) {
+      return null;
+    }
+    else if (this.name2SourceHash.get(sourceName) == null) {
+      // Unknown Source name, therefore no possibility of SensorData
+      return null;
+    }
+    else {
+      // Retrieve this Source's map of timestamps to SensorData
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+          this.source2SensorDatasHash.get(sourceName);
+      // If there is any sensor data for this Source
+      if (sensorDataMap == null) {
+        return null;
+      }
+      else {
+        SensorData latestData = null;
+        XMLGregorianCalendar latestTimestamp = null, dataTimestamp = null;
+        // Loop over all SensorData in hash
+        for (SensorData data : sensorDataMap.values()) {
+          dataTimestamp = data.getTimestamp();
+          if ((latestTimestamp == null) || (Tstamp.greaterThan(dataTimestamp, latestTimestamp))) {
+            latestTimestamp = dataTimestamp;
+            latestData = data;
+          }
+        }
+        return latestData;
+      }
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
   public boolean hasSensorData(String sourceName, XMLGregorianCalendar timestamp) {
     return (getSensorData(sourceName, timestamp) != null);
   }

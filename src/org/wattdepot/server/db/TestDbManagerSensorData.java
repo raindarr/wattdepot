@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.Test;
+import org.wattdepot.resource.property.jaxb.Properties;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -46,6 +48,9 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
   /** Make PMD happy. */
   private static final String DATA_DOES_NOT_MATCH =
       "Retrieved SensorData does not match original stored SensorData";
+
+  /** Make PMD happy. */
+  private static final String JUNIT = "JUnit";
 
   /**
    * Creates the test object, and throws exceptions if needed.
@@ -158,6 +163,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
    * @throws Exception if calendar conversion fails.
    */
   @Test
+  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
   public void testGetSensorDataIndexStartEnd() throws Exception {
     // Set up test data
     createTestData();
@@ -326,6 +332,115 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
   }
 
   /**
+   * Tests the getLatestSensorData method.
+   * 
+   * @throws Exception if timestamp creation throws exception.
+   */
+  @Test
+  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
+  public void testGetLatestSensorData() throws Exception {
+    // Add Users that own test Sources.
+    createTestData();
+
+    // retrieve SensorData from empty DB
+    assertNull("Able to retrieve SensorData from empty DB", manager
+        .getLatestSensorData(this.source1.getName()));
+
+    // retrieving SensorData for bogus Source name
+    assertNull("Found SensorData for bogus Source name", manager
+        .getLatestSensorData("bogus-source-3"));
+
+    // retrieving SensorData for empty Source name
+    assertNull("Found SensorData for empty Source name", manager.getLatestSensorData(""));
+
+    // retrieving SensorData for null Source name
+    assertNull("Found SensorData for null Source name", manager.getLatestSensorData(null));
+
+    // Three sets of timestamps: source1 is every 15 minutes on the hour, source2 is every 30
+    // minutes starting 5 minutes after the hour.
+    XMLGregorianCalendar source1Time1 = Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00");
+    XMLGregorianCalendar source2Time1 = Tstamp.makeTimestamp("2009-07-28T09:05:00.000-10:00");
+    XMLGregorianCalendar source1Time2 = Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00");
+    XMLGregorianCalendar source1Time3 = Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00");
+    XMLGregorianCalendar source2Time2 = Tstamp.makeTimestamp("2009-07-28T09:35:00.000-10:00");
+
+    String tool = JUNIT;
+    String source1Uri = this.source1.toUri(server);
+    String source2Uri = this.source2.toUri(server);
+    String virtualSourceUri = this.source3.toUri(server);
+    String virtualSource = this.source3.getName();
+
+    Properties source1Props1 = new Properties();
+    source1Props1.getProperty().add(new Property(SensorData.POWER_CONSUMED, "100.0"));
+    Properties source1Props2 = new Properties();
+    source1Props2.getProperty().add(new Property(SensorData.POWER_CONSUMED, "75.0"));
+    Properties source1Props3 = new Properties();
+    source1Props3.getProperty().add(new Property(SensorData.POWER_CONSUMED, "50.0"));
+    Properties source2Props1 = new Properties();
+    source2Props1.getProperty().add(new Property(SensorData.POWER_CONSUMED, "80.0"));
+    source2Props1.getProperty().add(new Property(SensorData.POWER_GENERATED, "1000.0"));
+    Properties source2Props2 = new Properties();
+    source2Props2.getProperty().add(new Property(SensorData.POWER_CONSUMED, "120.0"));
+    source2Props2.getProperty().add(new Property(SensorData.POWER_GENERATED, "1500.0"));
+
+    SensorData source1Data1 = new SensorData(source1Time1, tool, source1Uri, source1Props1);
+    SensorData source1Data2 = new SensorData(source1Time2, tool, source1Uri, source1Props2);
+    SensorData source1Data3 = new SensorData(source1Time3, tool, source1Uri, source1Props3);
+    SensorData source2Data1 = new SensorData(source2Time1, tool, source2Uri, source2Props1);
+    SensorData source2Data2 = new SensorData(source2Time2, tool, source2Uri, source2Props2);
+    SensorData virtualData;
+    Properties virtualProps;
+
+    // retrieve latest SensorData for non-virtual source with one SensorData
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data1));
+    assertEquals(DATA_DOES_NOT_MATCH, source1Data1, manager.getLatestSensorData(source1.getName()));
+    // Virtual source result should be mostly the same as source 1
+    virtualData =
+        new SensorData(source1Time1, SensorData.SERVER_TOOL, virtualSourceUri, source1Props1);
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, manager.getLatestSensorData(virtualSource));
+
+    // Add later sensor data and retrieve latest SensorData
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(source1Data3));
+    assertEquals(DATA_DOES_NOT_MATCH, source1Data3, manager.getLatestSensorData(source1.getName()));
+    // Virtual source result should be mostly the same as source 1
+    virtualData =
+        new SensorData(source1Time3, SensorData.SERVER_TOOL, virtualSourceUri, source1Props3);
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, manager.getLatestSensorData(virtualSource));
+
+    // Add sensor data in between, confirm that most recent data is still retrieved
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(source1Data2));
+    assertEquals(DATA_DOES_NOT_MATCH, source1Data3, manager.getLatestSensorData(source1.getName()));
+    // Virtual source result should be unchanged as well
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, manager.getLatestSensorData(virtualSource));
+
+    // Add sensor data for second source
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data1));
+    assertEquals(DATA_DOES_NOT_MATCH, source2Data1, manager.getLatestSensorData(source2.getName()));
+    // Virtual source should now have summed data with the most recent timestamp
+    virtualProps = new Properties();
+    // Latest source 1 POWER_CONSUMED is 50, source 2 is 80, so 50 + 80 = 130
+    virtualProps.getProperty().add(new Property(SensorData.POWER_CONSUMED, "130.0"));
+    // Only source 2 has POWER_GENERATED, so just take value from last source 2 sensor data
+    virtualProps.getProperty().add(new Property(SensorData.POWER_GENERATED, "1000.0"));
+    virtualData =
+        new SensorData(source1Time3, SensorData.SERVER_TOOL, virtualSourceUri, virtualProps);
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, manager.getLatestSensorData(virtualSource));
+
+    // Add later sensor data for second source
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data2));
+    assertEquals(DATA_DOES_NOT_MATCH, source2Data2, manager.getLatestSensorData(source2.getName()));
+    // Virtual source should now have summed data with the most recent timestamp
+    virtualProps = new Properties();
+    // Latest source 1 POWER_CONSUMED is 50, source 2 is 120, so 50 + 120 = 170
+    virtualProps.getProperty().add(new Property(SensorData.POWER_CONSUMED, "170.0"));
+    // Only source 2 has POWER_GENERATED, so just take value from last source 2 sensor data
+    virtualProps.getProperty().add(new Property(SensorData.POWER_GENERATED, "1500.0"));
+    virtualData =
+        new SensorData(source2Time2, SensorData.SERVER_TOOL, virtualSourceUri, virtualProps);
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, manager.getLatestSensorData(virtualSource));
+  }
+
+  /**
    * Tests the hasSensorData method.
    * 
    * @throws Exception if timestamp creation throws exception.
@@ -387,7 +502,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         this.data1.getTimestamp()));
     XMLGregorianCalendar source1Time2 = Tstamp.makeTimestamp("2009-07-28T09:12:00.000-10:00");
     String source1Uri = source1.toUri(server);
-    SensorData dataFoo = new SensorData(source1Time2, "JUnit", source1Uri);
+    SensorData dataFoo = new SensorData(source1Time2, JUNIT, source1Uri);
     assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(dataFoo));
     assertEquals("Unable to retrieve stored data", dataFoo, this.manager.getSensorData(source1
         .getName(), source1Time2));
@@ -524,7 +639,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     XMLGregorianCalendar source1Time5 = Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00");
     XMLGregorianCalendar afterAll = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
 
-    String tool = "JUnit";
+    String tool = JUNIT;
     String source1Uri = this.source1.toUri(server);
     // String source2 = UriUtils.getUriSuffix(sourceToUri(makeTestSource2(), server));
     String virtualSource = this.source3.getName();
@@ -561,8 +676,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertNull("Could getSensorDataStraddle where timestamp is after all stored data", this.manager
         .getSensorDataStraddle(this.source1.getName(), afterAll));
     // DEBUG
-    assertEquals("Unable to retrieve stored data", data2, this.manager.getSensorData(this.source1.getName(),
-        source1Time2));
+    assertEquals("Unable to retrieve stored data", data2, this.manager.getSensorData(this.source1
+        .getName(), source1Time2));
     // timestamp equal to stored data
     straddle = this.manager.getSensorDataStraddle(this.source1.getName(), source1Time2);
     assertEquals("timestamp equal to sensorData, but beforeData not set correctly", straddle
@@ -609,7 +724,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     XMLGregorianCalendar source2Time3 = Tstamp.makeTimestamp("2009-07-28T10:05:00.000-10:00");
     XMLGregorianCalendar afterAll = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
 
-    String tool = "JUnit";
+    String tool = JUNIT;
     String source1Uri = this.source1.toUri(server);
     String source2Uri = this.source2.toUri(server);
     String virtualSource = this.source3.getName();

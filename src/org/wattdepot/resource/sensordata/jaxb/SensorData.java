@@ -70,7 +70,8 @@ public class SensorData implements Serializable {
   public static final String CARBON_EMITTED = "carbonEmitted";
   public static final String INTERPOLATED = "interpolated";
   public static final Property interpolatedProperty = new Property(INTERPOLATED, "true");
-
+  public static final String SERVER_TOOL = "WattDepot Server";
+  
   /**
    * Default no-argument constructor, apparently needed by JAXB. Don't use this, use the one with
    * all the parameters.

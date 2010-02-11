@@ -234,7 +234,7 @@ public class SensorDataStraddle {
   public static SensorData makePowerSensorData(XMLGregorianCalendar timestamp, String source,
       double powerGeneratedValue, double powerConsumedValue, boolean interpolated) {
     Property generatedProp, consumedProp;
-    SensorData data = new SensorData(timestamp, "WattDepot Server", source);
+    SensorData data = new SensorData(timestamp, SensorData.SERVER_TOOL, source);
     generatedProp = new Property(SensorData.POWER_GENERATED, Double.toString(powerGeneratedValue));
     data.addProperty(generatedProp);
     consumedProp = new Property(SensorData.POWER_CONSUMED, Double.toString(powerConsumedValue));

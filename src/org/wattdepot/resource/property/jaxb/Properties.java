@@ -48,6 +48,14 @@ public class Properties implements Serializable {
   protected List<Property> property;
 
   /**
+   * Creates the new object, creates the property list.
+   */
+  public Properties() {
+    super();
+    this.property = new ArrayList<Property>();
+  }
+
+  /**
    * Gets the value of the property property.
    * 
    * <p>
@@ -137,7 +145,12 @@ public class Properties implements Serializable {
    */
   @Override
   public String toString() {
-    return Arrays.toString(property.toArray());
+    if (this.property == null) {
+      return "";
+    }
+    else {
+      return Arrays.toString(property.toArray());
+    }
   }
 
   /**
@@ -148,12 +161,17 @@ public class Properties implements Serializable {
    * @return The key's value as a double.
    */
   public double getPropertyAsDouble(String key) {
-    for (Property prop : this.property) {
-      if (key.equals(prop.getKey())) {
-        return Double.valueOf(prop.getValue());
-      }
+    if (this.property == null) {
+      return 0;
     }
-    return 0;
+    else {
+      for (Property prop : this.property) {
+        if (key.equals(prop.getKey())) {
+          return Double.valueOf(prop.getValue());
+        }
+      }
+      return 0;
+    }
   }
 
   /**
@@ -164,14 +182,19 @@ public class Properties implements Serializable {
    * @return The key's value as a double.
    */
   public String getProperty(String key) {
-    for (Property prop : this.property) {
-      if (key.equals(prop.getKey())) {
-        return prop.getValue();
-      }
+    if (this.property == null) {
+      return null;
     }
-    return null;
+    else {
+      for (Property prop : this.property) {
+        if (key.equals(prop.getKey())) {
+          return prop.getValue();
+        }
+      }
+      return null;
+    }
   }
-  
+
   /**
    * Returns true if this Properties contains the given Property, or false otherwise.
    * 
@@ -179,6 +202,11 @@ public class Properties implements Serializable {
    * @return True if prop is found, false otherwise.
    */
   public boolean containsProperty(Property prop) {
-    return this.getProperty().contains(prop);
+    if (this.property == null) {
+      return false;
+    }
+    else {
+      return this.getProperty().contains(prop);
+    }
   }
 }

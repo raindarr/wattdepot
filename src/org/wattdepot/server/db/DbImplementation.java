@@ -1,11 +1,15 @@
 package org.wattdepot.server.db;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.carbon.Carbon;
 import org.wattdepot.resource.energy.Energy;
+import org.wattdepot.resource.property.jaxb.Properties;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
@@ -162,6 +166,15 @@ public abstract class DbImplementation {
    * @return The SensorData resource, or null.
    */
   public abstract SensorData getSensorData(String sourceName, XMLGregorianCalendar timestamp);
+
+  /**
+   * Returns the latest SensorData instance for a the named non-virtual Source, or null if not
+   * found. If a virtual source name is provided, null is returned.
+   * 
+   * @param sourceName The name of the Source whose sensor data is to be returned.
+   * @return The SensorData resource, or null.
+   */
+  protected abstract SensorData getLatestNonVirtualSensorData(String sourceName);
 
   /**
    * Returns true if the passed [Source name, timestamp] has sensor data defined for it.
@@ -419,6 +432,65 @@ public abstract class DbImplementation {
     else {
       // Make list of carbon intensities, one from each source
       return Carbon.getCarbonFromStraddleList(masterList, Source.sourceToUri(sourceName, server));
+    }
+  }
+
+  /**
+   * Returns the latest SensorData instance for a particular named Source, or null if not found.
+   * 
+   * @param sourceName The name of the Source whose sensor data is to be returned.
+   * @return The SensorData resource, or null.
+   */
+  public SensorData getLatestSensorData(String sourceName) {
+    if (sourceName == null) {
+      return null;
+    }
+    Source baseSource = getSource(sourceName);
+    if (baseSource == null) {
+      return null;
+    }
+    if (baseSource.isVirtual()) {
+      // Storing combined properties as Map while summing to make life easier
+      Map<String, Double> combinedMap = new HashMap<String, Double>();
+      XMLGregorianCalendar combinedTimestamp = null;
+      // Want to go through sensordata for base source, and all subsources recursively
+      List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+      for (Source subSource : sourceList) {
+        String subSourceName = subSource.getName();
+        SensorData data = getLatestNonVirtualSensorData(subSourceName);
+        if (data != null) {
+          // record this timestamp if it is the first we've seen or is most recent so far
+          if ((combinedTimestamp == null)
+              || (Tstamp.greaterThan(data.getTimestamp(), combinedTimestamp))) {
+            combinedTimestamp = data.getTimestamp();
+          }
+          // iterate over all properties found in data
+          for (Property prop : data.getProperties().getProperty()) {
+            Double combinedValue = combinedMap.get(prop.getKey());
+            if (combinedValue == null) {
+              // The combined property list does not have this property yet, so just add it verbatim
+              combinedMap.put(prop.getKey(), Double.valueOf(prop.getValue()));
+            }
+            else {
+              // Must add this property's value to existing sum. Assumes all sensor data properties
+              // are doubles, which is questionable
+              double newValue = combinedValue + Double.valueOf(prop.getValue());
+              combinedMap.put(prop.getKey(), newValue);
+            }
+          }
+        }
+      }
+      // Convert map to Properties
+      Properties combinedProps = new Properties();
+      for (Map.Entry<String, Double> entry : combinedMap.entrySet()) {
+        combinedProps.getProperty().add(new Property(entry.getKey(), entry.getValue().toString()));
+      }
+      return new SensorData(combinedTimestamp, SensorData.SERVER_TOOL, baseSource.toUri(server),
+          combinedProps);
+    }
+    else {
+      // Non-virtual source, just return latest sensor data
+      return getLatestNonVirtualSensorData(sourceName);
     }
   }
 

@@ -9,7 +9,6 @@ import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
-import org.wattdepot.server.ServerProperties;
 import org.wattdepot.util.tstamp.Tstamp;
 
 /**
@@ -71,65 +70,65 @@ public class DbManagerTestHelper {
 //    assertTrue("Unable to create default data", createDefaultData());
   }
 
-  /**
-   * Kludges up some default data so that SensorData can be stored. This is a total hack, and should
-   * be removed as soon as the all the resources have been fully implemented.
-   * 
-   * @return True if the default data could be created, or false otherwise.
-   */
-  public boolean createDefaultData() {
-   // Always want there to be an admin user
-   ServerProperties serverProps =
-       (ServerProperties) server.getContext().getAttributes().get("ServerProperties");
-   String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
-   String adminPassword = serverProps.get(ServerProperties.ADMIN_PASSWORD_KEY);
-   // create the admin User object based on the server properties
-   User adminUser = new User(adminUsername, adminPassword, true, null);
-   // stick admin user into database
-   if (!this.manager.storeUser(adminUser)) {
-     // server.getLogger().severe("Unable to create admin user from properties!");
-     return false;
-   }
-   // create a non-admin user that owns a source for testing
-   User ownerUser = new User(defaultOwnerUsername, defaultOwnerPassword, false, null);
-   if (!this.manager.storeUser(ownerUser)) {
-     return false;
-   }
-   // create a non-admin user that owns nothing for testing
-   User nonOwnerUser = new User(defaultNonOwnerUsername, defaultNonOwnerPassword, false, null);
-   if (!this.manager.storeUser(nonOwnerUser)) {
-     return false;
-   }
-
-   // create public source
-   Source source1 =
-       new Source(defaultPublicSource, ownerUser.toUri(server), true, false,
-           "21.30078,-157.819129,41", "Saunders Hall on the University of Hawaii at Manoa campus",
-           "Obvius-brand power meter", null, null);
-   source1.addProperty(new Property(Source.CARBON_INTENSITY, "1000"));
-   // stick public source into database
-   if (!this.manager.storeSource(source1)) {
-     return false;
-   }
-
-   Source source2 =
-       new Source(defaultPrivateSource, ownerUser.toUri(server), false, false,
-           "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", null, null);
-   source2.addProperty(new Property(Source.CARBON_INTENSITY, "3000"));
-   // stick public source into database
-   if (!this.manager.storeSource(source2)) {
-     return false;
-   }
-
-   SubSources subSources = new SubSources();
-   subSources.getHref().add(source1.toUri(server));
-   subSources.getHref().add(source2.toUri(server));
-
-   Source virtualSource =
-       new Source(defaultVirtualSource, ownerUser.toUri(server), true, true,
-           "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null, subSources);
-   return (this.manager.storeSource(virtualSource));
- }
+//  /**
+//   * Kludges up some default data so that SensorData can be stored. This is a total hack, and should
+//   * be removed as soon as the all the resources have been fully implemented.
+//   * 
+//   * @return True if the default data could be created, or false otherwise.
+//   */
+//  public boolean createDefaultData() {
+//   // Always want there to be an admin user
+//   ServerProperties serverProps =
+//       (ServerProperties) server.getContext().getAttributes().get("ServerProperties");
+//   String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
+//   String adminPassword = serverProps.get(ServerProperties.ADMIN_PASSWORD_KEY);
+//   // create the admin User object based on the server properties
+//   User adminUser = new User(adminUsername, adminPassword, true, null);
+//   // stick admin user into database
+//   if (!this.manager.storeUser(adminUser)) {
+//     // server.getLogger().severe("Unable to create admin user from properties!");
+//     return false;
+//   }
+//   // create a non-admin user that owns a source for testing
+//   User ownerUser = new User(defaultOwnerUsername, defaultOwnerPassword, false, null);
+//   if (!this.manager.storeUser(ownerUser)) {
+//     return false;
+//   }
+//   // create a non-admin user that owns nothing for testing
+//   User nonOwnerUser = new User(defaultNonOwnerUsername, defaultNonOwnerPassword, false, null);
+//   if (!this.manager.storeUser(nonOwnerUser)) {
+//     return false;
+//   }
+//
+//   // create public source
+//   Source source1 =
+//       new Source(defaultPublicSource, ownerUser.toUri(server), true, false,
+//           "21.30078,-157.819129,41", "Saunders Hall on the University of Hawaii at Manoa campus",
+//           "Obvius-brand power meter", null, null);
+//   source1.addProperty(new Property(Source.CARBON_INTENSITY, "1000"));
+//   // stick public source into database
+//   if (!this.manager.storeSource(source1)) {
+//     return false;
+//   }
+//
+//   Source source2 =
+//       new Source(defaultPrivateSource, ownerUser.toUri(server), false, false,
+//           "21.35078,-157.819129,41", "Made up private place", "Foo-brand power meter", null, null);
+//   source2.addProperty(new Property(Source.CARBON_INTENSITY, "3000"));
+//   // stick public source into database
+//   if (!this.manager.storeSource(source2)) {
+//     return false;
+//   }
+//
+//   SubSources subSources = new SubSources();
+//   subSources.getHref().add(source1.toUri(server));
+//   subSources.getHref().add(source2.toUri(server));
+//
+//   Source virtualSource =
+//       new Source(defaultVirtualSource, ownerUser.toUri(server), true, true,
+//           "31.30078,-157.819129,41", "Made up location 3", "Virtual source", null, subSources);
+//   return (this.manager.storeSource(virtualSource));
+// }
 
   /**
    * Creates a user for use in testing, 1 in a series.

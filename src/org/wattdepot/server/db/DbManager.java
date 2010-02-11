@@ -221,6 +221,16 @@ public class DbManager {
   }
 
   /**
+   * Returns the latest SensorData instance for a particular named Source, or null if not found.
+   * 
+   * @param sourceName The name of the Source whose sensor data is to be returned.
+   * @return The SensorData resource, or null.
+   */
+  public SensorData getLatestSensorData(String sourceName) {
+    return this.dbImpl.getLatestSensorData(sourceName);
+  }
+
+  /**
    * Returns true if the passed [Source name, timestamp] has sensor data defined for it.
    * 
    * @param sourceName The name of the Source whose sensor data is to be returned.
