@@ -130,6 +130,18 @@ public class ResponseMessage {
   }
 
   /**
+   * The error message for requests for SensorData from a Source that has no SensorData.
+   * 
+   * @param resource The resource associated with this request.
+   * @param source The source.
+   * @return A string describing the problem.
+   */
+  static String sourceLacksSensorData(WattDepotResource resource, String source) {
+    return String.format("Source %s has no SensorData%n  Request: %s %s", source, resource
+        .getRequest().getMethod().getName(), resource.getRequest().getResourceRef().toString());
+  }
+
+  /**
    * The error message for requests with a timestamp that does not exist in database.
    * 
    * @param resource The resource associated with this request.

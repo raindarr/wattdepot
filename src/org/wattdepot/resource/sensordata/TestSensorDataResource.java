@@ -30,6 +30,8 @@ import org.wattdepot.client.OverwriteAttemptedException;
 import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
+import org.wattdepot.resource.property.jaxb.Properties;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -465,6 +467,154 @@ public class TestSensorDataResource extends ServerTestHelper {
     fail("Fetching SensorDataIndex with bad range succeeded");
   }
 
+  // Tests for GET {host}/sources/{source}/sensordata/latest
+
+  /**
+   * Tests get latest for with bad source name.
+   * 
+   * @throws Exception If things go wrong.
+   */
+  @Test(expected = ResourceNotFoundException.class)
+  public void testGetLatestBadSource() throws Exception {
+    WattDepotClient client = new WattDepotClient(getHostName());
+    assertNull("Able to get latest sensordata from empty DB", client
+        .getLatestSensorData("bad-source-name"));
+  }
+
+  /**
+   * Tests get latest for source with no sensor data.
+   * 
+   * @throws Exception If things go wrong.
+   */
+  @Test(expected = ResourceNotFoundException.class)
+  public void testGetLatestNoData() throws Exception {
+    WattDepotClient client = new WattDepotClient(getHostName());
+    assertNull("Able to get latest sensordata from empty DB", client
+        .getLatestSensorData(defaultPublicSource));
+  }
+
+  /**
+   * Tests get latest computes things properly.
+   * 
+   * @throws Exception If things go wrong.
+   */
+  @Test
+  public void testGetLatest() throws Exception {
+    String UNABLE_TO_STORE_DATA = "Unable to store SensorData";
+    String DATA_DOES_NOT_MATCH = "Retrieved SensorData does not match original stored SensorData";
+
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+
+    // Three sets of timestamps: source1 is every 15 minutes on the hour, source2 is every 30
+    // minutes starting 5 minutes after the hour.
+    XMLGregorianCalendar source1Time1 = Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00");
+    XMLGregorianCalendar source2Time1 = Tstamp.makeTimestamp("2009-07-28T09:05:00.000-10:00");
+    XMLGregorianCalendar source1Time2 = Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00");
+    XMLGregorianCalendar source1Time3 = Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00");
+    XMLGregorianCalendar source2Time2 = Tstamp.makeTimestamp("2009-07-28T09:35:00.000-10:00");
+
+    String tool = JUNIT_TOOL;
+    String source1Uri = Source.sourceToUri(defaultPublicSource, server);
+    String source2Uri = Source.sourceToUri(defaultPrivateSource, server);
+    String virtualSourceUri = Source.sourceToUri(defaultVirtualSource, server);
+
+    Properties source1Props1 = new Properties();
+    source1Props1.getProperty().add(new Property(SensorData.POWER_CONSUMED, "100.0"));
+    source1Props1.getProperty().add(new Property(SensorData.ENERGY_CONSUMED_TO_DATE, "100000.0"));
+    Properties source1Props2 = new Properties();
+    source1Props2.getProperty().add(new Property(SensorData.POWER_CONSUMED, "75.0"));
+    source1Props2.getProperty().add(new Property(SensorData.ENERGY_CONSUMED_TO_DATE, "100020.0"));
+    Properties source1Props3 = new Properties();
+    source1Props3.getProperty().add(new Property(SensorData.POWER_CONSUMED, "50.0"));
+    source1Props3.getProperty().add(new Property(SensorData.ENERGY_CONSUMED_TO_DATE, "100030.0"));
+    Properties source2Props1 = new Properties();
+    source2Props1.getProperty().add(new Property(SensorData.POWER_CONSUMED, "80.0"));
+    source2Props1.getProperty().add(new Property(SensorData.POWER_GENERATED, "1000.0"));
+    source2Props1.getProperty().add(new Property(SensorData.ENERGY_GENERATED_TO_DATE, "5000.0"));
+    Properties source2Props2 = new Properties();
+    source2Props2.getProperty().add(new Property(SensorData.POWER_CONSUMED, "120.0"));
+    source2Props2.getProperty().add(new Property(SensorData.POWER_GENERATED, "1500.0"));
+    source2Props2.getProperty().add(new Property(SensorData.ENERGY_GENERATED_TO_DATE, "5625.0"));
+
+    SensorData source1Data1 = new SensorData(source1Time1, tool, source1Uri, source1Props1);
+    SensorData source1Data2 = new SensorData(source1Time2, tool, source1Uri, source1Props2);
+    SensorData source1Data3 = new SensorData(source1Time3, tool, source1Uri, source1Props3);
+    SensorData source2Data1 = new SensorData(source2Time1, tool, source2Uri, source2Props1);
+    SensorData source2Data2 = new SensorData(source2Time2, tool, source2Uri, source2Props2);
+    SensorData virtualData;
+    Properties virtualProps;
+
+    // retrieve latest SensorData for non-virtual source with one SensorData
+    assertTrue(UNABLE_TO_STORE_DATA, client.storeSensorData(source1Data1));
+    assertEquals(DATA_DOES_NOT_MATCH, source1Data1, client.getLatestSensorData(defaultPublicSource));
+    // Virtual source result should be mostly the same as source 1
+    virtualData =
+        new SensorData(source1Time1, SensorData.SERVER_TOOL, virtualSourceUri, source1Props1);
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, client.getLatestSensorData(defaultVirtualSource));
+
+    // Add later sensor data and retrieve latest SensorData
+    assertTrue(UNABLE_TO_STORE_DATA, client.storeSensorData(source1Data3));
+    assertEquals(DATA_DOES_NOT_MATCH, source1Data3, client.getLatestSensorData(defaultPublicSource));
+    // Virtual source result should be mostly the same as source 1
+    virtualData =
+        new SensorData(source1Time3, SensorData.SERVER_TOOL, virtualSourceUri, source1Props3);
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, client.getLatestSensorData(defaultVirtualSource));
+
+    // Add sensor data in between, confirm that most recent data is still retrieved
+    assertTrue(UNABLE_TO_STORE_DATA, client.storeSensorData(source1Data2));
+    assertEquals(DATA_DOES_NOT_MATCH, source1Data3, client.getLatestSensorData(defaultPublicSource));
+    // Virtual source result should be unchanged as well
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, client.getLatestSensorData(defaultVirtualSource));
+
+    // Add sensor data for second source
+    assertTrue(UNABLE_TO_STORE_DATA, client.storeSensorData(source2Data1));
+    assertEquals(DATA_DOES_NOT_MATCH, source2Data1, client
+        .getLatestSensorData(defaultPrivateSource));
+    // Virtual source should now have summed data with the most recent timestamp
+    virtualProps = new Properties();
+    // Latest source 1 POWER_CONSUMED is 50, source 2 is 80, so 50 + 80 = 130
+    virtualProps.getProperty().add(new Property(SensorData.POWER_CONSUMED, "130.0"));
+    // Only source 1 has ENERGY_CONSUMED_TO_DATE, so just take value from last source 1 sensor data
+    virtualProps.getProperty().add(new Property(SensorData.ENERGY_CONSUMED_TO_DATE, "100030.0"));
+    // Only source 2 has POWER_GENERATED, so just take value from last source 2 sensor data
+    virtualProps.getProperty().add(new Property(SensorData.POWER_GENERATED, "1000.0"));
+    // Only source 2 has ENERGY_GENERATED_TO_DATE, so just take value from last source 2 sensor data
+    virtualProps.getProperty().add(new Property(SensorData.ENERGY_GENERATED_TO_DATE, "5000.0"));
+
+    virtualData =
+        new SensorData(source1Time3, SensorData.SERVER_TOOL, virtualSourceUri, virtualProps);
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, client.getLatestSensorData(defaultVirtualSource));
+    // Test convenience methods
+    assertEquals(DATA_DOES_NOT_MATCH, 130.0, client.getLatestPowerConsumed(defaultVirtualSource),
+        0.001);
+    assertEquals(DATA_DOES_NOT_MATCH, 100030.0, client
+        .getLatestEnergyConsumedToDate(defaultVirtualSource), 0.001);
+    assertEquals(DATA_DOES_NOT_MATCH, 1000.0, client.getLatestPowerGenerated(defaultVirtualSource),
+        0.001);
+    assertEquals(DATA_DOES_NOT_MATCH, 5000.0, client
+        .getLatestEnergyGeneratedToDate(defaultVirtualSource), 0.001);
+
+    // Add later sensor data for second source
+    assertTrue(UNABLE_TO_STORE_DATA, client.storeSensorData(source2Data2));
+    assertEquals(DATA_DOES_NOT_MATCH, source2Data2, client
+        .getLatestSensorData(defaultPrivateSource));
+    // Virtual source should now have summed data with the most recent timestamp
+    virtualProps = new Properties();
+    // Latest source 1 POWER_CONSUMED is 50, source 2 is 120, so 50 + 120 = 170
+    virtualProps.getProperty().add(new Property(SensorData.POWER_CONSUMED, "170.0"));
+    // Only source 1 has ENERGY_CONSUMED_TO_DATE, so just take value from last source 1 sensor data
+    virtualProps.getProperty().add(new Property(SensorData.ENERGY_CONSUMED_TO_DATE, "100030.0"));
+    // Only source 2 has POWER_GENERATED, so just take value from last source 2 sensor data
+    virtualProps.getProperty().add(new Property(SensorData.POWER_GENERATED, "1500.0"));
+    // Only source 2 has ENERGY_GENERATED_TO_DATE, so just take value from last source 2 sensor data
+    virtualProps.getProperty().add(new Property(SensorData.ENERGY_GENERATED_TO_DATE, "5625.0"));
+    virtualData =
+        new SensorData(source2Time2, SensorData.SERVER_TOOL, virtualSourceUri, virtualProps);
+    assertEquals(DATA_DOES_NOT_MATCH, virtualData, client.getLatestSensorData(defaultVirtualSource));
+
+  }
+
   // Tests for PUT {host}/sources/{source}/sensordata/{timestamp}
 
   /**
@@ -793,11 +943,11 @@ public class TestSensorDataResource extends ServerTestHelper {
     assertFalse("Able to overwrite existing SensorData resource", client.storeSensorData(data));
   }
 
-//  @Test
-//  public void bogusTest() {
-//    assertTrue("Expected failure", false);
-//  }
-  
+  // @Test
+  // public void bogusTest() {
+  // assertTrue("Expected failure", false);
+  // }
+
   // Tests for DELETE {host}/sources/{source}/sensordata/{timestamp}
   // TODO
 

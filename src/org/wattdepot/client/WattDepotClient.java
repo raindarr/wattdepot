@@ -411,6 +411,147 @@ public class WattDepotClient {
   }
 
   /**
+   * Requests the latest SensorData from a given Source.
+   * 
+   * @param source The name of the Source.
+   * @return The SensorData.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SensorData
+   * index.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server, or
+   * the source has no sensor data.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public SensorData getLatestSensorData(String source) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    Response response =
+        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
+            + "/" + Server.LATEST, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad timestamp provided in URI
+      throw new BadXmlException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified, or timestamp could not be found
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
+        return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Requests the latest SensorData from a given Source, and extracts the provided property key,
+   * converts it to double and returns the value.
+   * 
+   * @param source The name of the Source.
+   * @param key The property key to search for.
+   * @return A double representing the the property at the given timestamp, or 0 if there is no
+   * data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the SensorData
+   * index.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server, or
+   * the source has no sensor data.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  private double getLatestSensorDataValue(String source, String key) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    SensorData data = getLatestSensorData(source);
+    return data.getProperties().getPropertyAsDouble(key);
+  }
+
+  /**
+   * Requests the latest power generated from a given Source. The resulting value is in watts.
+   * 
+   * @param source The name of the Source.
+   * @return A double representing the latest power generated, or 0 if there is no data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public double getLatestPowerGenerated(String source) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    return getLatestSensorDataValue(source, SensorData.POWER_GENERATED);
+  }
+
+  /**
+   * Requests the latest power consumed by a given Source. The resulting value is in watts.
+   * 
+   * @param source The name of the Source.
+   * @return A double representing the latest power consumed, or 0 if there is no data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public double getLatestPowerConsumed(String source) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    return getLatestSensorDataValue(source, SensorData.POWER_CONSUMED);
+  }
+
+  /**
+   * Requests the latest energy generated to date from a given Source. The resulting value is in
+   * watt hours.
+   * 
+   * @param source The name of the Source.
+   * @return A double representing the latest energy generated to date, or 0 if there is no data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public double getLatestEnergyGeneratedToDate(String source) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    return getLatestSensorDataValue(source, SensorData.ENERGY_GENERATED_TO_DATE);
+  }
+
+  /**
+   * Requests the latest energy consumed to date from a given Source. The resulting value is in watt
+   * hours.
+   * 
+   * @param source The name of the Source.
+   * @return A double representing the latest energy consumed to date, or 0 if there is no data.
+   * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
+   * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
+   * problem is encountered.
+   */
+  public double getLatestEnergyConsumedToDate(String source) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
+    return getLatestSensorDataValue(source, SensorData.ENERGY_CONSUMED_TO_DATE);
+  }
+
+  /**
    * Requests the power in SensorData format from a given Source corresponding to the given
    * timestamp. If you are just looking to retrieve the power values as a double, the
    * getPowerGenerated and getPowerConsumed methods are preferable to this one.

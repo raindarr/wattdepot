@@ -1,7 +1,7 @@
 package org.wattdepot.server.db;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -451,7 +451,7 @@ public abstract class DbImplementation {
     }
     if (baseSource.isVirtual()) {
       // Storing combined properties as Map while summing to make life easier
-      Map<String, Double> combinedMap = new HashMap<String, Double>();
+      Map<String, Double> combinedMap = new LinkedHashMap<String, Double>();
       XMLGregorianCalendar combinedTimestamp = null;
       // Want to go through sensordata for base source, and all subsources recursively
       List<Source> sourceList = getAllNonVirtualSubSources(baseSource);

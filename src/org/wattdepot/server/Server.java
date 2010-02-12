@@ -91,6 +91,9 @@ public class Server extends Application {
   /** URI parameter for source name. */
   private static final String SOURCE_PARAM = "{source}";
 
+  /** URI parameter for retrieving latest sensor data. */
+  public static final String LATEST = "latest";
+
   /** Users JAXBContext. */
   private static final JAXBContext userJAXB;
   /** SensorData JAXBContext. */

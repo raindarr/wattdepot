@@ -365,6 +365,26 @@ public class WattDepotResource extends Resource {
   }
 
   /**
+   * Returns the XML string containing the latest SensorData for the Source name given in the URI,
+   * or null if no SensorData exists.
+   * 
+   * @return The XML string representing the latest SensorData, or null if it cannot be found.
+   * @throws JAXBException If there are problems mashalling the SensorData.
+   */
+  public String getLatestSensorData() throws JAXBException {
+    Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+    SensorData data = this.dbManager.getLatestSensorData(this.uriSource);
+    if (data == null) {
+      return null;
+    }
+    else {
+      marshaller.marshal(data, writer);
+      return writer.toString();
+    }
+  }
+
+  /**
    * Returns an XML string representation of a SensorDataIndex containing all the SensorData for the
    * Source name given in the URI between the provided start and end times, or null if the named
    * Source doesn't exist.
@@ -681,6 +701,14 @@ public class WattDepotResource extends Resource {
    */
   protected void setStatusTimestampNotFound(String timestamp) {
     this.responseMsg = ResponseMessage.timestampNotFound(this, this.uriSource, timestamp);
+    getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, removeNewLines(this.responseMsg));
+  }
+
+  /**
+   * Called when a timestamp has been requested that does not exist. Just sets the response code.
+   */
+  protected void setStatusSourceLacksSensorData() {
+    this.responseMsg = ResponseMessage.sourceLacksSensorData(this, this.uriSource);
     getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, removeNewLines(this.responseMsg));
   }
 

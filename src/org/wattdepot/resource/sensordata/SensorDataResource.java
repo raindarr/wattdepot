@@ -15,6 +15,7 @@ import org.restlet.resource.Variant;
 import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbBadIntervalException;
 
 /**
@@ -85,30 +86,50 @@ public class SensorDataResource extends WattDepotResource {
           return null;
         }
       }
-      // If only timestamp parameter provided, must be looking for single SensorData
+      // If only timestamp parameter provided
       else if ((timestamp != null) && (startTime == null) && (endTime == null)) {
-        XMLGregorianCalendar timestampObj = null;
-        // check if timestamp is OK
-        try {
-          timestampObj = Tstamp.makeTimestamp(this.timestamp);
-        }
-        catch (Exception e) {
-          setStatusBadTimestamp(this.timestamp);
-          return null;
-        }
-        // build XML string
-        try {
-          xmlString = getSensorData(timestampObj);
-          // if we get a null, then there is no SensorData for this timestamp
-          if (xmlString == null) {
-            setStatusTimestampNotFound(timestampObj.toString());
+        // Is it a request for latest sensor data?
+        if (timestamp.equals(Server.LATEST)) {
+          // build XML string
+          try {
+            xmlString = getLatestSensorData();
+            // if we get a null, then there is no SensorData in this source
+            if (xmlString == null) {
+              setStatusSourceLacksSensorData();
+              return null;
+            }
+            return super.getStringRepresentation(xmlString);
+          }
+          catch (JAXBException e) {
+            setStatusInternalError(e);
             return null;
           }
-          return super.getStringRepresentation(xmlString);
         }
-        catch (JAXBException e) {
-          setStatusInternalError(e);
-          return null;
+        // otherwise assume it is a request for a particular timestamp
+        else {
+          XMLGregorianCalendar timestampObj = null;
+          // check if timestamp is OK
+          try {
+            timestampObj = Tstamp.makeTimestamp(this.timestamp);
+          }
+          catch (Exception e) {
+            setStatusBadTimestamp(this.timestamp);
+            return null;
+          }
+          // build XML string
+          try {
+            xmlString = getSensorData(timestampObj);
+            // if we get a null, then there is no SensorData for this timestamp
+            if (xmlString == null) {
+              setStatusTimestampNotFound(timestampObj.toString());
+              return null;
+            }
+            return super.getStringRepresentation(xmlString);
+          }
+          catch (JAXBException e) {
+            setStatusInternalError(e);
+            return null;
+          }
         }
       }
       // If only start and end times are provided, must be looking for a range of sensor data
