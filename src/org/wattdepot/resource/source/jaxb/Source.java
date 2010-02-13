@@ -78,6 +78,8 @@ public class Source implements Serializable, Comparable<Source> {
   public static final String CARBON_INTENSITY = "carbonIntensity";
   /** Property key for fuel type. */
   public static final String FUEL_TYPE = "fuelType";
+  /** Property key for update interval. */
+  public static final String UPDATE_INTERVAL = "updateInterval";
 
   /**
    * Default no-argument constructor, apparently needed by JAXB. Don't use this, use the one with

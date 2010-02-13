@@ -83,8 +83,7 @@ public class BMOSensor {
   public BMOSensor(String propertyFilename, String sourceName, String meterNumber,
       XMLGregorianCalendar startTimestamp, int interval) throws IOException {
     this.properties = new DataInputClientProperties(propertyFilename);
-    // DEBUG
-    System.err.println(this.properties.echoProperties());
+    System.err.println(this.properties.echoProperties()); // DEBUG
     this.sourceName = sourceName;
     this.meterNumber = meterNumber;
     this.startTimestamp = startTimestamp;
