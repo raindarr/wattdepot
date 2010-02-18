@@ -101,12 +101,20 @@ public class MonitorSourceClient {
           this.pollingRate = DEFAULT_POLLING_RATE;
         }
         else {
-          int possibleInterval = Integer.valueOf(updateIntervalString);
-          if (possibleInterval > POLLING_RATE_SENTINEL) {
-            // Sane interval, so use it
-            this.pollingRate = possibleInterval;
+          try {
+            int possibleInterval = Integer.valueOf(updateIntervalString);
+            if (possibleInterval > POLLING_RATE_SENTINEL) {
+              // Sane interval, so use it
+              this.pollingRate = possibleInterval;
+            }
+            else {
+              // Bogus interval, so use hard coded default
+              this.pollingRate = DEFAULT_POLLING_RATE;
+            }
           }
-          else {
+          catch (NumberFormatException e) {
+            System.err.println("Unable to parse pollingRate, using default value: "
+                + DEFAULT_POLLING_RATE);
             // Bogus interval, so use hard coded default
             this.pollingRate = DEFAULT_POLLING_RATE;
           }
