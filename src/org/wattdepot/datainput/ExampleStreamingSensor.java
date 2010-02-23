@@ -44,7 +44,14 @@ public class ExampleStreamingSensor {
   private static final int DEFAULT_UPDATE_RATE = 10;
   /** The polling rate that indicates that it needs to be set to a default. */
   private static final int UPDATE_RATE_SENTINEL = 0;
+  /** The minimum power level for the sawtooth curve. */
+  private static final double BASE_POWER_LEVEL = 1000.0;
+  /** The increment for each step of the sawtooth curve. */
+  private static final double POWER_LEVEL_STEP = 100.0;
+  /** The cutoff power level for the sawtooth curve. */
+  private static final double CUTOFF_POWER_LEVEL = BASE_POWER_LEVEL + (POWER_LEVEL_STEP * 10);
 
+  
   /** Making PMD happy. */
   private static final String REQUIRED_PARAMETER_ERROR_MSG =
       "Required parameter %s not found in properties.%n";
@@ -160,7 +167,7 @@ public class ExampleStreamingSensor {
       }
 
       SensorData data;
-      double powerValue = 0;
+      double powerValue = BASE_POWER_LEVEL;
       while (true) {
         // Create SensorData object
         XMLGregorianCalendar timestamp = Tstamp.makeTimestamp();
@@ -178,11 +185,11 @@ public class ExampleStreamingSensor {
         if (debug) {
           System.out.println(data);
         }
-        if (powerValue >= 100) {
-          powerValue = 0;
+        if (powerValue >= CUTOFF_POWER_LEVEL) {
+          powerValue = BASE_POWER_LEVEL;
         }
         else {
-          powerValue += 10;
+          powerValue += POWER_LEVEL_STEP;
         }
         Thread.sleep(updateRate * 1000);
       }
