@@ -56,11 +56,13 @@ public class GVisualizationServlet extends DataSourceServlet {
   /** Name for timestamp column of data table. */
   private static final String TIME_POINT_COLUMN = "timePoint";
   /** Name for power consumed column of data table. */
-  private static final String POWER_CONSUMED_COLUMN = "powerConsumed";
+  private static final String POWER_CONSUMED_COLUMN = SensorData.POWER_CONSUMED;
   /** Name for power consumed column of data table. */
-  private static final String POWER_GENERATED_COLUMN = "powerGenerated";
+  private static final String POWER_GENERATED_COLUMN = SensorData.POWER_GENERATED;
   /** Name for energy consumed to date (a counter) column of data table. */
-  private static final String ENERGY_CONSUMED_TO_DATE_COLUMN = "energyConsumedToDate";
+  private static final String ENERGY_CONSUMED_TO_DATE_COLUMN = SensorData.ENERGY_CONSUMED_TO_DATE;
+  /** Name for energy consumed to date (a counter) column of data table. */
+  private static final String ENERGY_GENERATED_TO_DATE_COLUMN = SensorData.ENERGY_GENERATED_TO_DATE;
 
   /** List of all possible columns for sensor data requests. */
   private static final ColumnDescription[] SENSOR_DATA_TABLE_COLUMNS =
@@ -69,7 +71,9 @@ public class GVisualizationServlet extends DataSourceServlet {
           new ColumnDescription(POWER_CONSUMED_COLUMN, ValueType.NUMBER, "Power Cons. (W)"),
           new ColumnDescription(POWER_GENERATED_COLUMN, ValueType.NUMBER, "Power Gen. (W)"),
           new ColumnDescription(ENERGY_CONSUMED_TO_DATE_COLUMN, ValueType.NUMBER,
-              "Energy Consumed To Date (Wh)") };
+              "Energy Consumed To Date (Wh)"),
+          new ColumnDescription(ENERGY_GENERATED_TO_DATE_COLUMN, ValueType.NUMBER,
+              "Energy Generated To Date (Wh)") };
 
   /** Name for energy consumed column of data table. */
   private static final String ENERGY_CONSUMED_COLUMN = "energyConsumed";
@@ -103,12 +107,13 @@ public class GVisualizationServlet extends DataSourceServlet {
   public DataTable generateDataTable(Query query, HttpServletRequest request)
       throws DataSourceException {
     String remainingUri, sourceName;
-    boolean sensorDataRequested = false;
+    boolean sensorDataRequested = false, latestSensorDataRequested = false;
 
-    // System.out.println(request.getRequestURL() + "?" + request.getQueryString()); // DEBUG
+    System.out.println("Request: " + request.getRequestURL() + "?" + request.getQueryString()); // DEBUG
 
     // This is everything following the URI, which should start with "/gviz/source/"
     String rawPath = request.getPathInfo();
+    System.out.println("rawPath: " + rawPath); // DEBUG
     // Check for incomplete URIs
     if ((rawPath == null) || ("".equals(rawPath)) || "/".equals(rawPath)) {
       throw new DataSourceException(ReasonType.INVALID_REQUEST, "No Source name provided.");
@@ -123,23 +128,43 @@ public class GVisualizationServlet extends DataSourceServlet {
         throw new DataSourceException(ReasonType.INTERNAL_ERROR,
             "Internal problem with Source name provided.");
       }
-      // System.out.println(remainingUri); // DEBUG
-      // URIs that start with "sensordata/" set the sensordata flag
-      if (remainingUri.startsWith("sensordata/")) {
-        sourceName = remainingUri.substring(11);
+      System.out.println("remaningUri: " + remainingUri); // DEBUG
+
+      // remainingUri should look like "SOURCE_NAME/sensordata" or "SOURCE_NAME/calculated"
+      // Slash separates source name from data type requested
+      int slashIndex = remainingUri.indexOf('/');
+      if (slashIndex == -1) {
+        // No slash found, bad request
+        throw new DataSourceException(ReasonType.INVALID_REQUEST,
+            "Bad source name or data type parameter provided: " + remainingUri);
+      }
+      else {
+        sourceName = remainingUri.substring(0, slashIndex);
+        // TODO Should filter the source name, check for unexpected characters and length
+        // Check if the given source name exists in database
+        if (dbManager.getSource(sourceName) == null) {
+          throw new DataSourceException(ReasonType.INVALID_REQUEST, "No Source named \""
+              + sourceName + "\".");
+        }
+      }
+
+      System.out.println(sourceName); // DEBUG
+
+      String dataTypeRequested = remainingUri.substring(slashIndex + 1);
+      if ("sensordata".equals(dataTypeRequested)) {
         sensorDataRequested = true;
       }
-      // Otherwise, just grab the source name
-      else {
-        sourceName = remainingUri;
+      else if ("sensordata/latest".equals(dataTypeRequested)) {
+        latestSensorDataRequested = true;
       }
-    }
-    // System.out.println(sourceName); // DEBUG
-    // TODO Should filter the source name, check for unexpected characters and length
-    // Check if the given source name exists in database
-    if (dbManager.getSource(sourceName) == null) {
-      throw new DataSourceException(ReasonType.INVALID_REQUEST, "No Source named \"" + sourceName
-          + "\".");
+      // Otherwise, just grab the source name
+      else if ("calculated".equals(dataTypeRequested)) {
+        sensorDataRequested = false;
+      }
+      else {
+        throw new DataSourceException(ReasonType.INVALID_REQUEST, "Invalid data type requested: "
+            + dataTypeRequested);
+      }
     }
 
     String startTimeString = getQueryParameter(request, "startTime");
@@ -166,6 +191,9 @@ public class GVisualizationServlet extends DataSourceServlet {
 
     if (sensorDataRequested) {
       return generateSensorDataTable(query, sourceName, startTime, endTime);
+    }
+    else if (latestSensorDataRequested) {
+      return generateLatestSensorDataTable(query, sourceName);
     }
     // Calculated data: power, energy, carbon
     else {
@@ -214,7 +242,7 @@ public class GVisualizationServlet extends DataSourceServlet {
 
     SensorDataIndex index;
     // Get all sensor data for this Source
-    if ((startTime == null) && (endTime == null)) {
+    if ((startTime == null) || (endTime == null)) {
       index = dbManager.getSensorDataIndex(sourceName);
     }
     // If we received valid start and end times, retrieve just that data
@@ -247,6 +275,9 @@ public class GVisualizationServlet extends DataSourceServlet {
           else if (columnName.equals(ENERGY_CONSUMED_TO_DATE_COLUMN)) {
             row.addCell(sensorData.getPropertyAsDouble(SensorData.ENERGY_CONSUMED_TO_DATE));
           }
+          else if (columnName.equals(ENERGY_GENERATED_TO_DATE_COLUMN)) {
+            row.addCell(sensorData.getPropertyAsDouble(SensorData.ENERGY_GENERATED_TO_DATE));
+          }
         }
         catch (NumberFormatException e) {
           // String value in database couldn't be converted to a number.
@@ -259,6 +290,60 @@ public class GVisualizationServlet extends DataSourceServlet {
       catch (TypeMismatchException e) {
         throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Problem adding data to table"); // NOPMD
       }
+    }
+    return data;
+  }
+
+  /**
+   * Generates a DataTable of the latest sensor data (which will have a single row), given the query
+   * parameters. Supports the SELECT capability, so only columns that are SELECTed will be retrieved
+   * and added to the table.
+   * 
+   * @param query The query from the data source client.
+   * @param sourceName The name of the source.
+   * @return A DataTable with the selected columns for every sensor data resource within the
+   * interval.
+   * @throws DataSourceException If there are problems fulfilling the request.
+   */
+  private DataTable generateLatestSensorDataTable(Query query, String sourceName)
+      throws DataSourceException {
+    DataTable data = new DataTable();
+    // Sets up the columns requested by any SELECT in the data source query
+    List<ColumnDescription> requiredColumns =
+        getRequiredColumns(query, SENSOR_DATA_TABLE_COLUMNS, null);
+    data.addColumns(requiredColumns);
+
+    SensorData sensorData = dbManager.getLatestSensorData(sourceName);
+    TableRow row = new TableRow();
+    for (ColumnDescription selectionColumn : requiredColumns) {
+      String columnName = selectionColumn.getId();
+      try {
+        if (columnName.equals(TIME_POINT_COLUMN)) {
+          row.addCell(new DateTimeValue(convertTimestamp(sensorData.getTimestamp())));
+        }
+        else if (columnName.equals(POWER_CONSUMED_COLUMN)) {
+          row.addCell(sensorData.getPropertyAsDouble(SensorData.POWER_CONSUMED));
+        }
+        else if (columnName.equals(POWER_GENERATED_COLUMN)) {
+          row.addCell(sensorData.getPropertyAsDouble(SensorData.POWER_GENERATED));
+        }
+        else if (columnName.equals(ENERGY_CONSUMED_TO_DATE_COLUMN)) {
+          row.addCell(sensorData.getPropertyAsDouble(SensorData.ENERGY_CONSUMED_TO_DATE));
+        }
+        else if (columnName.equals(ENERGY_GENERATED_TO_DATE_COLUMN)) {
+          row.addCell(sensorData.getPropertyAsDouble(SensorData.ENERGY_GENERATED_TO_DATE));
+        }
+      }
+      catch (NumberFormatException e) {
+        // String value in database couldn't be converted to a number.
+        throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Found bad number in database"); // NOPMD
+      }
+    }
+    try {
+      data.addRow(row);
+    }
+    catch (TypeMismatchException e) {
+      throw new DataSourceException(ReasonType.INTERNAL_ERROR, "Problem adding data to table"); // NOPMD
     }
     return data;
   }
