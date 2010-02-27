@@ -1,6 +1,7 @@
 package org.wattdepot.server;
 
 import static org.wattdepot.server.ServerProperties.CONTEXT_ROOT_KEY;
+import static org.wattdepot.server.ServerProperties.SERVER_HOME_DIR;
 import static org.wattdepot.server.ServerProperties.GVIZ_CONTEXT_ROOT_KEY;
 import static org.wattdepot.server.ServerProperties.GVIZ_PORT_KEY;
 import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
@@ -116,14 +117,27 @@ public class Server extends Application {
 
   /**
    * Creates a new instance of a WattDepot HTTP server, listening on the port defined either by the
-   * properties file or a default. WattDepot properties are initialized from the user's
-   * wattdepot-server.properties file.
+   * properties file or a default. The server home directory is set to the default value of
+   * "server".
    * 
    * @return The Server instance created.
    * @throws Exception If problems occur starting up this server.
    */
   public static Server newInstance() throws Exception {
     return newInstance(new ServerProperties());
+  }
+
+  /**
+   * Creates a new instance of a WattDepot HTTP server, listening on the port defined either by the
+   * properties file or a default. The server home directory is set to the value provided by
+   * serverSubdir parameter.
+   * 
+   * @param serverSubdir The filename of the subdirectory containing this server's files.
+   * @return The Server instance created.
+   * @throws Exception If problems occur starting up this server.
+   */
+  public static Server newInstance(String serverSubdir) throws Exception {
+    return newInstance(new ServerProperties(serverSubdir));
   }
 
   /**
@@ -179,7 +193,7 @@ public class Server extends Application {
     else {
       dbManager = new DbManager(server);
       try {
-        server.loadDefaultResources(dbManager);
+        server.loadDefaultResources(dbManager, server.serverProperties.get(SERVER_HOME_DIR));
       }
       catch (Exception e) {
         server.logger.severe("Unable to load default resources: " + e.toString());
@@ -215,12 +229,10 @@ public class Server extends Application {
    * the database has been created, but before the server has started accepting network connections.
    * 
    * @param dbManager The database the default resources will be loaded into.
+   * @param serverHome The server home directory.
    * @throws JAXBException If there are problems unmarshalling XML from the files
    */
-  protected void loadDefaultResources(DbManager dbManager) throws JAXBException {
-    String userHome = System.getProperty("user.home");
-    String wattDepotHome = userHome + "/.wattdepot";
-    String serverHome = wattDepotHome + "/server";
+  protected void loadDefaultResources(DbManager dbManager, String serverHome) throws JAXBException {
     String defaultDir = serverHome + "/default-resources";
     File defaultDirFile = new File(defaultDir);
     Unmarshaller unmarshaller;
@@ -327,13 +339,27 @@ public class Server extends Application {
 
   /**
    * Starts up the WattDepot web service using the properties specified in
-   * wattdepot-server.properties. On Unix-like systems, use Control-C to exit.
+   * wattdepot-server.properties. Takes a single optional argument, which is the name of the
+   * subdirectory under ~/.wattdepot to use as this server's "home directory", defaulting to
+   * "server". Changing this is useful if you want to run multiple servers on the same system: just
+   * create separate home directories under .wattdepot and start the servers with different command
+   * line arguments.
    * 
-   * @param args String array of command line arguments that are ignored
+   * On Unix-like systems, use Control-C to exit, which will shut down cleanly.
+   * 
+   * @param args Command line arguments.
    * @throws Exception if things go horribly awry during startup
    */
   public static void main(String[] args) throws Exception {
-    Server.newInstance();
+    if (args.length == 0) {
+      Server.newInstance();
+    }
+    else if (args.length == 1) {
+      Server.newInstance(args[0]);
+    }
+    else {
+      System.err.println("Too many command line arguments.");
+    }
   }
 
   /**
@@ -346,18 +372,17 @@ public class Server extends Application {
     Router router = new Router(getContext());
 
     // This Router is used to control access to the User resource
-//    Router userRouter = new Router(getContext());
+    // Router userRouter = new Router(getContext());
     router.attach("/" + USERS_URI, UserResource.class);
     router.attach("/" + USERS_URI + "/{user}", UserResource.class);
-//    Guard userGuard = new AdminAuthenticator(getContext());
-//    userGuard.setNext(userRouter);
+    // Guard userGuard = new AdminAuthenticator(getContext());
+    // userGuard.setNext(userRouter);
 
     // Health resource is public, so no Guard
     router.attach("/" + HEALTH_URI, HealthResource.class);
     // Source does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI, SourceResource.class);
-    router.attach("/" + SOURCES_URI  + "/?fetchAll={fetchAll}",
-        SourceResource.class);
+    router.attach("/" + SOURCES_URI + "/?fetchAll={fetchAll}", SourceResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM, SourceResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SUMMARY_URI,
         SourceSummaryResource.class);
@@ -390,7 +415,7 @@ public class Server extends Application {
     // route.getTemplate().setMatchingMode(Template.MODE_EQUALS);
     // router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI + "?{parameters}",
     // GVisualizationResource.class);
-//    router.attachDefault(userGuard);
+    // router.attachDefault(userGuard);
 
     return router;
   }

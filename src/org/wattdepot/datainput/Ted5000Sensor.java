@@ -5,12 +5,21 @@ import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_URI_KE
 import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_USERNAME_KEY;
 import java.io.IOException;
 import javax.xml.datatype.XMLGregorianCalendar;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
+import org.w3c.dom.Document;
 import org.wattdepot.client.BadXmlException;
 import org.wattdepot.client.MiscClientException;
 import org.wattdepot.client.NotAuthorizedException;
@@ -20,14 +29,16 @@ import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.util.tstamp.Tstamp;
+import org.xml.sax.SAXException;
 
 /**
- * Creates bogus sensor data periodically and sends it to a Source in a WattDepot server. Intended
- * to be used only to create rapidly-changing data for testing monitoring clients.
+ * Polls a TED 5000 home energy monitor for power data periodically, and sends the results to a
+ * WattDepot server. For more information about the XML that the TED generates, see
+ * http://code.google.com/p/wattdepot/wiki/Ted5000XmlExplanation
  * 
  * @author Robert Brewer
  */
-public class ExampleStreamingSensor {
+public class Ted5000Sensor {
 
   /** Name of the property file containing essential preferences. */
   protected DataInputClientProperties properties;
@@ -37,21 +48,16 @@ public class ExampleStreamingSensor {
   private int updateRate;
   /** If fetched latest data is same as last fetch, do we display it? */
   private boolean debug;
+  /** The hostname of the TED 5000 to be monitored. */
+  private String tedHostname;
 
   /** Name of this tool. */
-  private static final String toolName = "ExampleStreamingSensor";
+  private static final String toolName = "Ted5000Sensor";
   /** The default polling rate, in seconds. */
   private static final int DEFAULT_UPDATE_RATE = 10;
   /** The polling rate that indicates that it needs to be set to a default. */
   private static final int UPDATE_RATE_SENTINEL = 0;
-  /** The minimum power level for the sawtooth curve. */
-  private static final double BASE_POWER_LEVEL = 1000.0;
-  /** The increment for each step of the sawtooth curve. */
-  private static final double POWER_LEVEL_STEP = 100.0;
-  /** The cutoff power level for the sawtooth curve. */
-  private static final double CUTOFF_POWER_LEVEL = BASE_POWER_LEVEL + (POWER_LEVEL_STEP * 10);
 
-  
   /** Making PMD happy. */
   private static final String REQUIRED_PARAMETER_ERROR_MSG =
       "Required parameter %s not found in properties.%n";
@@ -63,10 +69,11 @@ public class ExampleStreamingSensor {
    * @param sourceName The name of the source to be monitored.
    * @param updateRate The rate at which to send new data to the source, in seconds.
    * @param debug If true then display new sensor data when sending it.
+   * @param tedHostname The hostname of the TED 5000 sensor to be polled.
    * @throws IOException If the property file cannot be found or read.
    */
-  public ExampleStreamingSensor(String propertyFilename, String sourceName, int updateRate,
-      boolean debug) throws IOException {
+  public Ted5000Sensor(String propertyFilename, String sourceName, int updateRate, boolean debug,
+      String tedHostname) throws IOException {
     if (propertyFilename == null) {
       this.properties = new DataInputClientProperties();
     }
@@ -85,6 +92,7 @@ public class ExampleStreamingSensor {
     if (this.debug) {
       System.err.println(this.properties.echoProperties());
     }
+    this.tedHostname = tedHostname;
   }
 
   /**
@@ -110,18 +118,17 @@ public class ExampleStreamingSensor {
       return false;
     }
 
-    String sourceUri = Source.sourceToUri(this.sourceName, wattDepotURI);
+    String sourceURI = Source.sourceToUri(this.sourceName, wattDepotURI);
 
     WattDepotClient client =
         new WattDepotClient(wattDepotURI, wattDepotUsername, wattDepotPassword);
     Source source;
-    if (client.isHealthy()) {
+    if (client.isAuthenticated()) {
       try {
         source = client.getSource(this.sourceName);
       }
       catch (NotAuthorizedException e) {
-        System.err.format("Source %s does not allow public/anonymous access. Aborting.%n",
-            this.sourceName);
+        System.err.format("You do not have access to the source %s. Aborting.%n", this.sourceName);
         return false;
       }
       catch (ResourceNotFoundException e) {
@@ -167,14 +174,27 @@ public class ExampleStreamingSensor {
       }
 
       SensorData data;
-      double powerValue = BASE_POWER_LEVEL;
       while (true) {
-        // Create SensorData object
-        XMLGregorianCalendar timestamp = Tstamp.makeTimestamp();
-        Property powerConsumed =
-            new Property(SensorData.POWER_CONSUMED, Double.toString(powerValue));
-        data = new SensorData(timestamp, toolName, sourceUri, powerConsumed);
-
+        // Get data from TED
+        try {
+          data = pollTed(this.tedHostname, wattDepotPassword, sourceURI);
+        }
+        catch (XPathExpressionException e1) {
+          System.err.println("Bad XPath expression, this should never happen.");
+          return false;
+        }
+        catch (ParserConfigurationException e1) {
+          System.err.println("Unable to configure XML parser, this is weird.");
+          return false;
+        }
+        catch (SAXException e1) {
+          System.err.println("Got bad XML from TED meter, hopefully this is temporary.");
+          return false;
+        }
+        catch (IOException e1) {
+          System.err.println("Unable to retrieve data from TED, hopefully this is temporary.");
+          return false;
+        }
         // Store SensorData in WattDepot server
         try {
           client.storeSensorData(data);
@@ -185,16 +205,54 @@ public class ExampleStreamingSensor {
         if (debug) {
           System.out.println(data);
         }
-        if (powerValue >= CUTOFF_POWER_LEVEL) {
-          powerValue = BASE_POWER_LEVEL;
-        }
-        else {
-          powerValue += POWER_LEVEL_STEP;
-        }
         Thread.sleep(updateRate * 1000);
       }
     }
     return true;
+  }
+
+  /**
+   * Connects to a TED 5000 meter gateway, retrieves the latest data, and returns it as a SensorData
+   * object.
+   * 
+   * @param hostname The hostname of the TED 5000. Only the hostname, not URI.
+   * @param toolName The name of the tool to be placed in the SensorData.
+   * @param sourceURI The URI of the source (needed to create SensorData object).
+   * @return The meter data as SensorData
+   * @throws ParserConfigurationException If there are problems creating a parser.
+   * @throws IOException If there are problems retrieving the data via HTTP.
+   * @throws SAXException If there are problems parsing the XML from the meter.
+   * @throws XPathExpressionException If the hardcoded XPath expression is bogus.
+   * 
+   */
+  private SensorData pollTed(String hostname, String toolName, String sourceURI)
+      throws ParserConfigurationException, SAXException, IOException, XPathExpressionException {
+    String tedURI = "http://" + hostname + "/api/LiveData.xml";
+
+    DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
+    domFactory.setNamespaceAware(true);
+    DocumentBuilder builder = domFactory.newDocumentBuilder();
+    // Record current time as close approximation to time for reading we are about to make
+    XMLGregorianCalendar timestamp = Tstamp.makeTimestamp();
+    Document doc = builder.parse(tedURI);
+
+    XPathFactory factory = XPathFactory.newInstance();
+    XPath powerXpath = factory.newXPath();
+    XPath energyXpath = factory.newXPath();
+    // Path to get the current power consumed measured by the meter in watts
+    XPathExpression exprPower = powerXpath.compile("/LiveData/Power/Total/PowerNow/text()");
+    // Path to get the energy consumed month to date in watt hours
+    XPathExpression exprEnergy = energyXpath.compile("/LiveData/Power/Total/PowerMTD/text()");
+    Object powerResult = exprPower.evaluate(doc, XPathConstants.NUMBER);
+    Object energyResult = exprEnergy.evaluate(doc, XPathConstants.NUMBER);
+
+    Double currentPower = (Double) powerResult;
+    Double mtdEnergy = (Double) energyResult;
+
+    SensorData data = new SensorData(timestamp, toolName, sourceURI);
+    data.addProperty(new Property(SensorData.POWER_CONSUMED, currentPower));
+    data.addProperty(new Property(SensorData.ENERGY_CONSUMED_TO_DATE, mtdEnergy));
+    return data;
   }
 
   /**
@@ -207,16 +265,18 @@ public class ExampleStreamingSensor {
     Options options = new Options();
     options.addOption("h", "help", false, "Print this message");
     options.addOption("p", "propertyFilename", true, "Filename of property file");
-    options.addOption("s", "source", true,
-        "Name of the source to send data to, ex. \"foo-source\"");
+    options
+        .addOption("s", "source", true, "Name of the source to send data to, ex. \"foo-source\"");
     options.addOption("u", "updateRate", true,
-        "The rate at which to send new data to the source, in seconds. If not specified, will "
+        "The rate at which to query the meter, in seconds. If not specified, will "
             + "default to value of source's updateInterval property, or " + DEFAULT_UPDATE_RATE
             + " seconds if source has no such property");
+    options.addOption("t", "tedHostname", true,
+        "Hostname of TED 5000 gateway. Note just hostname, not full URI");
     options.addOption("d", "debug", false, "Displays sensor data as it is sent to the server.");
 
     CommandLine cmd = null;
-    String propertyFilename = null, sourceName = null;
+    String propertyFilename = null, sourceName = null, tedHostname = null;
     int updateRate = UPDATE_RATE_SENTINEL;
     boolean debug = false;
 
@@ -266,28 +326,37 @@ public class ExampleStreamingSensor {
         System.exit(1);
       }
     }
+    if (cmd.hasOption("t")) {
+      tedHostname = cmd.getOptionValue("t");
+    }
+    else {
+      System.err.println("Required tedHostname parameter not provided, exiting.");
+      formatter.printHelp(toolName, options);
+      System.exit(1);
+    }
     debug = cmd.hasOption("d");
 
     if (debug) {
       System.out.println("propertyFilename: " + propertyFilename);
       System.out.println("sourceName: " + sourceName);
       System.out.println("updateRate: " + updateRate);
+      System.out.println("tedHostname: " + tedHostname);
       System.out.println("debug: " + debug);
       System.out.println();
     }
 
     // Actually create the input client
-    ExampleStreamingSensor streamingSensor = null;
+    Ted5000Sensor sensor = null;
     try {
-      streamingSensor = new ExampleStreamingSensor(propertyFilename, sourceName, updateRate, debug);
+      sensor = new Ted5000Sensor(propertyFilename, sourceName, updateRate, debug, tedHostname);
     }
     catch (IOException e) {
       System.err.println("Unable to read properties file, terminating.");
       System.exit(2);
     }
     // Just do it
-    if (streamingSensor != null) {
-      streamingSensor.process();
+    if (sensor != null) {
+      sensor.process();
     }
   }
 }

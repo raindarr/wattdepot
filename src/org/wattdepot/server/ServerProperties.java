@@ -15,6 +15,8 @@ import java.util.TreeMap;
  */
 public class ServerProperties {
 
+  /** The full path to the server's home directory. */
+  public static final String SERVER_HOME_DIR = "wattdepot-server.homedir";
   /** The admin email key. */
   public static final String ADMIN_EMAIL_KEY = "wattdepot-server.admin.email";
   /** The admin password. */
@@ -62,12 +64,22 @@ public class ServerProperties {
   private static String TRUE = "true";
 
   /**
-   * Creates a new ServerProperties instance. Prints an error to the console if problems occur on
-   * loading.
+   * Creates a new ServerProperties instance using the default filename. Prints an error to the
+   * console if problems occur on loading.
    */
   public ServerProperties() {
+    this(null);
+  }
+
+  /**
+   * Creates a new ServerProperties instance loaded from the given filename. Prints an error to the
+   * console if problems occur on loading.
+   * 
+   * @param serverSubdir The name of the subdirectory used to store all files for this server.
+   */
+  public ServerProperties(String serverSubdir) {
     try {
-      initializeProperties();
+      initializeProperties(serverSubdir);
     }
     catch (Exception e) {
       System.out.println("Error initializing server properties.");
@@ -79,23 +91,31 @@ public class ServerProperties {
    * and provides default values for all properties not mentioned in this file. Will also add any
    * pre-existing System properties that start with "wattdepot-server.".
    * 
+   * @param serverSubdir The name of the subdirectory used to store all files for this server.
    * @throws Exception if errors occur.
    */
-  private void initializeProperties() throws Exception {
+  private void initializeProperties(String serverSubdir) throws Exception {
     String userHome = System.getProperty("user.home");
-    String wattDepotHome = userHome + "/.wattdepot";
-    String serverHome = wattDepotHome + "/server";
+    String wattDepotHome = userHome + "/.wattdepot/";
+    String serverHome;
+    if (serverSubdir == null) {
+      // Use default directory
+      serverHome = wattDepotHome + "server";
+    }
+    else {
+      serverHome = wattDepotHome + serverSubdir;
+    }
     String propFile = serverHome + "/wattdepot-server.properties";
     String defaultAdmin = "admin@example.com";
     this.properties = new Properties();
     // Set defaults for 'standard' operation.
+    properties.setProperty(SERVER_HOME_DIR, serverHome);
     properties.setProperty(ADMIN_EMAIL_KEY, defaultAdmin);
     properties.setProperty(ADMIN_PASSWORD_KEY, defaultAdmin);
     properties.setProperty(CONTEXT_ROOT_KEY, "wattdepot");
     properties.setProperty(GVIZ_CONTEXT_ROOT_KEY, "gviz");
     properties.setProperty(DB_DIR_KEY, serverHome + "/db");
-    properties.setProperty(DB_IMPL_KEY,
-        "org.wattdepot.server.db.derby.DerbyStorageImplementation");
+    properties.setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
     properties.setProperty(HOSTNAME_KEY, "localhost");
     properties.setProperty(LOGGING_LEVEL_KEY, "INFO");
     properties.setProperty(RESTLET_LOGGING_KEY, FALSE);
