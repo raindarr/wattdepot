@@ -109,11 +109,11 @@ public class GVisualizationServlet extends DataSourceServlet {
     String remainingUri, sourceName;
     boolean sensorDataRequested = false, latestSensorDataRequested = false;
 
-    System.out.println("Request: " + request.getRequestURL() + "?" + request.getQueryString()); // DEBUG
+//    System.out.println("Request: " + request.getRequestURL() + "?" + request.getQueryString()); // DEBUG
 
     // This is everything following the URI, which should start with "/gviz/source/"
     String rawPath = request.getPathInfo();
-    System.out.println("rawPath: " + rawPath); // DEBUG
+//    System.out.println("rawPath: " + rawPath); // DEBUG
     // Check for incomplete URIs
     if ((rawPath == null) || ("".equals(rawPath)) || "/".equals(rawPath)) {
       throw new DataSourceException(ReasonType.INVALID_REQUEST, "No Source name provided.");
@@ -128,7 +128,7 @@ public class GVisualizationServlet extends DataSourceServlet {
         throw new DataSourceException(ReasonType.INTERNAL_ERROR,
             "Internal problem with Source name provided.");
       }
-      System.out.println("remaningUri: " + remainingUri); // DEBUG
+//      System.out.println("remaningUri: " + remainingUri); // DEBUG
 
       // remainingUri should look like "SOURCE_NAME/sensordata" or "SOURCE_NAME/calculated"
       // Slash separates source name from data type requested
@@ -148,7 +148,7 @@ public class GVisualizationServlet extends DataSourceServlet {
         }
       }
 
-      System.out.println(sourceName); // DEBUG
+//      System.out.println(sourceName); // DEBUG
 
       String dataTypeRequested = remainingUri.substring(slashIndex + 1);
       if ("sensordata".equals(dataTypeRequested)) {
