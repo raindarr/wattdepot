@@ -20,9 +20,11 @@ public class TestWattDepotLogger {
    */
   @Test
   public void testLogging() {
-    Logger logger = WattDepotLogger.getLogger("org.wattdepot.util.testlogger");
+    Logger logger =
+        WattDepotLogger.getLogger("org.wattdepot.nestedlogger.test", WattDepotUserHome
+            .getHomeString()
+            + "/.wattdepot/" + "testlogging");
     logger.fine("(Test message)");
-    logger = WattDepotLogger.getLogger("org.wattdepot.nestedlogger.test", "testlogging");
     WattDepotLogger.setLoggingLevel(logger, "FINE");
     logger.fine("(Test message2)");
     assertEquals("Checking identity", "org.wattdepot.nestedlogger.test", logger.getName());

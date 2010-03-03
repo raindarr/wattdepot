@@ -70,7 +70,7 @@ public class DataInputClientProperties {
    * @throws IOException if errors occur while loading properties file.
    */
   private void initializeProperties() throws IOException {
-    String userHome = System.getProperty("user.home");
+    String userHome = org.wattdepot.util.logger.WattDepotUserHome.getHomeString();
     String wattDepotHome = userHome + "/.wattdepot";
     String clientHome = wattDepotHome + "/client";
     String propFile = clientHome + "/datainput.properties";

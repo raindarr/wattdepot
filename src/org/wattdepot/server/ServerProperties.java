@@ -95,7 +95,7 @@ public class ServerProperties {
    * @throws Exception if errors occur.
    */
   private void initializeProperties(String serverSubdir) throws Exception {
-    String userHome = System.getProperty("user.home");
+    String userHome = org.wattdepot.util.logger.WattDepotUserHome.getHomeString();
     String wattDepotHome = userHome + "/.wattdepot/";
     String serverHome;
     if (serverSubdir == null) {

@@ -164,8 +164,10 @@ public class Server extends Application {
    */
   public static Server newInstance(ServerProperties serverProperties) throws Exception {
     Server server = new Server();
-    server.logger = WattDepotLogger.getLogger("org.wattdepot.server", "server");
     server.serverProperties = serverProperties;
+    server.logger =
+        WattDepotLogger.getLogger("org.wattdepot.server", server.serverProperties
+            .get(SERVER_HOME_DIR));
     server.hostName = server.serverProperties.getFullHost();
     int port = Integer.valueOf(server.serverProperties.get(PORT_KEY));
     server.component = new Component();
@@ -174,7 +176,7 @@ public class Server extends Application {
         server);
 
     // Set up logging.
-    RestletLoggerUtil.useFileHandler("server");
+    RestletLoggerUtil.useFileHandler(server.serverProperties.get(SERVER_HOME_DIR));
     WattDepotLogger.setLoggingLevel(server.logger, server.serverProperties.get(LOGGING_LEVEL_KEY));
     server.logger.warning("Starting WattDepot server.");
     server.logger.warning("Host: " + server.hostName);

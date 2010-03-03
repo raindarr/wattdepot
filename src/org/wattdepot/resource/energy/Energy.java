@@ -33,7 +33,7 @@ public class Energy {
   public Energy(SensorDataStraddle startStraddle, SensorDataStraddle endStraddle) {
     if ((startStraddle == null) || (endStraddle == null)) {
       throw new IllegalArgumentException(
-          "Attempt to create SensorDataStraddle with null SensorDataStraddle");
+          "Attempt to create Energy with null SensorDataStraddle");
     }
     this.startStraddle = startStraddle;
     this.endStraddle = endStraddle;

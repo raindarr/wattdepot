@@ -29,9 +29,16 @@ public final class WattDepotUserHome {
    * @return A File instance representing the desired user.home directory.
    */
   public static File getHome() {
-    String userHome = System.getProperty(WATTDEPOT_USER_HOME_PROPERTY, System
-        .getProperty("user.home"));
-    return new File(userHome);
+    return new File(getHomeString());
   }
 
+  /**
+   * Return a String representing the desired location of the .wattdepot directory. Note that this
+   * directory may or may not exist.
+   * 
+   * @return A File instance representing the desired user.home directory.
+   */
+  public static String getHomeString() {
+    return System.getProperty(WATTDEPOT_USER_HOME_PROPERTY, System.getProperty("user.home"));
+  }
 }

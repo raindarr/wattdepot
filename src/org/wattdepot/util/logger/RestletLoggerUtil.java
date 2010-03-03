@@ -26,9 +26,12 @@ public final class RestletLoggerUtil {
   /**
    * Adjusts the Restlet Loggers so that they send their output to a file, not the console.
    * 
-   * @param serviceDir The directory within .wattdepot that this data will be sent to.
+   * @param serverHome Home directory for this server. Logging files are placed in
+   * [serverHome]/logs. If null, an IllegalArgumentException is thrown.
+   * @throws IllegalArgumentException If serverHome is null.
+   * @throws RuntimeException If there are problems creating directories or opening log file.
    */
-  public static void useFileHandler(String serviceDir) {
+  public static void useFileHandler(String serverHome) {
     LogManager logManager = LogManager.getLogManager();
     // System.out.println("In useFileHandler");
     for (Enumeration<String> en = logManager.getLoggerNames(); en.hasMoreElements();) {
@@ -48,23 +51,29 @@ public final class RestletLoggerUtil {
         }
         // System.out.println("Removed handlers.");
         // Define a handler that writes to the ~/.wattdepot/<service>/logs directory
-        File logDir = new File(WattDepotUserHome.getHome(), ".wattdepot/" + serviceDir + "/logs/");
-        boolean dirsOk = logDir.mkdirs();
-        if (!dirsOk && !logDir.exists()) {
-          throw new RuntimeException("mkdirs() failed");
+        // Define a file handler that writes to the logs directory, creating it if nec.
+        if (serverHome == null) {
+          throw new IllegalArgumentException("Attempt to change Restlet logging to null filename");
         }
-        // System.out.println("Made this directory: " + logDir);
-        String fileName = logDir + "/" + logName + ".%u.log";
-        FileHandler fileHandler;
-        try {
-          fileHandler = new FileHandler(fileName, 500000, 10, true);
-          fileHandler.setFormatter(new SimpleFormatter());
-          logger.addHandler(fileHandler);
-        }
-        catch (IOException e) {
-          // throw new RuntimeException
-          // ("Could not open the log file for this WattDepot service.", e);
-          System.out.println("Could not open log file: " + fileName + " " + e.getMessage());
+        else {
+          File logDir = new File(serverHome + "/logs/");
+          boolean dirsOk = logDir.mkdirs();
+          if (!dirsOk && !logDir.exists()) {
+            throw new RuntimeException("mkdirs() failed");
+          }
+          // System.out.println("Made this directory: " + logDir);
+          String fileName = logDir + "/" + logName + ".%u.log";
+          FileHandler fileHandler;
+          try {
+            fileHandler = new FileHandler(fileName, 500000, 10, true);
+            fileHandler.setFormatter(new SimpleFormatter());
+            logger.addHandler(fileHandler);
+          }
+          catch (IOException e) {
+            // throw new RuntimeException
+            // ("Could not open the log file for this WattDepot service.", e);
+            System.out.println("Could not open log file: " + fileName + " " + e.getMessage());
+          }
         }
       }
     }
