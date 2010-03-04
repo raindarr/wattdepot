@@ -46,7 +46,7 @@ public class Ted5000Sensor {
   private String sourceName;
   /** The rate at which to poll the source for new data. */
   private int updateRate;
-  /** If fetched latest data is same as last fetch, do we display it? */
+  /** Whether to display debugging data. */
   private boolean debug;
   /** The hostname of the TED 5000 to be monitored. */
   private String tedHostname;

@@ -35,7 +35,7 @@ public class ExampleStreamingSensor {
   private String sourceName;
   /** The rate at which to poll the source for new data. */
   private int updateRate;
-  /** If fetched latest data is same as last fetch, do we display it? */
+  /** Whether to display debugging data. */
   private boolean debug;
 
   /** Name of this tool. */

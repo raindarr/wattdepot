@@ -37,7 +37,8 @@ public class VerisRowParser extends RowParser {
    * Converts a row of the table into an appropriate SensorData object.
    * 
    * @param col The row of the table, with each column represented as a String array element.
-   * @return The new SensorData object.
+   * @return The new SensorData object, or null if this row didn't contain useful power data (due to
+   * some error on meter side).
    * @throws RowParseException If there are problems parsing the row.
    */
   @Override
@@ -59,44 +60,54 @@ public class VerisRowParser extends RowParser {
     }
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp(newDate.getTime());
 
-    // // DEBUG
-    // DateFormat df = DateFormat.getDateTimeInstance();
-    // System.out.println("Input date: " + dateString + ", output date: " + df.format(newDate));
+    // Apparently the error column indicates if something went wrong, so if the value is != 0
+    // the rest of the columns for this row should be ignored.
+    if ("0".equals(col[1])) {
+      // // DEBUG
+      // DateFormat df = DateFormat.getDateTimeInstance();
+      // System.out.println("Input date: " + dateString + ", output date: " + df.format(newDate));
 
-    // Create the properties based on the PropertyDictionary
-    // http://code.google.com/p/wattdepot/wiki/PropertyDictionary
-    String powerConsumedString = col[5];
-    double powerConsumed;
-    try {
-      // Value in file is a String representing a floating point value in kW, while powerConsumed
-      // SensorData property is defined in dictionary as being in W, so parse and multiply by 1000.
-      powerConsumed = Double.parseDouble(powerConsumedString) * 1000;
-    }
-    catch (NumberFormatException e) {
-      throw new RowParseException("Unable to parse floating point number: " + powerConsumedString,
-          e);
-    }
-    Property prop1 = new Property(SensorData.POWER_CONSUMED, Double.toString(powerConsumed));
+      // Create the properties based on the PropertyDictionary
+      // http://code.google.com/p/wattdepot/wiki/PropertyDictionary
+      String powerConsumedString = col[5];
+      double powerConsumed;
+      try {
+        // Value in file is a String representing a floating point value in kW, while powerConsumed
+        // SensorData property is defined in dictionary as being in W, so parse and multiply by
+        // 1000.
+        powerConsumed = Double.parseDouble(powerConsumedString) * 1000;
+      }
+      catch (NumberFormatException e) {
+        throw new RowParseException(
+            "Unable to parse floating point number: " + powerConsumedString, e);
+      }
+      Property prop1 = new Property(SensorData.POWER_CONSUMED, Double.toString(powerConsumed));
 
-    String energyConsumedToDateString = col[4];
-    double energyConsumedToDate;
-    try {
-      // Value in file is a String representing a floating point value in kWh, while
-      // energyConsumedToDate SensorData property is defined in dictionary as being in Wh, so parse
-      // and multiply by 1000.
-      energyConsumedToDate = Double.parseDouble(energyConsumedToDateString) * 1000;
-    }
-    catch (NumberFormatException e) {
-      throw new RowParseException("Unable to parse floating point number: "
-          + energyConsumedToDateString, e);
-    }
-    Property prop2 =
-        new Property(SensorData.ENERGY_CONSUMED_TO_DATE, Double.toString(energyConsumedToDate));
-    Properties props = new Properties();
-    props.getProperty().add(prop1);
-    props.getProperty().add(prop2);
+      String energyConsumedToDateString = col[4];
+      double energyConsumedToDate;
+      try {
+        // Value in file is a String representing a floating point value in kWh, while
+        // energyConsumedToDate SensorData property is defined in dictionary as being in Wh, so
+        // parse
+        // and multiply by 1000.
+        energyConsumedToDate = Double.parseDouble(energyConsumedToDateString) * 1000;
+      }
+      catch (NumberFormatException e) {
+        throw new RowParseException("Unable to parse floating point number: "
+            + energyConsumedToDateString, e);
+      }
+      Property prop2 =
+          new Property(SensorData.ENERGY_CONSUMED_TO_DATE, Double.toString(energyConsumedToDate));
+      Properties props = new Properties();
+      props.getProperty().add(prop1);
+      props.getProperty().add(prop2);
 
-    return new SensorData(timestamp, this.toolName, Source.sourceToUri(this.sourceName,
-        this.serverUri), props);
+      return new SensorData(timestamp, this.toolName, Source.sourceToUri(this.sourceName,
+          this.serverUri), props);
+    }
+    else {
+      // Row has no data due to error, so return null
+      return null;
+    }
   }
 }
