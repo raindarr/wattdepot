@@ -208,7 +208,10 @@ public class Ted5000Sensor {
         Thread.sleep(updateRate * 1000);
       }
     }
-    return true;
+    else {
+      System.err.format("Invalid credentials for source %s. Aborting.", this.sourceName);
+      return false;
+    }
   }
 
   /**

@@ -19,6 +19,10 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.restlet.data.Response;
 import org.restlet.data.Status;
+import org.wattdepot.client.BadXmlException;
+import org.wattdepot.client.MiscClientException;
+import org.wattdepot.client.NotAuthorizedException;
+import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.util.logger.WattDepotUserHome;
@@ -66,7 +70,8 @@ public class BMOSensor {
    * ~/.wattdepot/client/datainput.properties
    * @param sourceName name of the Source the sensor data should be sent to.
    * @param meterNumber The number of the meter data is to be read from.
-   * @param startTimestamp Starting point for data download (ignored if output file already exists).
+   * @param startTimestamp Starting point for data download. If null, then latest data from
+   * WattDepot will be used as starting point.
    * @param interval Interval (in minutes) at which to sample BMO data (sleeping in-between runs).
    * @param debug If true then display new sensor data when sending it.
    * @throws IOException If the property file cannot be found.
@@ -144,38 +149,93 @@ public class BMOSensor {
     this.parser = new VerisRowParser(toolName, wattDepotURI, this.sourceName);
     this.client = new WattDepotClient(wattDepotURI, wattDepotUsername, wattDepotPassword);
 
-    if (this.startTimestamp == null) {
-      this.startTimestamp = Tstamp.makeTimestamp();
-    }
-
-    BMONetworkClient bmoClient =
-        new BMONetworkClient(bmoURI, bmoUsername, bmoPassword, bmoDB, bmoAS);
-    // We start gathering data from startTimestamp
-    XMLGregorianCalendar nextStartTime = this.startTimestamp;
-
-    // Using do-while so there will always be one iteration even when no interval was supplied
-    do {
-      // next run will start from whatever the last retrieved timestamp was
-      nextStartTime = processLatestBMOData(bmoClient, this.meterNumber, nextStartTime);
-      if (nextStartTime == null) {
-        // Something went wrong with BMO retrieval, since we should always be able to grab data for
-        // the last timestamp we received from BMO
-        // In future, for more robust long-term fault-tolerant operation, we might want to
-        // distinguish between BMO problems that should result in giving up, or just waiting and
-        // trying again. Right now, we always terminate.
+    if (client.isAuthenticated()) {
+      try {
+        // Check first if source exists by just fetching it
+        client.getSource(this.sourceName);
+      }
+      catch (NotAuthorizedException e) {
+        System.err.format("You do not have access to the source %s. Aborting.%n", this.sourceName);
         return false;
       }
-      if (this.interval >= 1) {
-        String outputFormatString =
-            (this.interval == 1) ? "Sleeping for %d minute%n" : "Sleeping for %d minutes%n";
-        System.out.format(outputFormatString, this.interval);
-        Thread.sleep(interval * MILLISECONDS_PER_MINUTE);
+      catch (ResourceNotFoundException e) {
+        System.err.format("Source %s does not exist on server. Aborting.%n", this.sourceName);
+        return false;
       }
-    }
-    while (this.interval >= 1);
+      catch (BadXmlException e) {
+        System.err.println("Received bad XML from server, which is weird. Aborting.");
+        return false;
+      }
+      catch (MiscClientException e) {
+        System.err.println("Had problems retrieving source from server, which is weird. Aborting.");
+        return false;
+      }
 
-    // Only reach here if the interval was not specified (one-shot mode)
-    return true;
+      // If there is sensor data in the source, use the latest value as the startTimestamp and
+      // ignore anything provided on command line
+      try {
+        this.startTimestamp = client.getLatestSensorData(this.sourceName).getTimestamp();
+      }
+      catch (NotAuthorizedException e) {
+        System.err.format("You do not have access to the source %s. Aborting.%n", this.sourceName);
+        return false;
+      }
+      catch (ResourceNotFoundException e) {
+        // The source has no sensor data, so if the user didn't provide a startTimestamp then
+        // we have to bail
+        if (this.startTimestamp == null) {
+          System.err
+              .format("Source %s has no sensor data, and you did not supply%na startTimestamp"
+                  + " so we don't know when to start collecting data. Aborting.%n", this.sourceName);
+          return false;
+        }
+      }
+      catch (BadXmlException e) {
+        System.err.println("Received bad XML from server, which is weird. Aborting.");
+        return false;
+      }
+      catch (MiscClientException e) {
+        System.err.println("Had problems retrieving source from server, which is weird. Aborting.");
+        return false;
+      }
+
+      BMONetworkClient bmoClient =
+          new BMONetworkClient(bmoURI, bmoUsername, bmoPassword, bmoDB, bmoAS);
+      // We start gathering data from startTimestamp
+      XMLGregorianCalendar nextStartTime = this.startTimestamp;
+      if (debug) {
+        System.out.println("startTimestamp: " + this.startTimestamp);
+      }
+
+      // Using do-while so there will always be one iteration even when no interval was supplied
+      do {
+        // next run will start from whatever the last retrieved timestamp was
+        nextStartTime = processLatestBMOData(bmoClient, this.meterNumber, nextStartTime);
+        if (nextStartTime == null) {
+          // Something went wrong with BMO retrieval, since we should always be able to grab data
+          // for
+          // the last timestamp we received from BMO
+          // In future, for more robust long-term fault-tolerant operation, we might want to
+          // distinguish between BMO problems that should result in giving up, or just waiting and
+          // trying again. Right now, we always terminate.
+          return false;
+        }
+        if (this.interval >= 1) {
+          String outputFormatString =
+              (this.interval == 1) ? "Sleeping for %d minute%n" : "Sleeping for %d minutes%n";
+          System.out.format(outputFormatString, this.interval);
+          Thread.sleep(interval * MILLISECONDS_PER_MINUTE);
+        }
+      }
+      while (this.interval >= 1);
+
+      // Only reach here if the interval was not specified (one-shot mode)
+      return true;
+    }
+    else {
+      System.err.format("Invalid credentials for source %s. Aborting.", this.sourceName);
+      return false;
+    }
   }
 
   /**
@@ -273,8 +333,7 @@ public class BMOSensor {
                   + " (i.e. no new data)%n";
         }
         else {
-          outputFormatString =
-              "Retrieved %d entries from BMO, sent %d entries to WattDepot%n";
+          outputFormatString = "Retrieved %d entries from BMO, sent %d entries to WattDepot%n";
         }
         System.out.format(outputFormatString, rowsRetrieved, rowsSent);
         return lastTimestamp;
@@ -366,11 +425,6 @@ public class BMOSensor {
         formatter.printHelp(toolName, options);
         System.exit(1);
       }
-    }
-    else {
-      System.err.println("Required startTimestamp parameter not provided, terminating.");
-      formatter.printHelp(toolName, options);
-      System.exit(1);
     }
     int interval = -1;
     if (cmd.hasOption("i")) {

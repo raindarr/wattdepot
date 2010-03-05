@@ -51,7 +51,6 @@ public class ExampleStreamingSensor {
   /** The cutoff power level for the sawtooth curve. */
   private static final double CUTOFF_POWER_LEVEL = BASE_POWER_LEVEL + (POWER_LEVEL_STEP * 10);
 
-  
   /** Making PMD happy. */
   private static final String REQUIRED_PARAMETER_ERROR_MSG =
       "Required parameter %s not found in properties.%n";
@@ -115,7 +114,7 @@ public class ExampleStreamingSensor {
     WattDepotClient client =
         new WattDepotClient(wattDepotURI, wattDepotUsername, wattDepotPassword);
     Source source;
-    if (client.isHealthy()) {
+    if (client.isAuthenticated()) {
       try {
         source = client.getSource(this.sourceName);
       }
@@ -194,7 +193,10 @@ public class ExampleStreamingSensor {
         Thread.sleep(updateRate * 1000);
       }
     }
-    return true;
+    else {
+      System.err.format("Invalid credentials for source %s. Aborting.", this.sourceName);
+      return false;
+    }
   }
 
   /**
@@ -207,8 +209,8 @@ public class ExampleStreamingSensor {
     Options options = new Options();
     options.addOption("h", "help", false, "Print this message");
     options.addOption("p", "propertyFilename", true, "Filename of property file");
-    options.addOption("s", "source", true,
-        "Name of the source to send data to, ex. \"foo-source\"");
+    options
+        .addOption("s", "source", true, "Name of the source to send data to, ex. \"foo-source\"");
     options.addOption("u", "updateRate", true,
         "The rate at which to send new data to the source, in seconds. If not specified, will "
             + "default to value of source's updateInterval property, or " + DEFAULT_UPDATE_RATE
