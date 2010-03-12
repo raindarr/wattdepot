@@ -188,19 +188,24 @@ public class Ted5000Sensor {
           return false;
         }
         catch (SAXException e1) {
-          System.err.println("Got bad XML from TED meter, hopefully this is temporary.");
-          return false;
+          System.err.format("%s: Got bad XML from TED meter, hopefully this is temporary.%n", Tstamp
+              .makeTimestamp());
+          Thread.sleep(updateRate * 1000);
+          continue;
         }
         catch (IOException e1) {
-          System.err.println("Unable to retrieve data from TED, hopefully this is temporary.");
-          return false;
+          System.err.format("%s: Unable to retrieve data from TED, hopefully this is temporary.%n",
+              Tstamp.makeTimestamp());
+          Thread.sleep(updateRate * 1000);
+          continue;
         }
         // Store SensorData in WattDepot server
         try {
           client.storeSensorData(data);
         }
         catch (Exception e) {
-          System.out.println("Unable to store sensor data.");
+          System.err.format("%s: Unable to store sensor data, hopefully this is temporary.%n", Tstamp
+              .makeTimestamp());
         }
         if (debug) {
           System.out.println(data);
@@ -359,6 +364,7 @@ public class Ted5000Sensor {
     }
     // Just do it
     if (sensor != null) {
+      System.err.format("Starting polling TED at %s%n", Tstamp.makeTimestamp());
       sensor.process();
     }
   }
