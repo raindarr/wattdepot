@@ -177,7 +177,7 @@ public class Ted5000Sensor {
       while (true) {
         // Get data from TED
         try {
-          data = pollTed(this.tedHostname, wattDepotPassword, sourceURI);
+          data = pollTed(this.tedHostname, toolName, sourceURI);
         }
         catch (XPathExpressionException e1) {
           System.err.println("Bad XPath expression, this should never happen.");
