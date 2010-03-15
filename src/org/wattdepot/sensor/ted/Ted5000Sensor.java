@@ -1,9 +1,12 @@
-package org.wattdepot.datainput;
+package org.wattdepot.sensor.ted;
 
 import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_PASSWORD_KEY;
 import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_URI_KEY;
 import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_USERNAME_KEY;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -25,6 +28,7 @@ import org.wattdepot.client.MiscClientException;
 import org.wattdepot.client.NotAuthorizedException;
 import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
+import org.wattdepot.datainput.DataInputClientProperties;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -179,23 +183,24 @@ public class Ted5000Sensor {
         try {
           data = pollTed(this.tedHostname, toolName, sourceURI);
         }
-        catch (XPathExpressionException e1) {
+        catch (XPathExpressionException e) {
           System.err.println("Bad XPath expression, this should never happen.");
           return false;
         }
-        catch (ParserConfigurationException e1) {
+        catch (ParserConfigurationException e) {
           System.err.println("Unable to configure XML parser, this is weird.");
           return false;
         }
-        catch (SAXException e1) {
-          System.err.format("%s: Got bad XML from TED meter, hopefully this is temporary.%n", Tstamp
-              .makeTimestamp());
+        catch (SAXException e) {
+          System.err.format("%s: Got bad XML from TED meter (%s), hopefully this is temporary.%n",
+              Tstamp.makeTimestamp(), e);
           Thread.sleep(updateRate * 1000);
           continue;
         }
-        catch (IOException e1) {
-          System.err.format("%s: Unable to retrieve data from TED, hopefully this is temporary.%n",
-              Tstamp.makeTimestamp());
+        catch (IOException e) {
+          System.err.format(
+              "%s: Unable to retrieve data from TED (%s), hopefully this is temporary.%n", Tstamp
+                  .makeTimestamp(), e);
           Thread.sleep(updateRate * 1000);
           continue;
         }
@@ -204,8 +209,10 @@ public class Ted5000Sensor {
           client.storeSensorData(data);
         }
         catch (Exception e) {
-          System.err.format("%s: Unable to store sensor data, hopefully this is temporary.%n", Tstamp
-              .makeTimestamp());
+          System.err
+              .format(
+                  "%s: Unable to store sensor data due to exception (%s), hopefully this is temporary.%n",
+                  Tstamp.makeTimestamp(), e);
         }
         if (debug) {
           System.out.println(data);
@@ -231,6 +238,7 @@ public class Ted5000Sensor {
    * @throws IOException If there are problems retrieving the data via HTTP.
    * @throws SAXException If there are problems parsing the XML from the meter.
    * @throws XPathExpressionException If the hardcoded XPath expression is bogus.
+   * @throws IllegalArgumentException If the provided hostname is invalid.
    * 
    */
   private SensorData pollTed(String hostname, String toolName, String sourceURI)
@@ -240,9 +248,31 @@ public class Ted5000Sensor {
     DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
     domFactory.setNamespaceAware(true);
     DocumentBuilder builder = domFactory.newDocumentBuilder();
+
+    if ((hostname == null) || (hostname.length() == 0)) {
+      throw new IllegalArgumentException("No hostname was provided");
+    }
+    
+    // Have to make HTTP connection manually so we can set proper timeouts
+    URL url;
+    try {
+      url = new URL(tedURI);
+    }
+    catch (MalformedURLException e) {
+      throw new IllegalArgumentException("Hostname was invalid leading to malformed URL", e);
+    }
+    URLConnection httpConnection;
+    httpConnection = url.openConnection();
+    // Set both connect and read timeouts to 15 seconds. No point in long timeouts since the
+    // sensor will retry before too long anyway.
+    httpConnection.setConnectTimeout(15 * 1000);
+    httpConnection.setReadTimeout(15 * 1000);
+    httpConnection.connect();
+
     // Record current time as close approximation to time for reading we are about to make
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp();
-    Document doc = builder.parse(tedURI);
+
+    Document doc = builder.parse(httpConnection.getInputStream());
 
     XPathFactory factory = XPathFactory.newInstance();
     XPath powerXpath = factory.newXPath();

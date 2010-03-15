@@ -51,7 +51,7 @@
 
     <jar destfile="${build.jar.dir}/wattdepot-sensor-ted5000.jar" basedir="${tmp.dir}">
       <manifest>
-        <attribute name="Main-Class" value="org.wattdepot.datainput.Ted5000Sensor" />
+        <attribute name="Main-Class" value="org.wattdepot.sensor.ted.Ted5000Sensor" />
         <attribute name="Implementation-Title" value="WattDepot TED 5000 Sensor" />
         <attribute name="Implementation-Version" value="${version}" />
         <attribute name="Implementation-Vendor"
