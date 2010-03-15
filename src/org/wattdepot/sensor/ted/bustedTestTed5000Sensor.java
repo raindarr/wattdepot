@@ -1,3 +1,4 @@
+package org.wattdepot.sensor.ted;
 //package org.wattdepot.sensor.ted;
 //
 //import org.junit.Ignore;
