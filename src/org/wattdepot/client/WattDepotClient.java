@@ -491,7 +491,8 @@ public class WattDepotClient {
    * @param source The name of the Source.
    * @return A double representing the latest power generated, or 0 if there is no data.
    * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
-   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server, or
+   * the source has no sensor data.
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
@@ -507,7 +508,8 @@ public class WattDepotClient {
    * @param source The name of the Source.
    * @return A double representing the latest power consumed, or 0 if there is no data.
    * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
-   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server, or
+   * the source has no sensor data.
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
@@ -524,7 +526,8 @@ public class WattDepotClient {
    * @param source The name of the Source.
    * @return A double representing the latest energy generated to date, or 0 if there is no data.
    * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
-   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server, or
+   * the source has no sensor data.
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
@@ -541,7 +544,8 @@ public class WattDepotClient {
    * @param source The name of the Source.
    * @return A double representing the latest energy consumed to date, or 0 if there is no data.
    * @throws NotAuthorizedException If the client is not authorized to retrieve the power.
-   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server.
+   * @throws ResourceNotFoundException If the source name provided doesn't exist on the server, or
+   * the source has no sensor data.
    * @throws BadXmlException If error is encountered unmarshalling the XML from the server.
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
