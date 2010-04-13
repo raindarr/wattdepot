@@ -11,6 +11,7 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.restlet.Context;
 import org.restlet.data.CharacterSet;
+import org.restlet.data.Form;
 import org.restlet.data.Language;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
@@ -112,6 +113,18 @@ public class WattDepotResource extends Resource {
 
     // This resource has only one type of representation.
     getVariants().add(new Variant(MediaType.TEXT_XML));
+
+    // Add Cross-Origin Resource Sharing header to all responses.
+    // See https://developer.mozilla.org/En/HTTP_access_control for more details
+    // TODO This should really be done at the individual resource level and should add the header
+    // only for public resources, but this is a quick hack to support a JavaScript application.
+    // Code from here: http://blog.arc90.com/2008/09/15/custom-http-response-headers-with-restlet/
+    Form responseHeaders = (Form) getResponse().getAttributes().get("org.restlet.http.headers");
+    if (responseHeaders == null) {
+      responseHeaders = new Form();
+      getResponse().getAttributes().put("org.restlet.http.headers", responseHeaders);
+    }
+    responseHeaders.add("Access-Control-Allow-Origin", "*");
   }
 
   /**
