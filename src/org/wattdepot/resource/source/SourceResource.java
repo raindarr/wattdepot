@@ -1,10 +1,12 @@
 package org.wattdepot.resource.source;
 
+import java.io.IOException;
 import javax.xml.bind.JAXBException;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
+import org.restlet.data.Status;
 import org.restlet.resource.Representation;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
@@ -20,8 +22,11 @@ import org.wattdepot.resource.source.jaxb.Source;
 
 public class SourceResource extends WattDepotResource {
 
-  /** fetchAll parameter from the URI, or else null if not found. */
+  /** fetchAll parameter from the URI, or else false if not found. */
   private boolean fetchAll = false;
+
+  /** overwrite parameter from the URI, or else false if not found. */
+  private boolean overwrite = false;
 
   /**
    * Creates a new SourceResource object with the provided parameters, and only a text/xml
@@ -35,6 +40,8 @@ public class SourceResource extends WattDepotResource {
     super(context, request, response);
     String fetchAllString = (String) request.getAttributes().get("fetchAll");
     this.fetchAll = "true".equalsIgnoreCase(fetchAllString);
+    String overwriteString = (String) request.getAttributes().get("overwrite");
+    this.overwrite = "true".equalsIgnoreCase(overwriteString);
   }
 
   /**
@@ -109,13 +116,85 @@ public class SourceResource extends WattDepotResource {
   }
 
   /**
-   * Indicate the PUT method is not supported, until I have time to implement it.
+   * Indicate the PUT method is supported.
    * 
-   * @return False.
+   * @return True.
    */
   @Override
   public boolean allowPut() {
-    return false;
+    return true;
+  }
+
+  /**
+   * Implement the PUT method that creates a Source resource.
+   * 
+   * @param entity The entity to be posted.
+   */
+  @Override
+  public void storeRepresentation(Representation entity) {
+    // If credentials are provided, they need to be valid
+    if (!validateCredentials()) {
+      return;
+    }
+    if (validateSourceOwnerOrAdmin()) {
+      // Get the payload.
+      String entityString = null;
+      try {
+        entityString = entity.getText();
+      }
+      catch (IOException e) {
+        setStatusMiscError("Bad or missing content");
+        return;
+      }
+      Source source;
+      // Try to make the XML payload into sensor data, return failure if this fails.
+      if ((entityString == null) || ("".equals(entityString))) {
+        setStatusMiscError("Entity body was empty");
+        return;
+      }
+      try {
+        source = makeSource(entityString);
+      }
+      catch (JAXBException e) {
+        setStatusMiscError("Invalid Source representation: " + entityString);
+        return;
+      }
+      // Return failure if the name of Source doesn't match the name given in URI
+      if (!uriSource.equals(source.getName())) {
+        setStatusMiscError("Soure Name field does not match source field in URI");
+        return;
+      }
+      if (overwrite) {
+        if (dbManager.storeSource(source, overwrite)) {
+          getResponse().setStatus(Status.SUCCESS_CREATED);
+        }
+        else {
+          // all inputs have been validated by this point, so must be internal error
+          setStatusInternalError(String.format("Unable to create Source named %s", uriSource));
+          return;
+        }
+      }
+      else {
+        if (super.dbManager.getSource(uriSource) == null) {
+          if (dbManager.storeSource(source)) {
+            getResponse().setStatus(Status.SUCCESS_CREATED);
+          }
+          else {
+            // all inputs have been validated by this point, so must be internal error
+            setStatusInternalError(String.format("Unable to create Source named %s", uriSource));
+            return;
+          }
+        }
+        else {
+          // if Source with given name already exists and not overwriting, then fail
+          setStatusResourceOverwrite(uriSource);
+          return;
+        }
+      }
+    }
+    else {
+      return;
+    }
   }
 
   /**

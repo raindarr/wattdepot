@@ -333,6 +333,18 @@ public class WattDepotResource extends Resource {
   }
 
   /**
+   * Takes a String encoding of a Source in XML format and converts it to an instance.
+   * 
+   * @param xmlString The XML string representing a Source.
+   * @return The corresponding Source instance.
+   * @throws JAXBException If problems occur during unmarshalling.
+   */
+  public Source makeSource(String xmlString) throws JAXBException {
+    Unmarshaller unmarshaller = sourceJaxbContext.createUnmarshaller();
+    return (Source) unmarshaller.unmarshal(new StringReader(xmlString));
+  }
+
+  /**
    * Returns an XML string representation of a SensorDataIndex containing all the SensorData for the
    * Source name given in the URI, or null if the named Source doesn't exist.
    * 

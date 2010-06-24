@@ -419,6 +419,48 @@ public class DerbyStorageImplementation extends DbImplementation {
     return sources;
   }
 
+  /**
+   * Determines if a Source with the given name exists or not.
+   *  
+   * @param sourceName Name of the Source
+   * @return True if the given source exists, false otherwise.
+   */
+  private boolean sourceExists(String sourceName) {
+    if (sourceName == null) {
+      return false;
+    }
+    else {
+      String statement = "SELECT * FROM Source WHERE Name = ?";
+      Connection conn = null;
+      PreparedStatement s = null;
+      ResultSet rs = null;
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, sourceName);
+        rs = s.executeQuery();
+        if (rs.next()) {
+          return true;
+        }
+      }
+      catch (SQLException e) {
+        this.logger.info("DB: Error in sourceExists()" + StackTrace.toString(e));
+      }
+      finally {
+        try {
+          rs.close();
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
+      return false;
+    }
+  }
+
   /** {@inheritDoc} */
   @Override
   public Source getSource(String sourceName) {
@@ -555,7 +597,7 @@ public class DerbyStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
-  public boolean storeSource(Source source) {
+  public boolean storeSource(Source source, boolean overwrite) {
     if (source == null) {
       return false;
     }
@@ -574,7 +616,20 @@ public class DerbyStorageImplementation extends DbImplementation {
       }
       try {
         conn = DriverManager.getConnection(connectionURL);
-        s = conn.prepareStatement("INSERT INTO Source VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        // If source exists already, then do update rather than insert IF overwrite is true
+        if (sourceExists(source.getName())) {
+          if (overwrite) {
+            s = conn.prepareStatement("UPDATE Source SET Name = ?, Owner = ?, PublicP = ?, Virtual = ?, Coordinates = ?, Location = ?, Description = ?, SubSources = ?, Properties = ?, LastMod = ? WHERE Name = ?");
+            s.setString(11, source.getName());
+          }
+          else {
+            this.logger.fine("Derby: Attempted to overwrite without overwrite=true Source " + source.getName());
+            return false;
+          }
+        }
+        else {
+          s = conn.prepareStatement("INSERT INTO Source VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        }
         // Order: Name Owner PublicP Virtual Coordinates Location Description SubSources Properties
         // LastMod
         s.setString(1, source.getName());
@@ -607,6 +662,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       }
       catch (SQLException e) {
         if (DUPLICATE_KEY.equals(e.getSQLState())) {
+          // This should be extremely rare now that we check for existence before INSERTting
           this.logger.fine("Derby: Attempted to overwrite Source " + source.getName());
           return false;
         }
@@ -621,7 +677,9 @@ public class DerbyStorageImplementation extends DbImplementation {
       }
       finally {
         try {
-          s.close();
+          if (s != null) {
+            s.close();
+          }
           conn.close();
         }
         catch (SQLException e) {

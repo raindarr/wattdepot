@@ -126,8 +126,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue("Unable to delete source1", manager.deleteSource(this.source1.getName()));
     assertSame("getSources returned wrong number of SourceRefs", manager.getSourceIndex()
         .getSourceRef().size(), 2);
-    assertSame("getSources returned wrong number of SourceRefs", manager.getSources()
-        .getSource().size(), 2);
+    assertSame("getSources returned wrong number of SourceRefs", manager.getSources().getSource()
+        .size(), 2);
   }
 
   /**
@@ -227,25 +227,38 @@ public class TestDbManagerSources extends DbManagerTestHelper {
    */
   @Test
   public void testStoreSource() {
-    // Test cases: store and retrieve Source, attempt to overwrite existing Source,
-    // store 2 Sources and verify retrieval, store null Source.
-
     // Add Users that own test Sources.
     storeTestUsers();
 
-    // case #1: store and retrieve Source
+    // store and retrieve Source
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source1));
     assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager.getSource(source1.getName()));
 
-    // case #2: attempt to overwrite existing Source
+    // attempt to overwrite existing Source
     assertFalse("Overwriting Source succeeded, but should fail", manager.storeSource(source1));
 
-    // case #3: store 2 Sources and verify retrieval
+    // store 2 Sources and verify retrieval
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(source2));
     assertEquals(SOURCE_DOES_NOT_MATCH, source1, manager.getSource(source1.getName()));
     assertEquals(SOURCE_DOES_NOT_MATCH, source2, manager.getSource(source2.getName()));
 
-    // case #4: store null Source
+    // overwrite existing Source
+    // Create a source with fields from source3 but with source1's name
+    Source source1New = makeTestSource3();
+    source1New.setName(source1.getName());
+    assertFalse("Overwriting Source succeeded, but should fail", manager.storeSource(source1New));
+    assertTrue("Unable to overwrite Source, but should succeed", manager.storeSource(source1New,
+        true));
+    Source retrievedSource = manager.getSource(source1New.getName());
+    // All fields of this updated source were the same as source3, so we tweak the name back to
+    // source3's name so we can use the Source.equals() method to ensure all fields were updated
+    // properly.
+    retrievedSource.setName(source3.getName());
+    assertEquals(SOURCE_DOES_NOT_MATCH, source3, retrievedSource);
+    // Check another source just to make sure update didn't hit another record.
+    assertEquals(SOURCE_DOES_NOT_MATCH, source2, manager.getSource(source2.getName()));
+
+    // store null Source
     assertFalse("Storing null Source succeeded", manager.storeSource(null));
   }
 

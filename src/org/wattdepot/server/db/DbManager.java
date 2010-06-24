@@ -156,13 +156,27 @@ public class DbManager {
 
   /**
    * Persists a Source instance. If a Source with this name already exists in the storage system, no
-   * action is performed and the method returns false.
+   * action is performed and the method returns false. If you wish to overwrite the resource, see
+   * the two argument version of this method.
    * 
    * @param source The Source to store.
    * @return True if the user was successfully stored.
    */
   public boolean storeSource(Source source) {
     return this.dbImpl.storeSource(source);
+  }
+
+  /**
+   * Persists a Source instance. If a Source with this name already exists in the storage system, no
+   * action is performed and the method returns false, unless the overwrite parameter is true, in
+   * which case the existing resource is overwritten.
+   * 
+   * @param source The Source to store.
+   * @param overwrite False in the normal case, set to true if you wish to overwrite the resource.
+   * @return True if the user was successfully stored.
+   */
+  public boolean storeSource(Source source, boolean overwrite) {
+    return this.dbImpl.storeSource(source, overwrite);
   }
 
   /**

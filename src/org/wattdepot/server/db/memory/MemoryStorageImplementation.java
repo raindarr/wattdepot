@@ -176,16 +176,23 @@ public class MemoryStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
-  public boolean storeSource(Source source) {
+  public boolean storeSource(Source source, boolean overwrite) {
     if (source == null) {
       return false;
     }
     else {
+      if (overwrite) {
+        this.name2SourceHash.put(source.getName(), source);
+        // Ignore put's return value since we don't care if the hash already had the key
+        return true;
+      }
+      else {
       Source previousValue = this.name2SourceHash.putIfAbsent(source.getName(), source);
       // putIfAbsent returns the previous value that ended up in the hash, so if we get a null then
       // no value was previously stored, so we succeeded. If we get anything else, then there was
       // already a value in the hash for this username, so we failed.
       return (previousValue == null);
+      }
     }
   }
 
