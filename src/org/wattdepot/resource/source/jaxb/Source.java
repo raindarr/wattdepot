@@ -80,6 +80,10 @@ public class Source implements Serializable, Comparable<Source> {
   public static final String FUEL_TYPE = "fuelType";
   /** Property key for update interval. */
   public static final String UPDATE_INTERVAL = "updateInterval";
+  /** Property key for update interval. */
+  public static final String ENERGY_DIRECTION = "energyDirection";
+  /** Property key for update interval. */
+  public static final String SUPPORTS_ENERGY_COUNTERS = "supportsEnergyCounters";
 
   /**
    * Default no-argument constructor, apparently needed by JAXB. Don't use this, use the one with
@@ -566,7 +570,7 @@ public class Source implements Serializable, Comparable<Source> {
    * method that calls the underlying Properties method.
    * 
    * @param key The key.
-   * @return The key's value as a double.
+   * @return The key's value as a String.
    */
   public String getProperty(String key) {
     if (this.properties != null) {
@@ -574,6 +578,24 @@ public class Source implements Serializable, Comparable<Source> {
     }
     else {
       return null;
+    }
+  }
+
+  /**
+   * Returns whether the value of the Property with the given key is true. If the key is not found,
+   * or the value is anything other than a variation of "true", returns false. Only the first
+   * property with the given key is returned. This is a convenience method that calls the underlying
+   * Properties method.
+   * 
+   * @param key The key.
+   * @return The key's value as a boolean.
+   */
+  public boolean isPropertyTrue(String key) {
+    if (this.properties != null) {
+      return this.properties.isPropertyTrue(key);
+    }
+    else {
+      return false;
     }
   }
 

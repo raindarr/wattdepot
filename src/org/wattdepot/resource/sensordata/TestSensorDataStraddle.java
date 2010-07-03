@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.wattdepot.resource.sensordata.jaxb.SensorData.POWER_GENERATED;
+import static org.wattdepot.resource.sensordata.jaxb.SensorData.ENERGY_GENERATED_TO_DATE;
+import static org.wattdepot.resource.sensordata.jaxb.SensorData.ENERGY_CONSUMED_TO_DATE;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -141,6 +143,71 @@ public class TestSensorDataStraddle {
     // System.out.println(interpolatedPower);
     assertEquals("Interpolated power did not equal expected value", 6.28E7, interpolatedPower, 0.01);
     assertTrue("Interpolated property not found", straddle.getPower().isInterpolated());
+  }
+
+  /**
+   * Tests the interpolation code for getting energy counter values.
+   * 
+   * @throws Exception If there are problems creating timestamps.
+   */
+  @Test
+  @SuppressWarnings("PMD.AvoidDuplicateLiterals")
+  public void testGetEnergy() throws Exception {
+    XMLGregorianCalendar beforeTime, afterTime, timestamp;
+    SensorData beforeData, afterData;
+    String tool = "JUnit";
+    String source = "http://server.wattdepot.org:1234/wattdepot/sources/foo-source";
+    SensorDataStraddle straddle;
+    double interpolatedEnergy;
+
+    // timestamp == beforeData == afterData, getEnergy should just return beforeData
+    beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
+    beforeData =
+        new SensorData(beforeTime, tool, source, new Property(ENERGY_GENERATED_TO_DATE, "100"));
+    timestamp = beforeTime;
+    straddle = new SensorDataStraddle(timestamp, beforeData, beforeData);
+    assertEquals("getEnergyGeneratedToDate on degenerate straddle did not return beforeData",
+        straddle.getEnergyGeneratedToDate(), 100, 0.001);
+
+    // slope is 2 (100 Wh difference in 50 seconds)
+    beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
+    afterTime = Tstamp.makeTimestamp("2009-07-28T08:00:50.000-10:00");
+    beforeData =
+        new SensorData(beforeTime, tool, source, new Property(ENERGY_GENERATED_TO_DATE, "100"));
+    afterData =
+        new SensorData(afterTime, tool, source, new Property(ENERGY_GENERATED_TO_DATE, "200"));
+    timestamp = Tstamp.makeTimestamp("2009-07-28T08:00:25.000-10:00");
+    straddle = new SensorDataStraddle(timestamp, beforeData, afterData);
+    interpolatedEnergy = Double.valueOf(straddle.getEnergyGeneratedToDate());
+    assertEquals("Interpolated energy did not equal expected value", 150, interpolatedEnergy, 0.01);
+
+    // Computed by hand from Oscar data
+    beforeTime = Tstamp.makeTimestamp("2009-10-12T00:00:00.000-10:00");
+    afterTime = Tstamp.makeTimestamp("2009-10-12T00:15:00.000-10:00");
+    beforeData =
+        new SensorData(beforeTime, tool, source, new Property(ENERGY_GENERATED_TO_DATE, "55000000"));
+    afterData =
+        new SensorData(afterTime, tool, source, new Property(ENERGY_GENERATED_TO_DATE, "64000000"));
+    timestamp = Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00");
+    straddle = new SensorDataStraddle(timestamp, beforeData, afterData);
+    interpolatedEnergy = Double.valueOf(straddle.getEnergyGeneratedToDate());
+    assertEquals("Interpolated energy did not equal expected value", 62800000, interpolatedEnergy,
+        0.01);
+    assertEquals("Missing property did not result in zero energy value", 0, straddle
+        .getEnergyConsumedToDate(), 0.001);
+
+    // Computed by hand from Oscar data
+    beforeTime = Tstamp.makeTimestamp("2009-10-12T00:00:00.000-10:00");
+    afterTime = Tstamp.makeTimestamp("2009-10-12T00:15:00.000-10:00");
+    beforeData =
+        new SensorData(beforeTime, tool, source, new Property(ENERGY_CONSUMED_TO_DATE, "55000000"));
+    afterData =
+        new SensorData(afterTime, tool, source, new Property(ENERGY_CONSUMED_TO_DATE, "64000000"));
+    timestamp = Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00");
+    straddle = new SensorDataStraddle(timestamp, beforeData, afterData);
+    interpolatedEnergy = Double.valueOf(straddle.getEnergyConsumedToDate());
+    assertEquals("Interpolated energy did not equal expected value", 62800000, interpolatedEnergy,
+        0.01);
   }
 
   /**

@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.carbon.Carbon;
 import org.wattdepot.resource.energy.Energy;
+import org.wattdepot.resource.energy.EnergyCounterException;
 import org.wattdepot.resource.property.jaxb.Properties;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
@@ -287,7 +288,7 @@ public abstract class DbImplementation {
   /**
    * Returns a list of SensorDataStraddles that straddle the given timestamp, using SensorData from
    * all non-virtual subsources of the given source. If the given source is non-virtual, then the
-   * result will be a list containing at a single SensorDataStraddle, or null. In the case of a
+   * result will be a list containing a single SensorDataStraddle, or null. In the case of a
    * non-virtual source, you might as well use getSensorDataStraddle.
    * 
    * @param sourceName The name of the source to generate the straddle from.
@@ -364,21 +365,62 @@ public abstract class DbImplementation {
    * @param sourceName The source name.
    * @param startTime The start of the range requested.
    * @param endTime The start of the range requested.
-   * @param interval The sampling interval requested.
+   * @param interval The sampling interval requested (ignored if all sources support energy
+   * counters).
    * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
    */
   public SensorData getEnergy(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
-    List<List<SensorDataStraddle>> masterList =
-        getSensorDataStraddleListOfLists(sourceName, Tstamp.getTimestampList(startTime, endTime,
-            interval));
+    List<Source> nonVirtualSources = getAllNonVirtualSubSources(getSource(sourceName));
+    // True only if all non-virtual subsources support energy counters
+    boolean allSupportEnergyCounters = true;
 
-    if ((masterList == null) || (masterList.isEmpty())) {
-      return null;
+    for (Source source : nonVirtualSources) {
+      allSupportEnergyCounters =
+          allSupportEnergyCounters && source.isPropertyTrue(Source.SUPPORTS_ENERGY_COUNTERS);
+    }
+    if (allSupportEnergyCounters) {
+      List<Energy> energyList = new ArrayList<Energy>();
+      // calculate energy using counters
+      List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>(2);
+      timestampList.add(startTime);
+      timestampList.add(endTime);
+      List<StraddleList> sourceList = getStraddleLists(sourceName, timestampList);
+      if ((sourceList == null) || (sourceList.isEmpty())) {
+        return null;
+      }
+      // straddleList should contain a list (one for each non-virtual subsource) of StraddleLists
+      // each of length 2
+      for (StraddleList straddlePair : sourceList) {
+        if (straddlePair.getStraddleList().size() == 2) {
+          energyList.add(new Energy(straddlePair.getStraddleList().get(0), straddlePair
+              .getStraddleList().get(1), true));
+        }
+        else {
+          // One of the subsources did not have matching SensorData, so just abort
+          return null;
+        }
+      }
+      try {
+        return Energy.getEnergyFromList(energyList, Source.sourceToUri(sourceName, this.server));
+      }
+      catch (EnergyCounterException e) {
+        // some sort of counter problem. For now, we just bail and return an error
+        // TODO add rollover support
+        return null;
+      }
     }
     else {
-      return Energy.getEnergyFromListOfLists(masterList, Source
-          .sourceToUri(sourceName, this.server));
+      List<List<SensorDataStraddle>> masterList =
+          getSensorDataStraddleListOfLists(sourceName, Tstamp.getTimestampList(startTime, endTime,
+              interval));
+      if ((masterList == null) || (masterList.isEmpty())) {
+        return null;
+      }
+      else {
+        return Energy.getEnergyFromListOfLists(masterList, Source.sourceToUri(sourceName,
+            this.server));
+      }
     }
   }
 

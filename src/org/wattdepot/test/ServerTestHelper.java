@@ -84,16 +84,6 @@ public class ServerTestHelper {
     assertTrue("Unable to create default data", createDefaultData());
   }
   
-  // /**
-  // * Starts the server going for these tests.
-  // * @throws Exception If problems occur setting up the server.
-  // */
-  // @AfterClass public static void shutdownServer() throws Exception {
-  // // Instantiate the server parameterized for testing purposes.
-  // ServerTestHelper.server.shutdown();
-  // ServerTestHelper.server = null;
-  // }
-
   /**
    * Kludges up some default data so that SensorData can be stored. Originally this was to support
    * a demo (since there was no way to create sources or users), but now some tests use this data,

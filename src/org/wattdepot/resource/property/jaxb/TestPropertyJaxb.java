@@ -3,6 +3,8 @@ package org.wattdepot.resource.property.jaxb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 /**
@@ -55,7 +57,48 @@ public class TestPropertyJaxb {
   }
 
   /**
-   * Tests equals and hashCode for the Source Properties type.
+   * Tests the various specialized getProperty methods.
+   */
+  @Test
+  public void testGetProperties() {
+    this.prop1 = new Property(this.key1, "3.14159");
+    this.prop2 = new Property(this.key2, "123412341234");
+    Properties props1 = new Properties(), props2 = new Properties();
+
+    props1.getProperty().add(prop1);
+    props1.getProperty().add(prop2);
+
+    assertEquals("getPropertyAsDouble didn't return correct value", 3.14159, props1
+        .getPropertyAsDouble(this.key1), 0.00001);
+    assertEquals("getPropertyAsDouble didn't 0 when it should", 0, props1
+        .getPropertyAsDouble("nonexistent-key"), 0.00001);
+    assertEquals("getPropertyAsDouble didn't 0 when it should", 0, props2
+        .getPropertyAsDouble(this.key1), 0.00001);
+    assertEquals("getPropertyAsLong didn't return correct value", 123412341234L, props1
+        .getPropertyAsLong(this.key2));
+    assertEquals("getPropertyAsLong didn't return 0 when it should", 0, props1
+        .getPropertyAsLong("nonexistent-key"));
+    assertEquals("getPropertyAsLong didn't 0 when it should", 0, props2
+        .getPropertyAsLong(this.key1));
+    assertNull("getProperty returned non-null for empty Properties", props2.getProperty(this.key1));
+    assertEquals("getProperty didn't return correct value", "3.14159", props1
+        .getProperty(this.key1));
+    assertNull("getProperty didn't return correct value", props1.getProperty("nonexistent-key"));
+    assertFalse("containsProperty returned non-null for empty Properties", props2
+        .containsProperty(this.prop1));
+    assertTrue("containsProperty returned false for expected Property", props1
+        .containsProperty(this.prop1));
+    assertFalse("containsProperty returned true for non-existent Property", props1
+        .containsProperty(new Property("nonexistent-key", "baz")));
+    assertFalse("isPropertyTrue returned true for non-existent Property", props1
+        .isPropertyTrue("nonexistent-key"));
+    props1.getProperty().add(new Property("qux", "tRuE"));
+    assertTrue("isPropertyTrue returned false for Property set to true", props1
+        .isPropertyTrue("qux"));
+  }
+
+  /**
+   * Tests equals and hashCode for the Properties type.
    */
   @Test
   public void testProperties() {

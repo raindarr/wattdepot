@@ -150,22 +150,22 @@ public class SensorDataStraddle {
    * @param propertyKey the key for the property we are interested in.
    * @return the linearly interpolated output given the timestamp.
    */
-  private double linearlyInterpolate(String propertyKey) {
+  private double linearlyInterpolateDouble(String propertyKey) {
     if (isDegenerate()) {
       // degenerate case: timestamp matched actual sensor data, so just return property from
       // sensor data
       return beforeData.getProperties().getPropertyAsDouble(propertyKey);
     }
     else {
-      String beforeValue = this.beforeData.getProperty(propertyKey);
-      String afterValue = this.afterData.getProperty(propertyKey);
+      String beforeString = this.beforeData.getProperty(propertyKey);
+      String afterString = this.afterData.getProperty(propertyKey);
       // If the property is missing from either SensorData, return 0
-      if ((beforeValue == null) || (afterValue == null)) {
+      if ((beforeString == null) || (afterString == null)) {
         return 0;
       }
       else {
-        double beforePower = Double.valueOf(beforeValue);
-        double afterPower = Double.valueOf(afterValue);
+        double beforeValue = Double.valueOf(beforeString);
+        double afterValue = Double.valueOf(afterString);
         // convert from milliseconds to seconds
         double beforeTime =
             this.beforeData.getTimestamp().toGregorianCalendar().getTimeInMillis() / 1000.0;
@@ -174,11 +174,51 @@ public class SensorDataStraddle {
         double timestampTime = this.timestamp.toGregorianCalendar().getTimeInMillis() / 1000.0;
 
         // linear interpolation time!
-        return ((afterPower - beforePower) / (afterTime - beforeTime))
-            * (timestampTime - beforeTime) + beforePower;
+        return ((afterValue - beforeValue) / (afterTime - beforeTime))
+            * (timestampTime - beforeTime) + beforeValue;
       }
     }
   }
+
+  // /**
+  // * Takes the name of a property, and then returns the output value for the timestamp via linear
+  // * interpolation between the beforeData and afterData. Assumes that the property key exists in
+  // * beforeData and afterData, and that the property value can be converted to a long. Note, for
+  // accuracy,
+  // * the return value is a double even though the source properties are long.
+  // *
+  // * @param propertyKey the key for the property we are interested in.
+  // * @return the linearly interpolated output given the timestamp.
+  // */
+  // private double linearlyInterpolateLong(String propertyKey) {
+  // if (isDegenerate()) {
+  // // degenerate case: timestamp matched actual sensor data, so just return property from
+  // // sensor data
+  // return beforeData.getProperties().getPropertyAsLong(propertyKey);
+  // }
+  // else {
+  // String beforeString = this.beforeData.getProperty(propertyKey);
+  // String afterString = this.afterData.getProperty(propertyKey);
+  // // If the property is missing from either SensorData, return 0
+  // if ((beforeString == null) || (afterString == null)) {
+  // return 0;
+  // }
+  // else {
+  // long beforeValue = Long.valueOf(beforeString);
+  // long afterValue = Long.valueOf(afterString);
+  // // convert from milliseconds to seconds
+  // long beforeTime =
+  // this.beforeData.getTimestamp().toGregorianCalendar().getTimeInMillis();
+  // long afterTime =
+  // this.afterData.getTimestamp().toGregorianCalendar().getTimeInMillis();
+  // long timestampTime = this.timestamp.toGregorianCalendar().getTimeInMillis();
+  //
+  // // linear interpolation time!
+  // return ((afterValue - beforeValue) / ((afterTime - beforeTime) * 1.0))
+  // * (timestampTime - beforeTime) + beforeValue;
+  // }
+  // }
+  // }
 
   /**
    * Returns the linearly interpolated value for powerGenerated at the timestamp.
@@ -186,7 +226,7 @@ public class SensorDataStraddle {
    * @return the power generated at the timestamp.
    */
   public double getPowerGenerated() {
-    return linearlyInterpolate(SensorData.POWER_GENERATED);
+    return linearlyInterpolateDouble(SensorData.POWER_GENERATED);
   }
 
   /**
@@ -195,7 +235,25 @@ public class SensorDataStraddle {
    * @return the power consumed at the timestamp.
    */
   public double getPowerConsumed() {
-    return linearlyInterpolate(SensorData.POWER_CONSUMED);
+    return linearlyInterpolateDouble(SensorData.POWER_CONSUMED);
+  }
+
+  /**
+   * Returns the linearly interpolated value for energyGeneratedToDate at the timestamp.
+   * 
+   * @return the energy generated counter at the timestamp.
+   */
+  public double getEnergyGeneratedToDate() {
+    return linearlyInterpolateDouble(SensorData.ENERGY_GENERATED_TO_DATE);
+  }
+
+  /**
+   * Returns the linearly interpolated value for energyConsumedToDate at the timestamp.
+   * 
+   * @return the energy consumed counter at the timestamp.
+   */
+  public double getEnergyConsumedToDate() {
+    return linearlyInterpolateDouble(SensorData.ENERGY_CONSUMED_TO_DATE);
   }
 
   /**
@@ -239,6 +297,40 @@ public class SensorDataStraddle {
     data.addProperty(generatedProp);
     consumedProp = new Property(SensorData.POWER_CONSUMED, Double.toString(powerConsumedValue));
     data.addProperty(consumedProp);
+    if (interpolated) {
+      data.setInterpolated(true);
+    }
+    return data;
+  }
+
+  /**
+   * Creates an SensorData object that contains the given power and energy values.
+   * 
+   * @param timestamp The timestamp of the SensorData to be created.
+   * @param source The source URI of the SensorData to be created.
+   * @param powerGeneratedValue The amount of power generated.
+   * @param powerConsumedValue The amount of power consumed.
+   * @param energyGeneratedToDateValue The amount of energy generated (counter).
+   * @param energyConsumedToDateValue The amount of energy consumed (counter).
+   * @param interpolated True if the values were determined by interpolation, false otherwise.
+   * @return The new SensorData object.
+   */
+  public static SensorData makePowerEnergySensorData(XMLGregorianCalendar timestamp, String source,
+      double powerGeneratedValue, double powerConsumedValue, double energyGeneratedToDateValue,
+      double energyConsumedToDateValue, boolean interpolated) {
+    Property prop;
+    SensorData data = new SensorData(timestamp, SensorData.SERVER_TOOL, source);
+    prop = new Property(SensorData.POWER_GENERATED, Double.toString(powerGeneratedValue));
+    data.addProperty(prop);
+    prop = new Property(SensorData.POWER_CONSUMED, Double.toString(powerConsumedValue));
+    data.addProperty(prop);
+    prop =
+        new Property(SensorData.ENERGY_GENERATED_TO_DATE, Double
+            .toString(energyGeneratedToDateValue));
+    data.addProperty(prop);
+    prop =
+        new Property(SensorData.ENERGY_CONSUMED_TO_DATE, Double.toString(energyConsumedToDateValue));
+    data.addProperty(prop);
     if (interpolated) {
       data.setInterpolated(true);
     }

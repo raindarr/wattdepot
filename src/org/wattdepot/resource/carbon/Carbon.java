@@ -28,11 +28,12 @@ public class Carbon extends Energy {
    * @param startStraddle The start straddle.
    * @param endStraddle The end straddle.
    * @param carbonIntensity The carbon intensity for this source.
+   * @param useEnergyCounters True if energy counters should be used to compute the energy
    * @throws IllegalArgumentException If either straddle given is null.
    */
   public Carbon(SensorDataStraddle startStraddle, SensorDataStraddle endStraddle,
-      double carbonIntensity) {
-    super(startStraddle, endStraddle);
+      double carbonIntensity, boolean useEnergyCounters) {
+    super(startStraddle, endStraddle, useEnergyCounters);
     this.carbonIntensity = carbonIntensity;
   }
 
@@ -105,7 +106,7 @@ public class Carbon extends Energy {
       // iterate over list of straddles (note that i never reaches the max index)
       for (int i = 0; i < (straddleList.size() - 1); i++) {
         // making Carbon objects of each pair of straddle
-        carbon = new Carbon(straddleList.get(i), straddleList.get(i + 1), carbonIntensity);
+        carbon = new Carbon(straddleList.get(i), straddleList.get(i + 1), carbonIntensity, false);
         carbonEmitted += carbon.getCarbonEmitted();
       }
       return carbonEmitted;

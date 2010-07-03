@@ -39,7 +39,7 @@ public class TestCarbon {
     beforeData = SensorDataStraddle.makePowerSensorData(beforeTime, source, 100.0, 0, false);
     timestamp = beforeTime;
     straddle2 = new SensorDataStraddle(timestamp, beforeData, beforeData);
-    carbon = new Carbon(straddle1, straddle2, carbonIntensity);
+    carbon = new Carbon(straddle1, straddle2, carbonIntensity, false);
     assertEquals("getCarbonEmitted on degenerate straddles with flat power was wrong", 0.1, carbon
         .getCarbonEmitted(), 0.001);
 
@@ -52,7 +52,7 @@ public class TestCarbon {
     beforeData = SensorDataStraddle.makePowerSensorData(beforeTime, source, 200.0, 0, false);
     timestamp = beforeTime;
     straddle2 = new SensorDataStraddle(timestamp, beforeData, beforeData);
-    carbon = new Carbon(straddle1, straddle2, carbonIntensity);
+    carbon = new Carbon(straddle1, straddle2, carbonIntensity, false);
     assertEquals("getCarbonEmitted on degenerate straddles with doubling power was wrong", 0.15,
         carbon.getCarbonEmitted(), 0.001);
 
@@ -65,7 +65,7 @@ public class TestCarbon {
     beforeData = SensorDataStraddle.makePowerSensorData(beforeTime, source, 50.0, 0, false);
     timestamp = beforeTime;
     straddle2 = new SensorDataStraddle(timestamp, beforeData, beforeData);
-    carbon = new Carbon(straddle1, straddle2, carbonIntensity);
+    carbon = new Carbon(straddle1, straddle2, carbonIntensity, false);
     assertEquals("getCarbonEmitted on degenerate straddles with doubling power was wrong", 1.8,
         carbon.getCarbonEmitted(), 0.01);
     assertTrue("Interpolated property not found", carbon.getEnergy().isInterpolated());
@@ -83,7 +83,7 @@ public class TestCarbon {
     afterData = SensorDataStraddle.makePowerSensorData(afterTime, source, 5.4E7, 0, false);
     timestamp = Tstamp.makeTimestamp("2009-10-12T00:42:00.000-10:00");
     straddle2 = new SensorDataStraddle(timestamp, beforeData, afterData);
-    carbon = new Carbon(straddle1, straddle2, carbonIntensity);
+    carbon = new Carbon(straddle1, straddle2, carbonIntensity, false);
     assertEquals("getCarbonEmitted on Oscar data was wrong", 28033.3333333333332, carbon
         .getCarbonEmitted(), 0.01);
   }

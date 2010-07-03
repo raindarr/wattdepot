@@ -136,36 +136,53 @@ public class SourceResource extends WattDepotResource {
     if (!validateCredentials()) {
       return;
     }
-    if (validateSourceOwnerOrAdmin()) {
-      // Get the payload.
-      String entityString = null;
-      try {
-        entityString = entity.getText();
-      }
-      catch (IOException e) {
-        setStatusMiscError("Bad or missing content");
+    // Get the payload.
+    String entityString = null;
+    try {
+      entityString = entity.getText();
+    }
+    catch (IOException e) {
+      setStatusMiscError("Bad or missing content");
+      return;
+    }
+    Source source;
+    String sourceName;
+    // Try to make the XML payload into Source, return failure if this fails.
+    if ((entityString == null) || ("".equals(entityString))) {
+      setStatusMiscError("Entity body was empty");
+      return;
+    }
+    try {
+      source = makeSource(entityString);
+      sourceName = source.getName();
+    }
+    catch (JAXBException e) {
+      setStatusMiscError("Invalid Source representation: " + entityString);
+      return;
+    }
+    // Return failure if the name of Source doesn't match the name given in URI
+    if (!uriSource.equals(sourceName)) {
+      setStatusMiscError("Soure Name field does not match source field in URI");
+      return;
+    }
+    if (overwrite) {
+      Source existingSource = dbManager.getSource(sourceName);
+      // If source already exists, must be owner to overwrite
+      if ((existingSource != null) && (!validateSourceOwnerOrAdmin())) {
         return;
       }
-      Source source;
-      // Try to make the XML payload into sensor data, return failure if this fails.
-      if ((entityString == null) || ("".equals(entityString))) {
-        setStatusMiscError("Entity body was empty");
+      if (dbManager.storeSource(source, overwrite)) {
+        getResponse().setStatus(Status.SUCCESS_CREATED);
+      }
+      else {
+        // all inputs have been validated by this point, so must be internal error
+        setStatusInternalError(String.format("Unable to create Source named %s", uriSource));
         return;
       }
-      try {
-        source = makeSource(entityString);
-      }
-      catch (JAXBException e) {
-        setStatusMiscError("Invalid Source representation: " + entityString);
-        return;
-      }
-      // Return failure if the name of Source doesn't match the name given in URI
-      if (!uriSource.equals(source.getName())) {
-        setStatusMiscError("Soure Name field does not match source field in URI");
-        return;
-      }
-      if (overwrite) {
-        if (dbManager.storeSource(source, overwrite)) {
+    }
+    else {
+      if (super.dbManager.getSource(uriSource) == null) {
+        if (dbManager.storeSource(source)) {
           getResponse().setStatus(Status.SUCCESS_CREATED);
         }
         else {
@@ -175,25 +192,10 @@ public class SourceResource extends WattDepotResource {
         }
       }
       else {
-        if (super.dbManager.getSource(uriSource) == null) {
-          if (dbManager.storeSource(source)) {
-            getResponse().setStatus(Status.SUCCESS_CREATED);
-          }
-          else {
-            // all inputs have been validated by this point, so must be internal error
-            setStatusInternalError(String.format("Unable to create Source named %s", uriSource));
-            return;
-          }
-        }
-        else {
-          // if Source with given name already exists and not overwriting, then fail
-          setStatusResourceOverwrite(uriSource);
-          return;
-        }
+        // if Source with given name already exists and not overwriting, then fail
+        setStatusResourceOverwrite(uriSource);
+        return;
       }
-    }
-    else {
-      return;
     }
   }
 

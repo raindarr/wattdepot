@@ -175,11 +175,32 @@ public class Properties implements Serializable {
   }
 
   /**
+   * Returns the value of the Property with the given key as a long. If the key is not found, it
+   * returns 0. Only the first property with the given key is returned.
+   * 
+   * @param key The key.
+   * @return The key's value as a long.
+   */
+  public long getPropertyAsLong(String key) {
+    if (this.property == null) {
+      return 0;
+    }
+    else {
+      for (Property prop : this.property) {
+        if (key.equals(prop.getKey())) {
+          return Long.valueOf(prop.getValue());
+        }
+      }
+      return 0;
+    }
+  }
+
+  /**
    * Returns the value of the Property with the given key as a String. If the key is not found, it
    * returns null. Only the first property with the given key is returned.
    * 
    * @param key The key.
-   * @return The key's value as a double.
+   * @return The key's value as a String.
    */
   public String getProperty(String key) {
     if (this.property == null) {
@@ -207,6 +228,28 @@ public class Properties implements Serializable {
     }
     else {
       return this.getProperty().contains(prop);
+    }
+  }
+
+  /**
+   * Returns whether the value of the Property with the given key is true. If the key is not found,
+   * or the value is anything other than a variation of "true", returns false. Only the first
+   * property with the given key is returned.
+   * 
+   * @param key The key.
+   * @return The key's value as a double.
+   */
+  public boolean isPropertyTrue(String key) {
+    if (this.property == null) {
+      return false;
+    }
+    else {
+      for (Property prop : this.property) {
+        if (key.equals(prop.getKey())) {
+          return "true".equalsIgnoreCase(prop.getValue());
+        }
+      }
+      return false;
     }
   }
 }

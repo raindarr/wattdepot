@@ -1278,6 +1278,68 @@ public class WattDepotClient {
   }
 
   /**
+   * Stores a Source resource in the server. If a Source resource with this name already exists, no
+   * action is performed and the method throws a OverwriteAttemptedException, unless the overwrite
+   * parameter is true, in which case the existing resource is overwritten.
+   * 
+   * @param source The Source resource to be stored.
+   * @param overwrite If true, then overwrite the any existing resource with the given name. If
+   * false, return false and do nothing if there is an existing resource with the given name.
+   * @return True if the Source could be stored, false otherwise.
+   * @throws JAXBException If there are problems marshalling the object for upload.
+   * @throws NotAuthorizedException If the client is not authorized to store the Source.
+   * @throws BadXmlException If the server reports that the XML sent was bad, or there was no XML,
+   * or the fields in the XML don't match the URI.
+   * @throws OverwriteAttemptedException If there is already a Source on the server with the same
+   * name.
+   * @throws MiscClientException If the server indicates an unexpected problem has occurred.
+   */
+  public boolean storeSource(Source source, boolean overwrite) throws JAXBException,
+      NotAuthorizedException, BadXmlException, OverwriteAttemptedException, MiscClientException {
+    Marshaller marshaller = sourceJAXB.createMarshaller();
+    StringWriter writer = new StringWriter();
+    if (source == null) {
+      return false;
+    }
+    else {
+      marshaller.marshal(source, writer);
+    }
+    Representation rep =
+        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
+            CharacterSet.UTF_8);
+    String overwriteFlag;
+    if (overwrite) {
+      overwriteFlag = "?overwrite=true";
+    }
+    else {
+      overwriteFlag = "";
+    }
+    Response response =
+        makeRequest(Method.PUT, Server.SOURCES_URI + "/" + source.getName() + overwriteFlag,
+            XML_MEDIA, rep);
+    Status status = response.getStatus();
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad XML in entity body
+      throw new BadXmlException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
+      // client attempted to overwrite existing data and didn't set overwrite to true
+      throw new OverwriteAttemptedException(status);
+    }
+    if (status.isSuccess()) {
+      return true;
+    }
+    else {
+      // Some unexpected type of error received, so punt
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
    * Convenience method for retrieving a Source given its SourceRef.
    * 
    * @param ref The SourceRef of the desired Source.

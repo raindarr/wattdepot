@@ -21,6 +21,9 @@ public class Energy {
   /** Contains the ending straddle. */
   protected SensorDataStraddle endStraddle;
 
+  /** Whether or not to use energy counters when computing energy used. */
+  protected boolean useEnergyCounters;
+
   private static final double SECONDS_PER_HOUR = 60 * 60;
 
   /**
@@ -28,58 +31,78 @@ public class Energy {
    * 
    * @param startStraddle The start straddle.
    * @param endStraddle The end straddle.
+   * @param useEnergyCounters True if energy counters should be used to compute the energy
    * @throws IllegalArgumentException If either straddle given is null.
    */
-  public Energy(SensorDataStraddle startStraddle, SensorDataStraddle endStraddle) {
+  public Energy(SensorDataStraddle startStraddle, SensorDataStraddle endStraddle,
+      boolean useEnergyCounters) {
     if ((startStraddle == null) || (endStraddle == null)) {
-      throw new IllegalArgumentException(
-          "Attempt to create Energy with null SensorDataStraddle");
+      throw new IllegalArgumentException("Attempt to create Energy with null SensorDataStraddle");
     }
     this.startStraddle = startStraddle;
     this.endStraddle = endStraddle;
+    this.useEnergyCounters = useEnergyCounters;
   }
 
   /**
-   * Computes the amount of energy generated between the two straddles by computing the area inside
-   * the polygon formed by the power values from the straddles.
+   * Computes the amount of energy generated between the two straddles. If energy counters are used,
+   * it just subtracts the start counter from the end counter. Note that if the counter has rolled
+   * over, the energy value returned could be negative, and the caller is responsible for dealing
+   * with this. If counters are not used, energy is calculated by computing the area inside the
+   * polygon formed by the power values from the straddles.
    * 
    * @return The energy generated between the straddles in watt hours.
    */
   public double getEnergyGenerated() {
-    XMLGregorianCalendar startTime = this.startStraddle.getTimestamp();
-    XMLGregorianCalendar endTime = this.endStraddle.getTimestamp();
-    // the length of the range in seconds
-    double rangeLength = Tstamp.diff(startTime, endTime) / 1000.0;
-    double startPowerGenerated = 0, endPowerGenerated = 0;
+    if (this.useEnergyCounters) {
+      return this.endStraddle.getEnergyGeneratedToDate()
+          - this.startStraddle.getEnergyGeneratedToDate();
+    }
+    else {
+      XMLGregorianCalendar startTime = this.startStraddle.getTimestamp();
+      XMLGregorianCalendar endTime = this.endStraddle.getTimestamp();
+      // the length of the range in seconds
+      double rangeLength = Tstamp.diff(startTime, endTime) / 1000.0;
+      double startPowerGenerated = 0, endPowerGenerated = 0;
 
-    startPowerGenerated = this.startStraddle.getPowerGenerated();
-    endPowerGenerated = this.endStraddle.getPowerGenerated();
+      startPowerGenerated = this.startStraddle.getPowerGenerated();
+      endPowerGenerated = this.endStraddle.getPowerGenerated();
 
-    // compute the area of the polygon, in joules (watt seconds), then convert to Wh
-    return (rangeLength * startPowerGenerated + 0.5 * rangeLength
-        * (endPowerGenerated - startPowerGenerated))
-        / SECONDS_PER_HOUR;
+      // compute the area of the polygon, in joules (watt seconds), then convert to Wh
+      return (rangeLength * startPowerGenerated + 0.5 * rangeLength
+          * (endPowerGenerated - startPowerGenerated))
+          / SECONDS_PER_HOUR;
+    }
   }
 
   /**
-   * Computes the amount of energy consumed between the two straddles by computing the area inside
-   * the polygon formed by the power values from the straddles.
+   * Computes the amount of energy consumed between the two straddles. If energy counters are used,
+   * it just subtracts the start counter from the end counter. Note that if the counter has rolled
+   * over, the energy value returned could be negative, and the caller is responsible for dealing
+   * with this. If counters are not used, energy is calculated by computing the area inside the
+   * polygon formed by the power values from the straddles.
    * 
    * @return The energy consumed between the straddles in watt hours.
    */
   public double getEnergyConsumed() {
-    XMLGregorianCalendar startTime = this.startStraddle.getTimestamp();
-    XMLGregorianCalendar endTime = this.endStraddle.getTimestamp();
-    // the length of the range in seconds
-    double rangeLength = Tstamp.diff(startTime, endTime) / 1000.0;
-    double startPowerConsumed = 0, endPowerConsumed = 0;
-    startPowerConsumed = this.startStraddle.getPowerConsumed();
-    endPowerConsumed = this.endStraddle.getPowerConsumed();
+    if (this.useEnergyCounters) {
+      return this.endStraddle.getEnergyConsumedToDate()
+          - this.startStraddle.getEnergyConsumedToDate();
+    }
+    else {
+      XMLGregorianCalendar startTime = this.startStraddle.getTimestamp();
+      XMLGregorianCalendar endTime = this.endStraddle.getTimestamp();
+      // the length of the range in seconds
+      double rangeLength = Tstamp.diff(startTime, endTime) / 1000.0;
+      double startPowerConsumed = 0, endPowerConsumed = 0;
+      startPowerConsumed = this.startStraddle.getPowerConsumed();
+      endPowerConsumed = this.endStraddle.getPowerConsumed();
 
-    // compute the area of the polygon, in joules (watt seconds), then convert to Wh
-    return (rangeLength * startPowerConsumed + 0.5 * rangeLength
-        * (endPowerConsumed - startPowerConsumed))
-        / SECONDS_PER_HOUR;
+      // compute the area of the polygon, in joules (watt seconds), then convert to Wh
+      return (rangeLength * startPowerConsumed + 0.5 * rangeLength
+          * (endPowerConsumed - startPowerConsumed))
+          / SECONDS_PER_HOUR;
+    }
   }
 
   /**
@@ -93,6 +116,16 @@ public class Energy {
 
     return makeEnergySensorData(this.startStraddle.getTimestamp(), this.startStraddle
         .getBeforeData().getSource(), energyGeneratedValue, energyConsumedValue, true);
+  }
+
+  /**
+   * Returns the canonical timestamp associated with this Energy object. Note that since energy is
+   * defined using a pair of timestamps, the start timestamp is (arbitrarily) the canonical one.
+   * 
+   * @return the timestamp for this Energy object.
+   */
+  public XMLGregorianCalendar getTimestamp() {
+    return this.startStraddle.getTimestamp();
   }
 
   /**
@@ -128,7 +161,8 @@ public class Energy {
    * @param source The URI of the Source (needed to create the SensorData).
    * @return The newly created SensorData object.
    */
-  public static SensorData getEnergyFromList(List<SensorDataStraddle> straddleList, String source) {
+  public static SensorData getEnergyFromStraddleList(List<SensorDataStraddle> straddleList,
+      String source) {
     if (straddleList == null) {
       return null;
     }
@@ -143,12 +177,57 @@ public class Energy {
       timestamp = straddleList.get(0).getTimestamp();
       // iterate over list of straddles (note that i never reaches the max index)
       for (int i = 0; i < (straddleList.size() - 1); i++) {
-        // making Energy objects of each pair of straddle
-        energy = new Energy(straddleList.get(i), straddleList.get(i + 1));
+        // making Energy objects of each pair of straddle. useEnergyCounters is false because
+        // getEnergyFromList is only called when energy counters aren't available.
+        energy = new Energy(straddleList.get(i), straddleList.get(i + 1), false);
         energyGenerated += energy.getEnergyGenerated();
         energyConsumed += energy.getEnergyConsumed();
       }
       return makeEnergySensorData(timestamp, source, energyGenerated, energyConsumed,
+          wasInterpolated);
+    }
+  }
+
+  /**
+   * Takes a List of Energy objects, computes and sums up the energy consumed and energy generated
+   * from each, and returns a new SensorData object with those sums.
+   * 
+   * @param energyList The list of Energy objects to process.
+   * @param source The URI of the Source (needed to create the SensorData).
+   * @return The newly created SensorData object.
+   * @throws EnergyCounterException If using energy counters and counter in start value was smaller
+   * than end value. This indicates a problem that must be handled higher up.
+   */
+  public static SensorData getEnergyFromList(List<Energy> energyList, String source)
+      throws EnergyCounterException {
+    if (energyList == null) {
+      return null;
+    }
+    double totalEnergyGenerated = 0, totalEnergyConsumed = 0;
+    double energyGenerated, energyConsumed;
+    boolean wasInterpolated = true;
+    XMLGregorianCalendar timestamp;
+    if (energyList.isEmpty()) {
+      return null;
+    }
+    else {
+      timestamp = energyList.get(0).getTimestamp();
+      // iterate over list of Energy objects
+      for (Energy energy : energyList) {
+        energyGenerated = energy.getEnergyGenerated();
+        energyConsumed = energy.getEnergyConsumed();
+        if (energyGenerated < 0) {
+          throw new EnergyCounterException("computed energyGenerated was < 0: " + energyGenerated);
+        }
+        else if (energyConsumed < 0) {
+          throw new EnergyCounterException("computed energyConsumed was < 0: " + energyConsumed);
+        }
+        else {
+          totalEnergyGenerated += energy.getEnergyGenerated();
+          totalEnergyConsumed += energy.getEnergyConsumed();
+        }
+      }
+      return makeEnergySensorData(timestamp, source, totalEnergyGenerated, totalEnergyConsumed,
           wasInterpolated);
     }
   }
@@ -176,9 +255,9 @@ public class Energy {
     }
     else {
       timestamp = masterList.get(0).get(0).getTimestamp();
-      // iterate over the list of straddle lists (each one corresponding to a different source
+      // iterate over the list of straddle lists (each one corresponding to a different source)
       for (List<SensorDataStraddle> straddleList : masterList) {
-        energyData = getEnergyFromList(straddleList, source);
+        energyData = getEnergyFromStraddleList(straddleList, source);
         energyGenerated +=
             energyData.getProperties().getPropertyAsDouble(SensorData.ENERGY_GENERATED);
         energyConsumed +=
