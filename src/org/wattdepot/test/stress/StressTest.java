@@ -7,6 +7,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.wattdepot.client.WattDepotClient;
+import org.wattdepot.resource.energy.TestEnergyResource;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.test.DataGenerator;
@@ -20,6 +21,8 @@ import org.wattdepot.util.tstamp.Tstamp;
  */
 public class StressTest {
 
+  private static XMLGregorianCalendar START_TIMESTAMP;
+  private static XMLGregorianCalendar END_TIMESTAMP;
   /** The WattDepot server used in these tests. */
   protected static Server server = null;
   /** The DbManager used by these tests. */
@@ -48,8 +51,10 @@ public class StressTest {
     String adminUserUri = manager.getUser(adminEmail).toUri(server);
     DataGenerator test = new DataGenerator(manager, adminUserUri, server);
     System.out.print("Creating test data...");
-    test.storeData(Tstamp.makeTimestamp("2010-01-08T00:00:00.000-10:00"), Tstamp
-        .makeTimestamp("2010-01-09T00:00:00.000-10:00"), 5);
+    StressTest.START_TIMESTAMP = Tstamp.makeTimestamp("2010-01-08T00:00:00.000-10:00");
+    StressTest.END_TIMESTAMP = Tstamp.makeTimestamp("2010-01-09T00:00:00.000-10:00");
+
+    test.storeData(START_TIMESTAMP, END_TIMESTAMP, 5);
     System.out.println("done");
   }
 
@@ -58,7 +63,9 @@ public class StressTest {
    */
   public StressTest() {
     super();
-    this.client = new WattDepotClient(StressTest.server.getHostName());
+    this.client =
+        new WattDepotClient(StressTest.server.getHostName(),
+            manager.getUser(adminEmail).getEmail(), manager.getUser(adminEmail).getPassword());
   }
 
   /**
@@ -67,7 +74,7 @@ public class StressTest {
    * @throws Exception If there are problems.
    */
   @Test
-  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
+  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert") // NOPMD
   public void testInterpolatedPowerSingleSource() throws Exception {
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp("2010-01-08T12:03:07.000-10:00");
     Date testStart = new Date();
@@ -89,7 +96,7 @@ public class StressTest {
    * @throws Exception If there are problems.
    */
   @Test
-  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
+  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert") // NOPMD
   public void testInterpolatedPowerVirtualSource() throws Exception {
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp("2010-01-08T12:03:07.000-10:00");
     Date testStart = new Date();
@@ -112,7 +119,7 @@ public class StressTest {
    * @throws Exception If there are problems.
    */
   @Test
-  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
+  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert") // NOPMD
   public void testSourceSummaryVirtualSource() throws Exception {
     Date testStart = new Date();
     int iterations = 1;
@@ -126,5 +133,53 @@ public class StressTest {
         iterations, msElapsed);
     System.out.format("Mean time to generate source summary for virtual source: %.1f ms%n",
         msElapsed / iterations);
+  }
+
+  /**
+   * Computes calculated energy for a virtual source many times and reports how long it took.
+   * 
+   * @throws Exception If there are problems.
+   */
+  @Test
+  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert") // NOPMD
+  public void testEnergyVirtualSource() throws Exception {
+    Date testStart = new Date();
+    XMLGregorianCalendar startTime = Tstamp.incrementMinutes(START_TIMESTAMP, 1), endTime =
+        Tstamp.incrementMinutes(END_TIMESTAMP, -10);
+    int iterations = 100;
+    // First compute using energy counters (default for source)
+    for (int i = 0; i < iterations; i++) {
+      // 
+      client.getEnergyGenerated(DataGenerator.source11Name, startTime, endTime, 0);
+    }
+    Date testEnd = new Date();
+    double msElapsed = testEnd.getTime() - testStart.getTime();
+    System.out.format(
+        "Time to compute energy for virtual source using counters generated %d times: %.1f ms%n",
+        iterations, msElapsed);
+    System.out.format("Mean time to compute energy for virtual source using counters: %.1f ms%n",
+        msElapsed / iterations);
+
+    // Now compute without counters
+    for (int i = 0; i < DataGenerator.NUM_SOURCES; i++) {
+      TestEnergyResource.removeEnergyCounterProperty(client, DataGenerator.getSourceName(i));
+    }
+    testStart = new Date();
+    for (int i = 0; i < iterations; i++) {
+      // 
+      client.getEnergyGenerated(DataGenerator.source11Name, startTime, endTime, 0);
+    }
+    testEnd = new Date();
+    msElapsed = testEnd.getTime() - testStart.getTime();
+    System.out.format(
+        "Time to compute energy for virtual source without counters generated %d times: %.1f ms%n",
+        iterations, msElapsed);
+    System.out.format("Mean time to compute energy for virtual source without counters: %.1f ms%n",
+        msElapsed / iterations);
+    // Put source properties back in case there are other tests that follow this one
+    for (int i = 0; i < DataGenerator.NUM_SOURCES; i++) {
+      TestEnergyResource.addEnergyCounterProperty(client, DataGenerator.getSourceName(i));
+    }
+
   }
 }

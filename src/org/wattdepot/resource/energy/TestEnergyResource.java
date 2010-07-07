@@ -602,7 +602,7 @@ public class TestEnergyResource extends ServerTestHelper {
    * @throws OverwriteAttemptedException Should never be thrown, since we are always overwriting.
    * @throws JAXBException If there are XML problems.
    */
-  private boolean addEnergyCounterProperty(WattDepotClient client, String sourceName)
+  public static boolean addEnergyCounterProperty(WattDepotClient client, String sourceName)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException, OverwriteAttemptedException, JAXBException {
     Source source = client.getSource(sourceName);
@@ -623,7 +623,7 @@ public class TestEnergyResource extends ServerTestHelper {
    * @throws OverwriteAttemptedException Should never be thrown, since we are always overwriting.
    * @throws JAXBException If there are XML problems.
    */
-  private boolean removeEnergyCounterProperty(WattDepotClient client, String sourceName)
+  public static boolean removeEnergyCounterProperty(WattDepotClient client, String sourceName)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException, OverwriteAttemptedException, JAXBException {
     Source source = client.getSource(sourceName);

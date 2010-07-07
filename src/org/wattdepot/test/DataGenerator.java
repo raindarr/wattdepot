@@ -2,6 +2,7 @@ package org.wattdepot.test;
 
 import static org.wattdepot.server.ServerProperties.ADMIN_EMAIL_KEY;
 import javax.xml.datatype.XMLGregorianCalendar;
+import org.wattdepot.resource.property.jaxb.Properties;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -27,10 +28,12 @@ public class DataGenerator {
   private static final String[] sourceNames =
       { "source01", "source02", "source03", "source04", "source05", "source06", "source07",
           "source08", "source09", "source10" };
+  /** The number of non-virtual sources used for testing. */
+  public static final int NUM_SOURCES = sourceNames.length;
   /** The test Sources in URI form. */
-  public String[] sourceURIs = new String[sourceNames.length];
+  public String[] sourceURIs = new String[NUM_SOURCES];
   /** Array containing all the of the non-virtual sources. */
-  public static final Source[] sources = new Source[10];
+  public static final Source[] sources = new Source[NUM_SOURCES];
   /** The name used for the tool when storing SensorData. */
   private static final String toolName = "DataGenerator";
 
@@ -44,8 +47,9 @@ public class DataGenerator {
   public DataGenerator(DbManager dbManager, String adminUserUri, Server server) {
     this.dbManager = dbManager;
     SubSources subSources = new SubSources();
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < NUM_SOURCES; i++) {
       Source source = new Source(sourceNames[i], adminUserUri, true);
+      source.addProperty(new Property(Source.SUPPORTS_ENERGY_COUNTERS, "true"));
       sources[i] = source;
       sourceURIs[i] = source.toUri(server);
       subSources.getHref().add(sourceURIs[i]);
@@ -90,12 +94,23 @@ public class DataGenerator {
     XMLGregorianCalendar timestamp = startTime;
     int j = 0;
     SensorData data;
+    Properties props;
+    int power;
+    // Store energy counter per source across loop iterations
+    double totalEnergyGenerated[] = {0, 1234.0, 2345, 3456, 4567, 5678, 6789, 7890, 8901, 9012};
     while (Tstamp.lessThan(timestamp, endTime)) {
-      for (int i = 0; i < 10; i++) {
-        data =
-            new SensorData(timestamp, toolName, sourceURIs[i], new Property(
-                SensorData.POWER_GENERATED, Integer.toString(j * (i + 1))));
-        // System.out.println(data); // DEBUG
+      for (int i = 0; i < NUM_SOURCES; i++) {
+        props = new Properties();
+        power = j * (i + 1) * 100;
+        // energy counter increased by power * rate, converted to Wh
+        totalEnergyGenerated[i] += power * rate / 60.0;
+        props.getProperty().add(new Property(SensorData.POWER_GENERATED, Integer.toString(power)));
+        props.getProperty()
+            .add(
+                new Property(SensorData.ENERGY_GENERATED_TO_DATE, Double
+                    .toString(totalEnergyGenerated[i])));
+        data = new SensorData(timestamp, toolName, sourceURIs[i], props);
+//        System.out.println(data); // DEBUG
         this.dbManager.storeSensorData(data);
       }
       // System.out.format("timestamp=%s%n", timestamp); // DEBUG
