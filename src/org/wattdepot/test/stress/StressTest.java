@@ -19,6 +19,7 @@ import org.wattdepot.util.tstamp.Tstamp;
  * 
  * @author Robert Brewer
  */
+@SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert")
 public class StressTest {
 
   private static XMLGregorianCalendar START_TIMESTAMP;
@@ -74,7 +75,6 @@ public class StressTest {
    * @throws Exception If there are problems.
    */
   @Test
-  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert") // NOPMD
   public void testInterpolatedPowerSingleSource() throws Exception {
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp("2010-01-08T12:03:07.000-10:00");
     Date testStart = new Date();
@@ -96,7 +96,6 @@ public class StressTest {
    * @throws Exception If there are problems.
    */
   @Test
-  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert") // NOPMD
   public void testInterpolatedPowerVirtualSource() throws Exception {
     XMLGregorianCalendar timestamp = Tstamp.makeTimestamp("2010-01-08T12:03:07.000-10:00");
     Date testStart = new Date();
@@ -119,7 +118,6 @@ public class StressTest {
    * @throws Exception If there are problems.
    */
   @Test
-  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert") // NOPMD
   public void testSourceSummaryVirtualSource() throws Exception {
     Date testStart = new Date();
     int iterations = 1;
@@ -141,7 +139,6 @@ public class StressTest {
    * @throws Exception If there are problems.
    */
   @Test
-  @SuppressWarnings("PMD.JUnitTestsShouldIncludeAssert") // NOPMD
   public void testEnergyVirtualSource() throws Exception {
     Date testStart = new Date();
     XMLGregorianCalendar startTime = Tstamp.incrementMinutes(START_TIMESTAMP, 1), endTime =
@@ -180,6 +177,48 @@ public class StressTest {
     for (int i = 0; i < DataGenerator.NUM_SOURCES; i++) {
       TestEnergyResource.addEnergyCounterProperty(client, DataGenerator.getSourceName(i));
     }
-
   }
+
+  /**
+   * Retrieves latest sensor data from sources many times and reports how long it took.
+   * 
+   * @throws Exception If there are problems.
+   */
+  @Test
+  public void testLatestSensorData() throws Exception {
+    int iterations = 10; // per source
+    Date testStart = new Date();
+    for (int i = 0; i < iterations; i++) {
+      for (int j = 0; j < DataGenerator.NUM_SOURCES; j++) {
+        client.getLatestSensorData(DataGenerator.getSourceName(j));
+      }
+    }
+    Date testEnd = new Date();
+    double msElapsed = testEnd.getTime() - testStart.getTime();
+    int calls = iterations * DataGenerator.NUM_SOURCES;
+    System.out.format("Time to retrieve latest sensor data %d times: %.1f ms%n", calls, msElapsed);
+    System.out.format("Mean time to retrieve latest sensor data: %.1f ms%n", msElapsed / calls);
+  }
+
+  /**
+   * Retrieves latest sensor data from sources many times and reports how long it took.
+   * 
+   * @throws Exception If there are problems.
+   */
+  @Test
+  public void testLatestSensorDataVirtual() throws Exception {
+    int iterations = 100; // per source
+    Date testStart = new Date();
+    for (int i = 0; i < iterations; i++) {
+      client.getLatestSensorData(DataGenerator.source11Name);
+    }
+    Date testEnd = new Date();
+    double msElapsed = testEnd.getTime() - testStart.getTime();
+    System.out.format(
+        "Time to retrieve latest sensor data from virtual source %d times: %.1f ms%n", iterations,
+        msElapsed);
+    System.out.format("Mean time to retrieve latest sensor data from virtual source : %.1f ms%n",
+        msElapsed / iterations);
+  }
+
 }
