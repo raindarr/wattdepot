@@ -14,6 +14,12 @@ import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.PosixParser;
 import org.mortbay.jetty.servlet.Context;
 import org.mortbay.jetty.servlet.ServletHolder;
 import org.restlet.Application;
@@ -124,7 +130,21 @@ public class Server extends Application {
    * @throws Exception If problems occur starting up this server.
    */
   public static Server newInstance() throws Exception {
-    return newInstance(new ServerProperties());
+    return newInstance(false, false);
+  }
+
+  /**
+   * Creates a new instance of a WattDepot HTTP server, listening on the port defined either by the
+   * properties file or a default. The server home directory is set to the default value of
+   * "server".
+   * 
+   * @param compress If true, the server will compress the database and then exit.
+   * @param reindex If true, the server will reindex the database and then exit.
+   * @return The Server instance created.
+   * @throws Exception If problems occur starting up this server.
+   */
+  public static Server newInstance(boolean compress, boolean reindex) throws Exception {
+    return newInstance(new ServerProperties(), compress, reindex);
   }
 
   /**
@@ -133,11 +153,14 @@ public class Server extends Application {
    * serverSubdir parameter.
    * 
    * @param serverSubdir The filename of the subdirectory containing this server's files.
+   * @param compress If true, the server will compress the database and then exit.
+   * @param reindex If true, the server will reindex the database and then exit.
    * @return The Server instance created.
    * @throws Exception If problems occur starting up this server.
    */
-  public static Server newInstance(String serverSubdir) throws Exception {
-    return newInstance(new ServerProperties(serverSubdir));
+  public static Server newInstance(String serverSubdir, boolean compress, boolean reindex)
+      throws Exception {
+    return newInstance(new ServerProperties(serverSubdir), compress, reindex);
   }
 
   /**
@@ -151,7 +174,7 @@ public class Server extends Application {
   public static Server newTestInstance() throws Exception {
     ServerProperties properties = new ServerProperties();
     properties.setTestProperties();
-    return newInstance(properties);
+    return newInstance(properties, false, false);
   }
 
   /**
@@ -159,10 +182,13 @@ public class Server extends Application {
    * properties file or a default.
    * 
    * @param serverProperties The ServerProperties used to initialize this server.
+   * @param compress If true, the server will compress the database and then exit.
+   * @param reindex If true, the server will reindex the database and then exit.
    * @return The Server instance created.
    * @throws Exception If problems occur starting up this server.
    */
-  public static Server newInstance(ServerProperties serverProperties) throws Exception {
+  public static Server newInstance(ServerProperties serverProperties, boolean compress,
+      boolean reindex) throws Exception {
     Server server = new Server();
     server.serverProperties = serverProperties;
     server.logger =
@@ -203,27 +229,45 @@ public class Server extends Application {
     }
     attributes.put("DbManager", dbManager);
 
-    // Set up the Google Visualization API servlet
-    server.gvizHostName = server.serverProperties.getGvizFullHost();
-    int gvizPort = Integer.valueOf(server.serverProperties.get(GVIZ_PORT_KEY));
-    org.mortbay.jetty.Server jettyServer = new org.mortbay.jetty.Server(gvizPort);
-    server.logger.warning("Google visualization URL: " + server.gvizHostName);
-    Context jettyContext =
-        new Context(jettyServer, "/" + server.serverProperties.get(GVIZ_CONTEXT_ROOT_KEY));
+    if (compress) {
+      server.logger.warning("Compressing database tables.");
+      dbManager.performMaintenance();
+      server.logger.warning("Compressing database tables complete.");
+    }
+    if (reindex) {
+      server.logger.warning("Reindexing database tables.");
+      dbManager.indexTables();
+      server.logger.warning("Reindexing database tables complete.");
+    }
+    if (compress || reindex) {
+      // Just terminate if compression or reindexing was requested
+      return null;
+    }
+    else {
+      // Only start server up for queries if when not compressing or reindexing
 
-    ServletHolder servletHolder = new ServletHolder(new GVisualizationServlet(server));
-    servletHolder.setInitParameter("applicationClassName",
-        "org.wattdepot.resource.gviz.GVisualizationServlet");
-    servletHolder.setInitOrder(1);
-    jettyContext.addServlet(servletHolder, "/sources/*");
+      // Set up the Google Visualization API servlet
+      server.gvizHostName = server.serverProperties.getGvizFullHost();
+      int gvizPort = Integer.valueOf(server.serverProperties.get(GVIZ_PORT_KEY));
+      org.mortbay.jetty.Server jettyServer = new org.mortbay.jetty.Server(gvizPort);
+      server.logger.warning("Google visualization URL: " + server.gvizHostName);
+      Context jettyContext =
+          new Context(jettyServer, "/" + server.serverProperties.get(GVIZ_CONTEXT_ROOT_KEY));
 
-    // Now let's open for business.
-    server.logger.info("Maximum Java heap size (MB): "
-        + (Runtime.getRuntime().maxMemory() / 1000000.0));
-    server.component.start();
-    jettyServer.start();
-    server.logger.warning("WattDepot server (Version " + getVersion() + ") now running.");
-    return server;
+      ServletHolder servletHolder = new ServletHolder(new GVisualizationServlet(server));
+      servletHolder.setInitParameter("applicationClassName",
+          "org.wattdepot.resource.gviz.GVisualizationServlet");
+      servletHolder.setInitOrder(1);
+      jettyContext.addServlet(servletHolder, "/sources/*");
+
+      // Now let's open for business.
+      server.logger.info("Maximum Java heap size (MB): "
+          + (Runtime.getRuntime().maxMemory() / 1000000.0));
+      server.component.start();
+      jettyServer.start();
+      server.logger.warning("WattDepot server (Version " + getVersion() + ") now running.");
+      return server;
+    }
   }
 
   /**
@@ -353,14 +397,44 @@ public class Server extends Application {
    * @throws Exception if things go horribly awry during startup
    */
   public static void main(String[] args) throws Exception {
-    if (args.length == 0) {
-      Server.newInstance();
+    Options options = new Options();
+    options.addOption("h", "help", false, "Print this message");
+    options.addOption("d", "directoryName", true,
+        "subdirectory under ~/.wattdepot where this server's files are to be kept.");
+    options.addOption("c", "compress", false, "Compress database files.");
+    options.addOption("r", "reindex", false, "Rebuild database indices.");
+
+    CommandLine cmd = null;
+    String directoryName = null;
+    boolean compress, reindex;
+
+    CommandLineParser parser = new PosixParser();
+    HelpFormatter formatter = new HelpFormatter();
+    try {
+      cmd = parser.parse(options, args);
     }
-    else if (args.length == 1) {
-      Server.newInstance(args[0]);
+    catch (ParseException e) {
+      System.err.println("Command line parsing failed. Reason: " + e.getMessage() + ". Exiting.");
+      System.exit(1);
+    }
+
+    if (cmd.hasOption("h")) {
+      formatter.printHelp("WattDepotServer", options);
+      System.exit(0);
+    }
+
+    if (cmd.hasOption("d")) {
+      directoryName = cmd.getOptionValue("d");
+    }
+
+    compress = cmd.hasOption("c");
+    reindex = cmd.hasOption("r");
+
+    if ((directoryName == null) || (directoryName.length() == 0)) {
+      Server.newInstance(compress, reindex);
     }
     else {
-      System.err.println("Too many command line arguments.");
+      Server.newInstance(directoryName, compress, reindex);
     }
   }
 

@@ -212,9 +212,8 @@ public class PropertyAdder {
    * Processes command line arguments, creates the MonitorSourceClient object and starts monitoring.
    * 
    * @param args command line arguments.
-   * @throws InterruptedException If some other thread interrupts our sleep.
    */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) {
     Options options = new Options();
     options.addOption("h", "help", false, "Print this message");
     options.addOption("u", "uri", true,

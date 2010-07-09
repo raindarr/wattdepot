@@ -2,6 +2,7 @@ package org.wattdepot.server.db.derby;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -421,7 +422,7 @@ public class DerbyStorageImplementation extends DbImplementation {
 
   /**
    * Determines if a Source with the given name exists or not.
-   *  
+   * 
    * @param sourceName Name of the Source
    * @return True if the given source exists, false otherwise.
    */
@@ -619,11 +620,14 @@ public class DerbyStorageImplementation extends DbImplementation {
         // If source exists already, then do update rather than insert IF overwrite is true
         if (sourceExists(source.getName())) {
           if (overwrite) {
-            s = conn.prepareStatement("UPDATE Source SET Name = ?, Owner = ?, PublicP = ?, Virtual = ?, Coordinates = ?, Location = ?, Description = ?, SubSources = ?, Properties = ?, LastMod = ? WHERE Name = ?");
+            s =
+                conn
+                    .prepareStatement("UPDATE Source SET Name = ?, Owner = ?, PublicP = ?, Virtual = ?, Coordinates = ?, Location = ?, Description = ?, SubSources = ?, Properties = ?, LastMod = ? WHERE Name = ?");
             s.setString(11, source.getName());
           }
           else {
-            this.logger.fine("Derby: Attempted to overwrite without overwrite=true Source " + source.getName());
+            this.logger.fine("Derby: Attempted to overwrite without overwrite=true Source "
+                + source.getName());
             return false;
           }
         }
@@ -719,6 +723,10 @@ public class DerbyStorageImplementation extends DbImplementation {
           + " Source = 'test-db-source', "
           + " Properties = '<Properties><Property><Key>powerGenerated</Key><Value>4.6E7</Value></Property></Properties>', "
           + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
+
+  private static final String indexSensorDataTstampStatement =
+      "CREATE INDEX TstampIndex ON SensorData(Tstamp asc)";
+  private static final String dropIndexSensorDataTstampStatement = "DROP INDEX TstampIndex";
 
   /**
    * Converts a database row from the SensorData table to a SensorData object. The caller should
@@ -1524,15 +1532,84 @@ public class DerbyStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public boolean performMaintenance() {
-    // ConcurrentHashMaps don't need maintenance, so just return true.
-    return true;
+    boolean success = false;
+    this.logger.fine("Starting to compress tables.");
+    Connection conn = null;
+    CallableStatement cs = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      cs = conn.prepareCall("CALL SYSCS_UTIL.SYSCS_COMPRESS_TABLE(?, ?, ?)");
+      cs.setString(1, "APP");
+      // Note that table names must be uppercase, even though they were created with mixed case,
+      // and SQL queries with mixed case work fine. Bah.
+      cs.setString(2, "SENSORDATA");
+      cs.setShort(3, (short) 1);
+      cs.execute();
+      cs.setString(2, "SOURCE");
+      cs.execute();
+      cs.setString(2, "WATTDEPOTUSER");
+      cs.execute();
+      success = true;
+    }
+    catch (SQLException e) {
+      this.logger.info("Derby: Error in compressTables()" + StackTrace.toString(e));
+      success = false;
+    }
+    finally {
+      try {
+        cs.close();
+        conn.close();
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        success = false;
+      }
+    }
+    this.logger.fine("Finished compressing tables.");
+    return success;
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean indexTables() {
-    // ConcurrentHashMaps don't need indexes, so just return true.
-    return true;
+    this.logger.fine("Starting to index tables.");
+    boolean success = false;
+    Connection conn = null;
+    Statement s = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      s = conn.createStatement();
+
+      // Note: If the db is being set up for the first time, it is not an error for the drop index
+      // statement to fail. Thus, we simply log the occurrence.
+
+      try {
+        s.execute(dropIndexSensorDataTstampStatement);
+      }
+      catch (Exception e) {
+        this.logger.info("Failed to drop SensorData(Tstamp) index.");
+      }
+      s.execute(indexSensorDataTstampStatement);
+
+      s.close();
+      success = true;
+    }
+    catch (SQLException e) {
+      this.logger.info("Derby: Error in indexTables()" + StackTrace.toString(e));
+      success = false;
+    }
+    finally {
+      try {
+        s.close();
+        conn.close();
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        success = false;
+      }
+    }
+    this.logger.fine("Finished indexing tables.");
+    return success;
   }
 
   @Override
