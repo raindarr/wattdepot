@@ -728,6 +728,14 @@ public class DerbyStorageImplementation extends DbImplementation {
       "CREATE INDEX TstampIndex ON SensorData(Tstamp asc)";
   private static final String dropIndexSensorDataTstampStatement = "DROP INDEX TstampIndex";
 
+  private static final String indexSensorDataTstampDescStatement =
+      "CREATE INDEX TstampIndexDesc ON SensorData(Tstamp desc)";
+  private static final String dropIndexSensorDataTstampDescStatement = "DROP INDEX TstampIndexDesc";
+
+  private static final String indexSensorDataSourceStatement =
+    "CREATE INDEX SourceIndex ON SensorData(Source asc)";
+  private static final String dropIndexSensorDataSourceStatement = "DROP INDEX SourceIndex";
+
   /**
    * Converts a database row from the SensorData table to a SensorData object. The caller should
    * have advanced the cursor to the next row via rs.next() before calling this method.
@@ -922,7 +930,6 @@ public class DerbyStorageImplementation extends DbImplementation {
     boolean hasData = false;
     SensorData data = new SensorData();
     try {
-      // Get timestamp of first sensor data for this source
       String statement =
           "SELECT * FROM SensorData WHERE Source = ? ORDER BY Tstamp DESC FETCH FIRST ROW ONLY";
       conn = DriverManager.getConnection(connectionURL);
@@ -1590,6 +1597,22 @@ public class DerbyStorageImplementation extends DbImplementation {
         this.logger.info("Failed to drop SensorData(Tstamp) index.");
       }
       s.execute(indexSensorDataTstampStatement);
+
+      try {
+        s.execute(dropIndexSensorDataTstampDescStatement);
+      }
+      catch (Exception e) {
+        this.logger.info("Failed to drop SensorData(Tstamp DESC) index.");
+      }
+      s.execute(indexSensorDataTstampDescStatement);
+
+      try {
+        s.execute(dropIndexSensorDataSourceStatement);
+      }
+      catch (Exception e) {
+        this.logger.info("Failed to drop SensorData(Source) index.");
+      }
+      s.execute(indexSensorDataSourceStatement);
 
       s.close();
       success = true;
