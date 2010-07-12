@@ -724,18 +724,13 @@ public class DerbyStorageImplementation extends DbImplementation {
           + " Properties = '<Properties><Property><Key>powerGenerated</Key><Value>4.6E7</Value></Property></Properties>', "
           + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
-  private static final String indexSensorDataTstampStatement =
-      "CREATE INDEX TstampIndex ON SensorData(Tstamp asc)";
-  private static final String dropIndexSensorDataTstampStatement = "DROP INDEX TstampIndex";
-
-  private static final String indexSensorDataTstampDescStatement =
-      "CREATE INDEX TstampIndexDesc ON SensorData(Tstamp desc)";
-  private static final String dropIndexSensorDataTstampDescStatement = "DROP INDEX TstampIndexDesc";
-
-  private static final String indexSensorDataSourceStatement =
-    "CREATE INDEX SourceIndex ON SensorData(Source asc)";
-  private static final String dropIndexSensorDataSourceStatement = "DROP INDEX SourceIndex";
-
+  /** Compound index used based on this mailing list reply.
+  http://mail-archives.apache.org/mod_mbox/db-derby-user/201007.mbox/%3cx67hl3kmqf.fsf@oracle.com%3e */
+  private static final String indexSensorDataSourceTstampDescStatement =
+      "CREATE INDEX TstampSourceIndexDesc ON SensorData(Source, Tstamp DESC)";
+  private static final String dropSensorDataSourceTstampDescStatement =
+      "DROP INDEX TstampSourceIndexDesc";
+  
   /**
    * Converts a database row from the SensorData table to a SensorData object. The caller should
    * have advanced the cursor to the next row via rs.next() before calling this method.
@@ -1591,28 +1586,12 @@ public class DerbyStorageImplementation extends DbImplementation {
       // statement to fail. Thus, we simply log the occurrence.
 
       try {
-        s.execute(dropIndexSensorDataTstampStatement);
+        s.execute(dropSensorDataSourceTstampDescStatement);
       }
       catch (Exception e) {
-        this.logger.info("Failed to drop SensorData(Tstamp) index.");
+        this.logger.info("Failed to drop SensorData(Source, Tstamp DESC) index.");
       }
-      s.execute(indexSensorDataTstampStatement);
-
-      try {
-        s.execute(dropIndexSensorDataTstampDescStatement);
-      }
-      catch (Exception e) {
-        this.logger.info("Failed to drop SensorData(Tstamp DESC) index.");
-      }
-      s.execute(indexSensorDataTstampDescStatement);
-
-      try {
-        s.execute(dropIndexSensorDataSourceStatement);
-      }
-      catch (Exception e) {
-        this.logger.info("Failed to drop SensorData(Source) index.");
-      }
-      s.execute(indexSensorDataSourceStatement);
+      s.execute(indexSensorDataSourceTstampDescStatement);
 
       s.close();
       success = true;
