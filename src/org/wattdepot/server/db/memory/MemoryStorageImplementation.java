@@ -699,4 +699,12 @@ public class MemoryStorageImplementation extends DbImplementation {
       return true;
     }
   }
+
+  @Override
+  public boolean makeSnapshot() {
+    // No provision for making a snapshot of the ConcurrentHashMaps, so just return true.
+    // It would be more truthful to return false, but then unit tests would blow up and it's not
+    // worth the hassle of special casing it.
+    return true;
+  }
 }

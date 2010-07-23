@@ -494,6 +494,16 @@ public class DbManager {
   }
 
   /**
+   * Creates a snapshot of the database in the directory specified by
+   * ServerProperties.DB_SNAPSHOT_KEY.
+   * 
+   * @return True if the snapshot succeeded.
+   */
+  public boolean makeSnapshot() {
+    return this.dbImpl.makeSnapshot();
+  }
+
+  /**
    * Wipes all data from the underlying storage implementation. Obviously, this is serious
    * operation. Exposed so that tests can ensure that the database is clean before testing.
    * 

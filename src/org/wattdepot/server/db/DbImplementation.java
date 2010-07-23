@@ -569,6 +569,14 @@ public abstract class DbImplementation {
    */
   public abstract boolean indexTables();
 
+  /**
+   * Creates a snapshot of the database in the directory specified by
+   * ServerProperties.DB_SNAPSHOT_KEY.
+   * 
+   * @return True if the snapshot succeeded.
+   */
+  public abstract boolean makeSnapshot();
+
   // /**
   // * Returns the current number of rows in the specified table.
   // *

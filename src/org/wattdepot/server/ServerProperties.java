@@ -27,6 +27,8 @@ public class ServerProperties {
   public static final String GVIZ_CONTEXT_ROOT_KEY = "wattdepot-server.gviz.context.root";
   /** The database directory key. */
   public static final String DB_DIR_KEY = "wattdepot-server.db.dir";
+  /** The database snapshot directory key. */
+  public static final String DB_SNAPSHOT_KEY = "wattdepot-server.db.snapshot";
   /** The database implementation class. */
   public static final String DB_IMPL_KEY = "wattdepot-server.db.impl";
   /** The hostname key. */
@@ -51,6 +53,8 @@ public class ServerProperties {
   public static final String TEST_GVIZ_PORT_KEY = "wattdepot-server.test.gviz.port";
   /** The wattdepot-server db dir during testing. */
   public static final String TEST_DB_DIR_KEY = "wattdepot-server.test.db.dir";
+  /** The database snapshot directory key during testing. */
+  public static final String TEST_DB_SNAPSHOT_KEY = "wattdepot-server.test.db.snapshot";
   /** The test admin email key. */
   public static final String TEST_ADMIN_EMAIL_KEY = "wattdepot-server.test.admin.email";
   /** The test admin password. */
@@ -115,6 +119,7 @@ public class ServerProperties {
     properties.setProperty(CONTEXT_ROOT_KEY, "wattdepot");
     properties.setProperty(GVIZ_CONTEXT_ROOT_KEY, "gviz");
     properties.setProperty(DB_DIR_KEY, serverHome + "/db");
+    properties.setProperty(DB_SNAPSHOT_KEY, serverHome + "/db-snapshot");
     properties.setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
     properties.setProperty(HOSTNAME_KEY, "localhost");
     properties.setProperty(LOGGING_LEVEL_KEY, "INFO");
@@ -127,6 +132,7 @@ public class ServerProperties {
     properties.setProperty(TEST_ADMIN_EMAIL_KEY, defaultAdmin);
     properties.setProperty(TEST_ADMIN_PASSWORD_KEY, defaultAdmin);
     properties.setProperty(TEST_DB_DIR_KEY, serverHome + "/testdb");
+    properties.setProperty(TEST_DB_SNAPSHOT_KEY, serverHome + "/testdb-snapshot");
     properties.setProperty(TEST_PORT_KEY, "8183");
     properties.setProperty(TEST_GVIZ_PORT_KEY, "8185");
     properties.setProperty(TEST_HOSTNAME_KEY, "localhost");
@@ -181,7 +187,9 @@ public class ServerProperties {
    * <li>ADMIN_PASSWORD_KEY
    * <li>HOSTNAME_KEY
    * <li>DB_DIR_KEY
+   * <li>DB_SNAPSHOT_KEY
    * <li>PORT_KEY
+   * <li>GVIZ_PORT_KEY
    * </ul>
    * Also sets TEST_INSTALL_KEY to true.
    */
@@ -190,6 +198,7 @@ public class ServerProperties {
     properties.setProperty(ADMIN_PASSWORD_KEY, properties.getProperty(TEST_ADMIN_PASSWORD_KEY));
     properties.setProperty(HOSTNAME_KEY, properties.getProperty(TEST_HOSTNAME_KEY));
     properties.setProperty(DB_DIR_KEY, properties.getProperty(TEST_DB_DIR_KEY));
+    properties.setProperty(DB_SNAPSHOT_KEY, properties.getProperty(TEST_DB_SNAPSHOT_KEY));
     properties.setProperty(PORT_KEY, properties.getProperty(TEST_PORT_KEY));
     properties.setProperty(GVIZ_PORT_KEY, properties.getProperty(TEST_GVIZ_PORT_KEY));
     properties.setProperty(TEST_INSTALL_KEY, TRUE);

@@ -69,6 +69,16 @@
       </manifest>
     </jar>
 
+    <jar destfile="${build.jar.dir}/wattdepot-client-snapshot.jar" basedir="${tmp.dir}">
+      <manifest>
+        <attribute name="Main-Class" value="org.wattdepot.client.snapshot.SnapshotClient" />
+        <attribute name="Implementation-Title" value="WattDepot SnapshotClient" />
+        <attribute name="Implementation-Version" value="${version}" />
+        <attribute name="Implementation-Vendor"
+                   value="Collaborative Software Development Laboratory, University of Hawaii" />
+      </manifest>
+    </jar>
+
     <unjar src="${lib.dir}/opencsv/opencsv.jar" dest="${tmp.dir}" />
 
     <jar destfile="${build.jar.dir}/wattdepot-sensor-tabular.jar" basedir="${tmp.dir}">

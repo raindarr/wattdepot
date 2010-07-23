@@ -1403,6 +1403,40 @@ public class WattDepotClient {
   }
 
   /**
+   * Attempts to make a snapshot of the database on the server. Requires admin privileges to
+   * complete.
+   * 
+   * @return True if the snapshot could be created, false otherwise.
+   * @throws NotAuthorizedException If the client is not authorized to create the snapshot.
+   * @throws MiscClientException If the server rejected the snapshot request for some other reason.
+   */
+  public boolean makeSnapshot() throws NotAuthorizedException, MiscClientException {
+    Response response =
+        makeRequest(Method.PUT, Server.DATABASE_URI + "/" + "snapshot", XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server, perhaps not admin?
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // Unexpected, perhaps snapshot method not accepted?
+      throw new MiscClientException(status);
+    }
+    if (status.equals(Status.SERVER_ERROR_INTERNAL)) {
+      // Server had a problem creating the snapshot
+      return false;
+    }
+    if (status.isSuccess()) {
+      return true;
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
    * Retrieves the WattDepot URI used by this client. This is useful for creating resource objects
    * that have URIs in their fields (and thus need the WattDepot URI to construct those URIs).
    * 

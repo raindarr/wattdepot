@@ -1624,4 +1624,39 @@ public class DerbyStorageImplementation extends DbImplementation {
       return false;
     }
   }
+
+  @Override
+  public boolean makeSnapshot() {
+    this.logger.fine("Creating snapshot of database.");
+    boolean success = false;
+    String snapshotDir = server.getServerProperties().get(ServerProperties.DB_SNAPSHOT_KEY);
+
+    Connection conn = null;
+    CallableStatement cs = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      cs = conn.prepareCall("CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE(?)");
+      cs.setString(1, snapshotDir);
+      cs.execute(); 
+      cs.close();
+      success = true;
+    }
+    catch (SQLException e) {
+      this.logger.info("Derby: Error in makeSnapshot()" + StackTrace.toString(e));
+      success = false;
+    }
+    finally {
+      try {
+        cs.close();
+        conn.close();
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        success = false;
+      }
+    }
+    this.logger.fine("Created snapshot of database.");
+
+    return success;
+  }
 }

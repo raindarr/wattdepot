@@ -28,6 +28,7 @@ import org.restlet.Restlet;
 import org.restlet.Router;
 import org.restlet.data.Protocol;
 import org.wattdepot.resource.carbon.CarbonResource;
+import org.wattdepot.resource.db.DatabaseResource;
 import org.wattdepot.resource.energy.EnergyResource;
 import org.wattdepot.resource.gviz.GVisualizationServlet;
 import org.wattdepot.resource.health.HealthResource;
@@ -86,14 +87,17 @@ public class Server extends Application {
   /** URI fragment for source summary. */
   public static final String SUMMARY_URI = "summary";
 
-  /** URI fragment for source summary. */
+  /** URI fragment for power. */
   public static final String POWER_URI = "power";
 
-  /** URI fragment for source summary. */
+  /** URI fragment for energy. */
   public static final String ENERGY_URI = "energy";
 
-  /** URI fragment for source summary. */
+  /** URI fragment for carbon emitted. */
   public static final String CARBON_URI = "carbon";
+
+  /** URI fragment for database resource. */
+  public static final String DATABASE_URI = "db";
 
   /** URI parameter for source name. */
   private static final String SOURCE_PARAM = "{source}";
@@ -456,6 +460,7 @@ public class Server extends Application {
 
     // Health resource is public, so no Guard
     router.attach("/" + HEALTH_URI, HealthResource.class);
+
     // Source does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI, SourceResource.class);
     router.attach("/" + SOURCES_URI + "/?fetchAll={fetchAll}", SourceResource.class);
@@ -464,6 +469,7 @@ public class Server extends Application {
         SourceResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SUMMARY_URI,
         SourceSummaryResource.class);
+
     // SensorData does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI,
         SensorDataResource.class);
@@ -471,21 +477,27 @@ public class Server extends Application {
         + "/?startTime={startTime}&endTime={endTime}", SensorDataResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/{timestamp}",
         SensorDataResource.class);
+
     // Power does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + POWER_URI + "/{timestamp}",
         PowerResource.class);
+
     // Energy does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI
         + "/?startTime={startTime}&endTime={endTime}&samplingInterval={samplingInterval}",
         EnergyResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI
         + "/?startTime={startTime}&endTime={endTime}", EnergyResource.class);
+
     // Carbon does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + CARBON_URI
         + "/?startTime={startTime}&endTime={endTime}&samplingInterval={samplingInterval}",
         CarbonResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + CARBON_URI
         + "/?startTime={startTime}&endTime={endTime}", CarbonResource.class);
+
+    // Database does its own authentication processing, so don't use Guard
+    router.attach("/" + DATABASE_URI + "/" + "{method}", DatabaseResource.class);
 
     // // Google Visualization API resource
     // Route route = router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI,
