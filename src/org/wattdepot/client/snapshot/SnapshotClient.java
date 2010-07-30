@@ -4,6 +4,7 @@ import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_PASSWO
 import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_URI_KEY;
 import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_USERNAME_KEY;
 import java.io.IOException;
+import java.util.Date;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -30,9 +31,9 @@ public class SnapshotClient {
   /** Making PMD happy. */
   private static final String REQUIRED_PARAMETER_ERROR_MSG =
       "Required parameter %s not found in properties.%n";
-  /** Flag for extra debugging output. */  
+  /** Flag for extra debugging output. */
   private boolean debug; // NOPMD
-  
+
   /**
    * Creates the new monitor client.
    * 
@@ -150,14 +151,13 @@ public class SnapshotClient {
       System.err.println("Unable to create SnapshotClient for some reason. Aborting.");
       System.exit(1);
     }
-    else if (snapshotClient.makeSnapshot()) {
-      if (debug) {
-        System.out.println("Snapshot created successfully.");
-      }
+    System.out.format("%tc Snapshot started.%n", new Date());
+    if (snapshotClient.makeSnapshot()) {
+      System.out.format("%tc Snapshot created successfully.%n", new Date());
       System.exit(0);
     }
     else {
-      System.err.println("Unable to create snapshot on server. Aborting.");
+      System.err.format("%tc Unable to create snapshot on server. Aborting.%n", new Date());
       System.exit(2);
     }
   }
