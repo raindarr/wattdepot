@@ -14,6 +14,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlSchemaType;
 import javax.xml.bind.annotation.XmlType;
+import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.property.jaxb.Properties;
 import org.wattdepot.resource.property.jaxb.Property;
@@ -47,7 +48,7 @@ import org.wattdepot.server.Server;
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "", propOrder = { "timestamp", "tool", "source", "properties" })
 @XmlRootElement(name = "SensorData")
-public class SensorData implements Serializable {
+public class SensorData implements Serializable, Comparable<SensorData>{
 
   private final static long serialVersionUID = 12343L;
   @XmlElement(name = "Timestamp", required = true)
@@ -400,5 +401,45 @@ public class SensorData implements Serializable {
    */
   public String toUri(Source source, Server server) {
     return toUri(source, server.getHostName());
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Comparable<T>#compareTo(java.lang.Comparable<T>)
+   */
+  @Override
+  public int compareTo(SensorData o) {
+    // if o is null, throw NullPointerException, per Comparable JavaDoc
+    if (o == null) {
+      throw new NullPointerException("Tried to compare SensorDataRef with null");
+    }
+    if (o.equals(this)) {
+      return 0;
+    }
+    int timestampCompare = timestamp.compare(o.getTimestamp());
+    if (timestampCompare == DatatypeConstants.LESSER) {
+      // this is earlier than o
+      return -1;
+    }
+    else if (timestampCompare == DatatypeConstants.GREATER) {
+      // this is later than o
+      return 1;
+    }
+    // move on to the other fields for comparison
+    int comparison;
+    comparison = source.compareTo(o.getSource());
+    if (comparison != 0) {
+      // sources differ, so just return the comparison value
+      return comparison;
+    }
+    // sources are the same, so check tool field
+    comparison = tool.compareTo(o.getTool());
+    if (comparison != 0) {
+      // tools differ, so just return the comparison value
+      return comparison;
+    }
+    // Ignore properties for comparison, so just return equal if we get here.
+    return 0;
   }
 }

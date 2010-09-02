@@ -8,6 +8,7 @@ import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
+import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.Sources;
@@ -220,6 +221,25 @@ public class DbManager {
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
     return this.dbImpl.getSensorDataIndex(sourceName, startTime, endTime);
+  }
+
+  /**
+   * Returns a list of all SensorData resources representing all the SensorData resources for the
+   * named Source such that their timestamp is greater than or equal to the given start time and
+   * less than or equal to the given end time. If the Source has no appropriate SensorData
+   * resources, the SensorDatas will be empty (not null). The list will be sorted in order of
+   * increasing timestamp values.
+   * 
+   * @param sourceName The name of the Source whose sensor data is to be returned.
+   * @param startTime The earliest Sensor Data to be returned.
+   * @param endTime The latest SensorData to be returned.
+   * @throws DbBadIntervalException if startTime is later than endTime.
+   * @return a SensorDatas object containing all relevant sensor data resources, or null if
+   * sourceName, startTime, or endTime are invalid.
+   */
+  public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime) throws DbBadIntervalException {
+    return this.dbImpl.getSensorDatas(sourceName, startTime, endTime);
   }
 
   /**

@@ -25,6 +25,7 @@ import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
+import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
@@ -724,13 +725,16 @@ public class DerbyStorageImplementation extends DbImplementation {
           + " Properties = '<Properties><Property><Key>powerGenerated</Key><Value>4.6E7</Value></Property></Properties>', "
           + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
-  /** Compound index used based on this mailing list reply.
-  http://mail-archives.apache.org/mod_mbox/db-derby-user/201007.mbox/%3cx67hl3kmqf.fsf@oracle.com%3e */
+  /**
+   * Compound index used based on this mailing list reply.
+   * http://mail-archives.apache.org/mod_mbox/db
+   * -derby-user/201007.mbox/%3cx67hl3kmqf.fsf@oracle.com%3e
+   */
   private static final String indexSensorDataSourceTstampDescStatement =
       "CREATE INDEX TstampSourceIndexDesc ON SensorData(Source, Tstamp DESC)";
   private static final String dropSensorDataSourceTstampDescStatement =
       "DROP INDEX TstampSourceIndexDesc";
-  
+
   /**
    * Converts a database row from the SensorData table to a SensorData object. The caller should
    * have advanced the cursor to the next row via rs.next() before calling this method.
@@ -868,6 +872,58 @@ public class DerbyStorageImplementation extends DbImplementation {
         }
       }
       return index;
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime) throws DbBadIntervalException {
+    if ((sourceName == null) || (startTime == null) || (endTime == null)) {
+      return null;
+    }
+    else if (getSource(sourceName) == null) {
+      // Unknown Source name, therefore no possibility of SensorData
+      return null;
+    }
+    else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
+      // startTime > endTime, which is bogus
+      throw new DbBadIntervalException(startTime, endTime);
+    }
+    else {
+      SensorDatas datas = new SensorDatas();
+      String statement =
+          "SELECT * FROM SensorData WHERE Source = ? AND (Tstamp BETWEEN ? AND ?)"
+              + " ORDER BY Tstamp";
+      Connection conn = null;
+      PreparedStatement s = null;
+      ResultSet rs = null;
+      try {
+        conn = DriverManager.getConnection(connectionURL);
+        server.getLogger().fine(executeQueryMsg + statement);
+        s = conn.prepareStatement(statement);
+        s.setString(1, Source.sourceToUri(sourceName, this.server));
+        s.setTimestamp(2, Tstamp.makeTimestamp(startTime));
+        s.setTimestamp(3, Tstamp.makeTimestamp(endTime));
+        rs = s.executeQuery();
+        while (rs.next()) {
+          datas.getSensorData().add(resultSetToSensorData(rs));
+        }
+      }
+      catch (SQLException e) {
+        this.logger.info("DB: Error in getSensorDatas()" + StackTrace.toString(e));
+      }
+      finally {
+        try {
+          rs.close();
+          s.close();
+          conn.close();
+        }
+        catch (SQLException e) {
+          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+        }
+      }
+      return datas;
     }
   }
 
@@ -1637,7 +1693,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       conn = DriverManager.getConnection(connectionURL);
       cs = conn.prepareCall("CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE(?)");
       cs.setString(1, snapshotDir);
-      cs.execute(); 
+      cs.execute();
       cs.close();
       success = true;
     }

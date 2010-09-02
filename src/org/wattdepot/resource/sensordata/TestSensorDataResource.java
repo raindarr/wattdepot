@@ -49,6 +49,9 @@ import org.wattdepot.util.tstamp.Tstamp;
 public class TestSensorDataResource extends ServerTestHelper {
 
   /** Making PMD happy. */
+  private static final String UNEXPECTED_SENSORDATA_RETURNED = "getSensorDatas didn't return expected SensorData";
+
+  /** Making PMD happy. */
   private static final String REFS_DONT_MATCH_SENSORDATA =
       "SensorDataRefs from getSensorDataIndex do not match input SensorData";
 
@@ -265,6 +268,44 @@ public class TestSensorDataResource extends ServerTestHelper {
     origData.add(data3);
     assertTrue("getSensorDataIndex didn't return expected SensorDataRefs", SensorDataRef
         .compareSensorDataRefsToSensorDatas(index, origData));
+  }
+
+  /**
+   * Tests that after storing SensorData to a Source, the SensorDatas corresponds to the data that
+   * has been stored. Type: public Source with valid owner credentials.
+   * 
+   * @throws Exception If stuff goes wrong.
+   */
+  @Test
+  public void testGetSensorDatasAfterStores() throws Exception {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
+        makeTestSensorData3();
+    XMLGregorianCalendar beforeTimestamp = Tstamp.incrementSeconds(timestamp1, -1), afterTimestamp =
+        Tstamp.incrementSeconds(timestamp3, 1);
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data1));
+    List<SensorData> dataList =
+        client.getSensorDatas(defaultPublicSource, beforeTimestamp, afterTimestamp);
+    assertEquals("Wrong number of SensorDatas after store", 1, dataList.size());
+    assertEquals(UNEXPECTED_SENSORDATA_RETURNED, data1, dataList.get(0));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data2));
+    dataList = client.getSensorDatas(defaultPublicSource, beforeTimestamp, afterTimestamp);
+    assertEquals("Wrong number of SensorDatas after store", 2, dataList.size());
+    List<SensorData> origData = new ArrayList<SensorData>();
+    origData.add(data1);
+    origData.add(data2);
+    assertEquals(UNEXPECTED_SENSORDATA_RETURNED, origData, dataList);
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
+    dataList = client.getSensorDatas(defaultPublicSource, beforeTimestamp, afterTimestamp);
+    assertEquals("Wrong number of SensorDatas after store", 3, dataList.size());
+    origData.add(data3);
+    assertEquals(UNEXPECTED_SENSORDATA_RETURNED, origData, dataList);
+    // Change start time to only retrieve last 2 SensorData resources
+    beforeTimestamp = Tstamp.incrementSeconds(timestamp2, -1);
+    dataList = client.getSensorDatas(defaultPublicSource, beforeTimestamp, afterTimestamp);
+    origData.remove(0);
+    assertEquals(UNEXPECTED_SENSORDATA_RETURNED, origData, dataList);
   }
 
   // Tests for GET {host}/sources/{source}/sensordata/{timestamp}

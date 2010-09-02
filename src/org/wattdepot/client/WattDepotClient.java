@@ -28,6 +28,7 @@ import org.restlet.resource.StringRepresentation;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
+import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
@@ -47,6 +48,8 @@ import org.wattdepot.util.logger.RestletLoggerUtil;
  * @author Robert Brewer
  */
 public class WattDepotClient {
+
+  private static final String START_TIME_PARAM = "?startTime=";
 
   /** The representation type for XML. */
   private Preference<MediaType> XML_MEDIA = new Preference<MediaType>(MediaType.TEXT_XML);
@@ -289,7 +292,7 @@ public class WattDepotClient {
       XMLGregorianCalendar endTime) throws NotAuthorizedException, ResourceNotFoundException,
       BadXmlException, MiscClientException {
     String uri =
-        Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + "?startTime="
+        Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&" + "endTime=" + endTime.toXMLFormat();
     Response response = makeRequest(Method.GET, uri, XML_MEDIA, null);
     Status status = response.getStatus();
@@ -330,9 +333,8 @@ public class WattDepotClient {
   /**
    * Requests a List of SensorData representing all the SensorData resources for the named Source
    * such that their timestamp is greater than or equal to the given start time and less than or
-   * equal to the given end time from the server. Currently just a convenience method, but if the
-   * REST API is extended to support getting SensorData directly without going through a
-   * SensorDataIndex, this method will use that more efficient API call.
+   * equal to the given end time from the server. Fetches the data using the "fetchAll" REST API
+   * parameter.
    * 
    * @param source The name of the Source.
    * @param startTime The start of the range.
@@ -348,12 +350,46 @@ public class WattDepotClient {
   public List<SensorData> getSensorDatas(String source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws NotAuthorizedException, ResourceNotFoundException,
       BadXmlException, MiscClientException {
-    List<SensorData> dataList = new ArrayList<SensorData>();
-    SensorDataIndex index = getSensorDataIndex(source, startTime, endTime);
-    for (SensorDataRef ref : index.getSensorDataRef()) {
-      dataList.add(getSensorData(ref));
+
+    String uri =
+        Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + START_TIME_PARAM
+            + startTime.toXMLFormat() + "&" + "endTime=" + endTime.toXMLFormat() + "&"
+            + "fetchAll=true";
+    Response response = makeRequest(Method.GET, uri, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
     }
-    return dataList;
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad timestamp provided in URI
+      throw new BadXmlException(status);
+    }
+    if (status.isSuccess()) {
+      try {
+        String xmlString = response.getEntity().getText();
+        Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
+        return ((SensorDatas) unmarshaller.unmarshal(new StringReader(xmlString))).getSensorData();
+      }
+      catch (IOException e) {
+        // Error getting the text from the entity body, bad news
+        throw new MiscClientException(status, e);
+      }
+      catch (JAXBException e) {
+        // Got some XML we can't parse
+        throw new BadXmlException(status, e);
+      }
+    }
+    else {
+      // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+
   }
 
   /**
@@ -698,7 +734,7 @@ public class WattDepotClient {
       XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
     String uriString =
-        Server.SOURCES_URI + "/" + source + "/" + Server.ENERGY_URI + "/" + "?startTime="
+        Server.SOURCES_URI + "/" + source + "/" + Server.ENERGY_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&endTime=" + endTime.toXMLFormat();
     if (samplingInterval > 0) {
       // client provided sampling interval, so pass to server
@@ -833,7 +869,7 @@ public class WattDepotClient {
       XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
     String uriString =
-        Server.SOURCES_URI + "/" + source + "/" + Server.CARBON_URI + "/" + "?startTime="
+        Server.SOURCES_URI + "/" + source + "/" + Server.CARBON_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&endTime=" + endTime.toXMLFormat();
     if (samplingInterval > 0) {
       // client provided sampling interval, so pass to server

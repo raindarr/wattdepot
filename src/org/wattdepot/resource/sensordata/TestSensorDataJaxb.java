@@ -32,7 +32,7 @@ public class TestSensorDataJaxb {
   private static final String DEFAULT_TIMESTAMP = "2009-07-28T08:00:00.000-10:00";
 
   /**
-   * Tests equals and hashCode for the SensorData type.
+   * Tests equals, hashCode, and compareTo for the SensorData type.
    * 
    * @throws Exception If there are problems creating the timestamp
    */
@@ -45,7 +45,7 @@ public class TestSensorDataJaxb {
     Property prop3 = new Property(key1, value1);
     Property prop4 = new Property(key2, value2);
     Properties props1 = new Properties(), props2 = new Properties();
-    SensorData data1, data2;
+    SensorData data1, data2, data3;
 
     props1.getProperty().add(prop1);
     props1.getProperty().add(prop2);
@@ -65,6 +65,15 @@ public class TestSensorDataJaxb {
     assertEquals("Two SensorData objects with identical fields are not equal", data1, data2);
     assertEquals("Two SensorData objects with identical fields have different hashCodes", data1
         .hashCode(), data2.hashCode());
+
+    data3 =
+        new SensorData(Tstamp.incrementHours(timestamp1, 1), JUNIT_TOOL,
+            "http://localhost:8183/wattdepot/sources/saunders-hall", props1);
+    assertTrue("SensorData with later timestamp doesn't have positive compareTo", data3
+        .compareTo(data2) > 0);
+    assertTrue("SensorData with later timestamp doesn't have negative compareTo", data2
+        .compareTo(data3) < 0);
+    assertEquals("Equal SensorDatas don't have 0 compareTo", 0, data1.compareTo(data2));
   }
 
   /**
@@ -92,7 +101,7 @@ public class TestSensorDataJaxb {
             + " value=bar]], source=http://localhost:8183/wattdepot/sources/saunders-hall,"
             + " timestamp=2009-07-28T08:00:00.000-10:00, tool=JUnit]", data1.toString());
   }
-  
+
   /**
    * Tests that the isInterpolated and setInterpolated methods work properly.
    * 
@@ -102,8 +111,9 @@ public class TestSensorDataJaxb {
   public void testInterpolation() throws Exception {
     String key1 = "foo-key", value1 = "foo", key2 = "bar-key", value2 = "bar";
     XMLGregorianCalendar timestamp1 = Tstamp.makeTimestamp(DEFAULT_TIMESTAMP);
-    SensorData data = new SensorData(timestamp1, JUNIT_TOOL,
-        "http://localhost:8183/wattdepot/sources/saunders-hall");
+    SensorData data =
+        new SensorData(timestamp1, JUNIT_TOOL,
+            "http://localhost:8183/wattdepot/sources/saunders-hall");
     data.addProperty(new Property(key1, value1));
     data.addProperty(new Property(key2, value2));
     assertFalse("SensorData incorrectly reports interpolation", data.isInterpolated());

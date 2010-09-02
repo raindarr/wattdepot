@@ -473,6 +473,10 @@ public class Server extends Application {
     // SensorData does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI,
         SensorDataResource.class);
+    // Specifying all the combinations of optional parameters is bogus, but don't want to deal
+    // with parsing the query string right now.
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI
+        + "/?startTime={startTime}&endTime={endTime}&fetchAll={fetchAll}", SensorDataResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI
         + "/?startTime={startTime}&endTime={endTime}", SensorDataResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/{timestamp}",

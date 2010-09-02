@@ -33,6 +33,8 @@ public class SensorDataResource extends WattDepotResource {
   private String startTime;
   /** To be retrieved from the URI, or else null if not found. */
   private String endTime;
+  /** fetchAll parameter from the URI, or else false if not found. */
+  private boolean fetchAll = false;
 
   /**
    * Creates a new SensorDataResource object with the provided parameters, and only a text/xml
@@ -47,6 +49,8 @@ public class SensorDataResource extends WattDepotResource {
     this.timestamp = (String) request.getAttributes().get("timestamp");
     this.startTime = (String) request.getAttributes().get("startTime");
     this.endTime = (String) request.getAttributes().get("endTime");
+    String fetchAllString = (String) request.getAttributes().get("fetchAll");
+    this.fetchAll = "true".equalsIgnoreCase(fetchAllString);
   }
 
   /**
@@ -152,8 +156,16 @@ public class SensorDataResource extends WattDepotResource {
           return null;
         }
         try {
-          xmlString = getSensorDataIndex(startObj, endObj);
-          return super.getStringRepresentation(xmlString);
+          // If fetchAll requested, return SensorDatas
+          if (this.fetchAll) {
+            xmlString = getSensorDatas(startObj, endObj);
+            return super.getStringRepresentation(xmlString);
+          }
+          // Otherwise, return SensorDataIndex
+          else {
+            xmlString = getSensorDataIndex(startObj, endObj);
+            return super.getStringRepresentation(xmlString);
+          }
         }
         catch (DbBadIntervalException e) {
           setStatusBadInterval(startObj.toString(), endObj.toString());
@@ -163,6 +175,7 @@ public class SensorDataResource extends WattDepotResource {
           setStatusInternalError(e);
           return null;
         }
+
       }
       // Some bad combination of options, so just fail
       else {

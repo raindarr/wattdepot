@@ -158,13 +158,13 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
   }
 
   /**
-   * Tests the getSensorDataIndex method with startTime and endTime.
+   * Tests the getSensorDataIndex and getSensorDatas methods with startTime and endTime.
    * 
    * @throws Exception if calendar conversion fails.
    */
   @Test
   @SuppressWarnings("PMD.AvoidDuplicateLiterals")
-  public void testGetSensorDataIndexStartEnd() throws Exception {
+  public void testGetSensorDatasStartEnd() throws Exception {
     // Set up test data
     createTestData();
 
@@ -188,28 +188,36 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data3));
 
-    // case #2: valid range covering no data
+    // valid range covering no data
     assertTrue("SensorDataIndex generated for period containing no SensorData", manager
         .getSensorDataIndex(this.source1.getName(), after3, moreAfter3).getSensorDataRef()
         .isEmpty());
 
-    // case #3: range covering all three data items
+    assertTrue("getSensorDatas non-empty for period containing no SensorData", manager
+        .getSensorDatas(this.source1.getName(), after3, moreAfter3).getSensorData().isEmpty());
+
+    // range covering all three data items
     List<SensorDataRef> retrievedRefs =
         manager.getSensorDataIndex(this.source1.getName(), before1, after3).getSensorDataRef();
+    List<SensorData> retrievedDatas =
+        manager.getSensorDatas(this.source1.getName(), before1, after3).getSensorData();
     List<SensorData> origData = new ArrayList<SensorData>();
     origData.add(this.data1);
     origData.add(this.data2);
     origData.add(this.data3);
     assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
         retrievedRefs, origData));
+    assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
-    // case #4: range covering only data1
+    // range covering only data1
     assertSame("getSensorDataIndex didn't contain all expected SensorData", manager
         .getSensorDataIndex(this.source1.getName(), before1, between1And2).getSensorDataRef()
         .size(), 1);
-    assertTrue("getSensorDataIndex didn't return expected ", manager.getSensorDataIndex(
+    assertTrue("getSensorDataIndex didn't return expected data", manager.getSensorDataIndex(
         this.source1.getName(), before1, between1And2).getSensorDataRef().get(0).equalsSensorData(
         this.data1));
+    assertEquals("getSensorDatas didn't return expected data", this.data1, manager.getSensorDatas(
+        this.source1.getName(), before1, between1And2).getSensorData().get(0));
 
     // case #5: range covering only data2
     assertSame("getSensorDataIndex didn't contain all expected SensorData", manager
@@ -218,34 +226,44 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue("getSensorDataIndex didn't return expected ", manager.getSensorDataIndex(
         this.source1.getName(), between1And2, between2And3).getSensorDataRef().get(0)
         .equalsSensorData(this.data2));
+    assertEquals("getSensorDatas didn't return expected data", this.data2, manager.getSensorDatas(
+        this.source1.getName(), between1And2, between2And3).getSensorData().get(0));
 
-    // case #6: range covering data1 & data2
+    // range covering data1 & data2
     retrievedRefs =
         manager.getSensorDataIndex(this.source1.getName(), before1, between2And3)
             .getSensorDataRef();
+    retrievedDatas =
+        manager.getSensorDatas(this.source1.getName(), before1, between2And3).getSensorData();
     origData.clear();
     origData.add(this.data1);
     origData.add(this.data2);
     assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
         retrievedRefs, origData));
+    assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
-    // case #7: range covering data2 & data3
+    // range covering data2 & data3
     retrievedRefs =
         manager.getSensorDataIndex(this.source1.getName(), between1And2, after3).getSensorDataRef();
+    retrievedDatas =
+        manager.getSensorDatas(this.source1.getName(), between1And2, after3).getSensorData();
     origData.clear();
     origData.add(this.data2);
     origData.add(this.data3);
     assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
         retrievedRefs, origData));
+    assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
-    // case #7.5: range starting exactly at data1 and ending exactly at data3
+    // range starting exactly at data1 and ending exactly at data3
     retrievedRefs = manager.getSensorDataIndex(this.source1.getName(), at1, at3).getSensorDataRef();
+    retrievedDatas = manager.getSensorDatas(this.source1.getName(), at1, at3).getSensorData();
     origData.clear();
     origData.add(this.data1);
     origData.add(this.data2);
     origData.add(this.data3);
     assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
         retrievedRefs, origData));
+    assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
     // Confirm that SensorData list is sorted
     for (int i = 0; i < origData.size(); i++) {
@@ -253,35 +271,48 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
           origData.get(i)));
     }
 
-    // case #8: deleting data2 should leave data1 & data3 if interval covers all three
+    // deleting data2 should leave data1 & data3 if interval covers all three
     assertTrue("Unable to delete data2", manager.deleteSensorData(this.source1.getName(), data2
         .getTimestamp()));
     retrievedRefs =
         manager.getSensorDataIndex(this.source1.getName(), before1, after3).getSensorDataRef();
+    retrievedDatas =
+        manager.getSensorDatas(this.source1.getName(), before1, after3).getSensorData();
     origData.clear();
     origData.add(this.data1);
     origData.add(this.data3);
     assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
         retrievedRefs, origData));
+    assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
-    // case #9: retrieving SensorDataIndex for bogus Source name
+    // retrieving SensorDataIndex for bogus Source name
     assertNull("Found SensorDataIndex for bogus Source name", manager.getSensorDataIndex(
         "bogus-source-2", before1, after3));
+    assertNull("Got non-null List for bogus Source name", manager.getSensorDatas("bogus-source-2",
+        before1, after3));
 
-    // case #10: retrieving SensorDataIndex for empty Source name
+    // retrieving SensorDataIndex for empty Source name
     assertNull("Found SensorDataIndex for empty Source name", manager.getSensorDataIndex("",
         before1, after3));
+    assertNull("Got non-null List for emtpy Source name", manager.getSensorDatas("", before1,
+        after3));
 
-    // case #11: retrieving SensorDataIndex for null Source name
+    // retrieving SensorDataIndex for null Source name
     assertNull("Found SensorDataIndex for null Source name", manager.getSensorDataIndex(null,
         before1, after3));
+    assertNull("Got non-null List for null Source name", manager.getSensorDatas(null, before1,
+        after3));
 
-    // case #12: retrieving SensorDataIndex for null startTime
+    // retrieving SensorDataIndex for null startTime
     assertNull("Found SensorDataIndex for null startTime", manager.getSensorDataIndex(this.source1
         .getName(), null, after3));
+    assertNull("Got non-null List for null startTime", manager.getSensorDatas(this.source1
+        .getName(), null, after3));
 
-    // case #13: retrieving SensorDataIndex for null endTime
+    // retrieving SensorDataIndex for null endTime
     assertNull("Found SensorDataIndex for null endTime", manager.getSensorDataIndex(this.source1
+        .getName(), before1, null));
+    assertNull("Got non-null List for null startTime", manager.getSensorDatas(this.source1
         .getName(), before1, null));
   }
 

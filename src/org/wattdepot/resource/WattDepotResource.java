@@ -22,6 +22,7 @@ import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
+import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
@@ -431,6 +432,32 @@ public class WattDepotResource extends Resource {
     }
     else {
       marshaller.marshal(index, writer);
+      return writer.toString();
+    }
+  }
+
+  /**
+   * Returns an XML string representation of a SensorDatas object containing all the SensorData for
+   * the Source name given in the URI between the provided start and end times, or null if the named
+   * Source doesn't exist.
+   * 
+   * @param startTime The start time requested.
+   * @param endTime The end time requested.
+   * @return The XML string representing the requested SensorDatas object, or null if source name is
+   * unknown.
+   * @throws JAXBException If there are problems mashalling the SensorDataIndex.
+   * @throws DbBadIntervalException If the start time is later than the end time.
+   */
+  public String getSensorDatas(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime)
+      throws JAXBException, DbBadIntervalException {
+    Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+    SensorDatas datas = this.dbManager.getSensorDatas(this.uriSource, startTime, endTime);
+    if (datas == null) {
+      return null;
+    }
+    else {
+      marshaller.marshal(datas, writer);
       return writer.toString();
     }
   }

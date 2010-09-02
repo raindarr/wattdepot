@@ -12,6 +12,7 @@ import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
+import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
@@ -281,6 +282,46 @@ public class MemoryStorageImplementation extends DbImplementation {
       }
       Collections.sort(index.getSensorDataRef());
       return index;
+    }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime) throws DbBadIntervalException {
+    if ((sourceName == null) || (startTime == null) || (endTime == null)) {
+      return null;
+    }
+    else if (this.name2SourceHash.get(sourceName) == null) {
+      // Unknown Source name, therefore no possibility of SensorData
+      return null;
+    }
+    else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
+      // startTime > endTime, which is bogus
+      throw new DbBadIntervalException(startTime, endTime);
+    }
+    else {
+      SensorDatas datas = new SensorDatas();
+      // Retrieve this Source's map of timestamps to SensorData
+      ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
+          this.source2SensorDatasHash.get(sourceName);
+      // If there is any sensor data for this Source
+      if (sensorDataMap != null) {
+        // Loop over all SensorData in hash
+        for (SensorData data : sensorDataMap.values()) {
+          // Only interested in SensorData that is startTime <= data <= endTime
+          int startComparison = data.getTimestamp().compare(startTime);
+          int endComparison = data.getTimestamp().compare(endTime);
+          if ((startComparison == DatatypeConstants.EQUAL)
+              || (endComparison == DatatypeConstants.EQUAL)
+              || ((startComparison == DatatypeConstants.GREATER) && (endComparison == DatatypeConstants.LESSER))) {
+            // add to SensorDatas
+            datas.getSensorData().add(data);
+          }
+        }
+      }
+      Collections.sort(datas.getSensorData());
+      return datas;
     }
   }
 
