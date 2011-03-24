@@ -20,12 +20,15 @@
 
   <!-- Make sure we're running Ant 1.7.1 or better. Ant 1.7.0 has a bug that we must avoid.  -->
   <condition property="ant.1.7.available">
-    <and>
-      <contains string="${ant.version}" substring="1.7" />
-      <not>
-        <contains string="${ant.version}" substring="1.7.0" />
-      </not>
-    </and>
+    <or>
+      <and>
+        <contains string="${ant.version}" substring="1.7" />
+        <not>
+          <contains string="${ant.version}" substring="1.7.0" />
+        </not>
+      </and>
+      <contains string="${ant.version}" substring="1.8" />
+    </or>
   </condition>
   <fail message="This package requires Ant 1.7.1 or better; found ${ant.version}" unless="ant.1.7.available" />
 

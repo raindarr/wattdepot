@@ -67,6 +67,25 @@
                  excludes="**/tinker/**" />
       </batchtest>
     </junit>
+  	<!-- Run DB tests using BerkeleyDbImplementation -->
+    <junit printsummary="withOutAndErr"
+           haltonfailure="${junit.haltonfailure}"
+           failureproperty="junit.failed"
+           fork="yes">
+      <classpath>
+        <pathelement location="${build.dir}/classes" />
+        <path refid="compile.classpath" />
+      </classpath>
+      <formatter type="xml" />
+      <sysproperty key="wattdepot-server.db.impl"
+                   value="org.wattdepot.server.db.berkeleydb.BerkeleyDbImplementation" />
+      <batchtest todir="${junit.build.dir}">
+        <!-- Note special class for testing -->
+        <fileset dir="${src.dir}"
+                 includes="**/TestDb*.java, **/TestBerkeleyDbImplementation.java"
+                 excludes="**/tinker/**" />
+      </batchtest>
+    </junit>
   </target>
 
   <target name="junit.report" description="Generates an HTML report for JUnit.">
