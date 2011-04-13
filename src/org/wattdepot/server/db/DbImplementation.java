@@ -382,7 +382,7 @@ public abstract class DbImplementation {
    * 
    * @param sourceName The source name.
    * @param startTime The start of the range requested.
-   * @param endTime The start of the range requested.
+   * @param endTime The end of the range requested.
    * @param interval The sampling interval requested (ignored if all sources support energy
    * counters).
    * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
