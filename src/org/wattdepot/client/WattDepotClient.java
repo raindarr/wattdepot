@@ -144,9 +144,9 @@ public class WattDepotClient {
   }
 
   /**
-   * Does the housekeeping for making HTTP requests to WattDepot by a test or admin user, including
-   * authentication if requested. It is only public to allow testing of the WattDepot server in
-   * certain cases. It is not intended for client use.
+   * Does the housekeeping for making HTTP requests to WattDepot, including authentication if
+   * requested. It is only public to allow testing of the WattDepot server in certain cases. It is
+   * not intended for client use.
    * 
    * @param method the HTTP method requested.
    * @param requestString A string, such as "users". Do not start the string with a '/' (it is
@@ -167,7 +167,10 @@ public class WattDepotClient {
           new ChallengeResponse(scheme, this.username, this.password);
       request.setChallengeResponse(authentication);
     }
-    return this.client.handle(request);
+    Response response = this.client.handle(request);
+    // Release the request object, which hopefully closes the network socket
+    request.release();
+    return response;
   }
 
   /**
