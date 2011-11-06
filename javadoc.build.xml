@@ -18,7 +18,7 @@
              package="true"
              overview="${src.dir}/overview.html"
              windowtitle="${system.name} API"
-             doctitle="${system.name} API"
+             doctitle="${system.name} ${version} API"
              failonerror="${javadoc.failonerror}"
              linksource="true" />
   </target>
