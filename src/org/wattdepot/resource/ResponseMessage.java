@@ -114,8 +114,7 @@ public class ResponseMessage {
   }
 
   /**
-   * The error message for requests where an interval is specified with a start time that is greater
-   * than the end time.
+   * The error message for requests where an interval is specified that extends beyond sensor data.
    * 
    * @param resource The resource associated with this request.
    * @param startTime The start time.
