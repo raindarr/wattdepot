@@ -79,6 +79,17 @@
       </manifest>
     </jar>
 
+    <!-- Doesn't use OpenCSV, so build before unjaring that -->
+    <jar destfile="${build.jar.dir}/wattdepot-converter-log.jar" basedir="${tmp.dir}">
+      <manifest>
+        <attribute name="Main-Class" value="org.wattdepot.datainput.SensorLogDataConverter" />
+        <attribute name="Implementation-Title" value="WattDepot SensorLogDataConverter" />
+        <attribute name="Implementation-Version" value="${version}" />
+        <attribute name="Implementation-Vendor"
+                   value="Collaborative Software Development Laboratory, University of Hawaii" />
+      </manifest>
+    </jar>
+
     <unjar src="${lib.dir}/opencsv/opencsv.jar" dest="${tmp.dir}" />
 
     <jar destfile="${build.jar.dir}/wattdepot-sensor-tabular.jar" basedir="${tmp.dir}">
