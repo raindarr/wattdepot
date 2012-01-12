@@ -87,7 +87,7 @@
        ant -Dhackystat.enable=false -f checkstyle.build.xml
   -->
   <property name="hackystat.verbose.mode" value="false" />
-  <property name="hackystat.enable" value="true" />
+  <property name="hackystat.enable" value="false" />
 
   <!-- define hackystat.enabled iff hackystat.enable is true, so we can use it in an 'if' clause -->
   <condition property="hackystat.enabled">

@@ -214,28 +214,42 @@ public class SensorDataResource extends WattDepotResource {
       return;
     }
     if (validateSourceOwnerOrAdmin()) {
-      XMLGregorianCalendar timestampObj = null;
-      // check if timestamp is OK
-      try {
-        timestampObj = Tstamp.makeTimestamp(this.timestamp);
-      }
-      catch (Exception e) {
-        setStatusBadTimestamp(this.timestamp);
-        return;
-      }
-      // check if there is any sensor data for given timestamp
-      if (!super.dbManager.hasSensorData(uriSource, timestampObj)) {
-        setStatusTimestampNotFound(this.timestamp);
-        return;
-      }
-      if (super.dbManager.deleteSensorData(uriSource, timestampObj)) {
-        getResponse().setStatus(Status.SUCCESS_OK);
+      // Is it a request to delete all sensor data?
+      if (timestamp.equals(Server.ALL)) {
+        if (super.dbManager.deleteSensorData(uriSource)) {
+          getResponse().setStatus(Status.SUCCESS_OK);
+        }
+        else {
+          // all inputs have been validated by this point, so must be internal error
+          setStatusInternalError(String.format("Unable to delete SensorData for timestamp %s",
+              this.timestamp));
+          return;
+        }
       }
       else {
-        // all inputs have been validated by this point, so must be internal error
-        setStatusInternalError(String.format("Unable to delete SensorData for timestamp %s",
-            this.timestamp));
-        return;
+        XMLGregorianCalendar timestampObj = null;
+        // check if timestamp is OK
+        try {
+          timestampObj = Tstamp.makeTimestamp(this.timestamp);
+        }
+        catch (Exception e) {
+          setStatusBadTimestamp(this.timestamp);
+          return;
+        }
+        // check if there is any sensor data for given timestamp
+        if (!super.dbManager.hasSensorData(uriSource, timestampObj)) {
+          setStatusTimestampNotFound(this.timestamp);
+          return;
+        }
+        if (super.dbManager.deleteSensorData(uriSource, timestampObj)) {
+          getResponse().setStatus(Status.SUCCESS_OK);
+        }
+        else {
+          // all inputs have been validated by this point, so must be internal error
+          setStatusInternalError(String.format("Unable to delete SensorData for timestamp %s",
+              this.timestamp));
+          return;
+        }
       }
     }
     else {

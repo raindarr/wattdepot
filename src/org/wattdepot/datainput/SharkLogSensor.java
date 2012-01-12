@@ -36,6 +36,15 @@ public class SharkLogSensor {
   /** URI of WattDepot server to send data to. */
   protected String serverUri;
 
+  /**
+   * URI of WattDepot server to be put in SensorData objects. This is useful if you want to send
+   * SensorData with an embedded Source URI that differs from the server you are actually sending
+   * the data to. For example, server might running on a developer's computer and being accessed as
+   * localhost, but they want the SensorData resources stored to have the URL of the production
+   * server.
+   */
+  protected String dataUri;
+
   /** Name of Source to send data to. */
   protected String sourceName;
 
@@ -65,6 +74,7 @@ public class SharkLogSensor {
    * 
    * @param filename Name of the file to read data from.
    * @param uri URI of the server to send data to (ending in "/").
+   * @param dataUri URI to be used for the Source field in SensorData objects (ending in "/").
    * @param sourceName name of the Source the sensor data should be sent to.
    * @param username Username used to authenticate to the server.
    * @param password Password used to authenticate to the server.
@@ -72,8 +82,8 @@ public class SharkLogSensor {
    * used for column headers, and not containing data).
    * @param dryRun If true, data is parsed and printed on stdout, but not sent to WattDepot server.
    */
-  public SharkLogSensor(String filename, String uri, String sourceName, String username,
-      String password, boolean skipFirstRow, boolean dryRun) {
+  public SharkLogSensor(String filename, String uri, String dataUri, String sourceName,
+      String username, String password, boolean skipFirstRow, boolean dryRun) {
     this.filename = filename;
     this.serverUri = uri;
     this.sourceName = sourceName;
@@ -82,7 +92,14 @@ public class SharkLogSensor {
     this.skipFirstRow = skipFirstRow;
     // this.debug = debug;
     this.dryRun = dryRun;
-    this.parser = new SharkRowParser(toolName, serverUri, sourceName);
+    if (dataUri == null) {
+      this.parser = new SharkRowParser(toolName, serverUri, sourceName);
+    }
+    else {
+      // We want SensorData objects produced to have a different URI than the server we will send
+      // them to.
+      this.parser = new SharkRowParser(toolName, dataUri, sourceName);
+    }
   }
 
   /**
@@ -137,8 +154,7 @@ public class SharkLogSensor {
     try {
       if (skipFirstRow) {
         // use 4 arg constructor with skip lines = 1
-        reader =
-            new CSVReader(new FileReader(filename), ',', CSVReader.DEFAULT_QUOTE_CHARACTER, 1);
+        reader = new CSVReader(new FileReader(filename), ',', CSVReader.DEFAULT_QUOTE_CHARACTER, 1);
       }
       else {
         reader = new CSVReader(new FileReader(filename), ',');
@@ -223,8 +239,10 @@ public class SharkLogSensor {
     Options options = new Options();
     options.addOption("h", "help", false, "print this message");
     options.addOption("f", "file", true, "filename of tabular data");
-    options.addOption("w", "uri", true,
-        "URI of WattDepot server, ex. \"http://wattdepot.example.com:1234/wattdepot/");
+    options.addOption("w", "uri", true, "URI of WattDepot server to send data to, ex. "
+        + "\"http://wattdepot.example.com:1234/wattdepot/");
+    options.addOption("d", "data-uri", true, "URI of WattDepot server to put in SensorData "
+        + "resources");
     options
         .addOption("s", "source", true, "Name of the source to send data to, ex. \"foo-source\"");
     options.addOption("u", "username", true, "username to use with server");
@@ -233,7 +251,8 @@ public class SharkLogSensor {
     // options.addOption("d", "debug", false, "Displays sensor data as it is sent to the server.");
     options.addOption("n", "dry-run", false, "Performs a dry run, no data sent to server.");
     CommandLine cmd = null;
-    String filename = null, uri = null, sourceName = null, username = null, password = null;
+    String filename = null, uri = null, dataUri = null, sourceName = null, username = null, password =
+        null;
     boolean skipFirstRow, dryRun;
 
     CommandLineParser parser = new PosixParser();
@@ -267,6 +286,9 @@ public class SharkLogSensor {
       HelpFormatter formatter = new HelpFormatter();
       formatter.printHelp(toolName, options);
       System.exit(1);
+    }
+    if (cmd.hasOption("d")) {
+      dataUri = cmd.getOptionValue("d");
     }
     if (cmd.hasOption("s")) {
       sourceName = cmd.getOptionValue("s");
@@ -302,6 +324,7 @@ public class SharkLogSensor {
     // Results of command line processing, should probably be commented out
     System.out.println("filename: " + filename);
     System.out.println("uri:      " + uri);
+    System.out.println("dataUri:  " + dataUri);
     System.out.println("source:   " + sourceName);
     System.out.println("username: " + username);
     System.out.println("password: " + password);
@@ -309,7 +332,8 @@ public class SharkLogSensor {
     System.out.println("dryRun: " + dryRun);
     // Actually create the input client
     SharkLogSensor inputClient =
-        new SharkLogSensor(filename, uri, sourceName, username, password, skipFirstRow, dryRun);
+        new SharkLogSensor(filename, uri, dataUri, sourceName, username, password, skipFirstRow,
+            dryRun);
     // Just do it
     if (inputClient.process()) {
       System.out.println("Successfully input data.");

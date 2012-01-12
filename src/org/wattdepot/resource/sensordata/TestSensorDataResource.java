@@ -49,7 +49,8 @@ import org.wattdepot.util.tstamp.Tstamp;
 public class TestSensorDataResource extends ServerTestHelper {
 
   /** Making PMD happy. */
-  private static final String UNEXPECTED_SENSORDATA_RETURNED = "getSensorDatas didn't return expected SensorData";
+  private static final String UNEXPECTED_SENSORDATA_RETURNED =
+      "getSensorDatas didn't return expected SensorData";
 
   /** Making PMD happy. */
   private static final String REFS_DONT_MATCH_SENSORDATA =
@@ -989,7 +990,49 @@ public class TestSensorDataResource extends ServerTestHelper {
   // assertTrue("Expected failure", false);
   // }
 
-  // Tests for DELETE {host}/sources/{source}/sensordata/{timestamp}
-  // TODO
+  /**
+   * Tests deleting a SensorData resource. Type: public Source with owner credentials.
+   * 
+   * @throws Exception If problems are encountered.
+   */
+  @Test(expected = ResourceNotFoundException.class)
+  public void testDeleteSensorData() throws Exception {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
+        makeTestSensorData3();
 
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data1));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data2));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
+
+    assertTrue("Unable to delete SensorData", client.deleteSensorData(defaultPublicSource, data2
+        .getTimestamp()));
+    assertNull("Able to retrieve deleted SensorData", client.getSensorData(data2.getSource(), data2
+        .getTimestamp()));
+  }
+
+  /**
+   * Tests deleting a SensorData resource. Type: public Source with owner credentials.
+   * 
+   * @throws Exception If problems are encountered.
+   */
+  @Test(expected = ResourceNotFoundException.class)
+  public void testDeleteAllSensorData() throws Exception {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
+        makeTestSensorData3();
+
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data1));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data2));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
+
+    assertEquals("Some expected SensorData not stored", 3, client.getSensorDataIndex(
+        data2.getSource()).getSensorDataRef().size());
+    assertTrue("Unable to delete all SensorData for Source", client
+        .deleteAllSensorData(defaultPublicSource));
+    assertEquals("Able to retrieve deleted SensorData", 0, client.getSensorDataIndex(
+        data2.getSource()).getSensorDataRef().size());
+  }
 }

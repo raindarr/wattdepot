@@ -1061,6 +1061,45 @@ public class WattDepotClient {
   }
 
   /**
+   * Deletes all SensorData resources for a particular Source from the server.
+   * 
+   * @param source The name of the source containing the resource to be deleted.
+   * @return True if the SensorDatas could be deleted, false otherwise.
+   * @throws NotAuthorizedException If the client is not authorized to store the SensorData.
+   * @throws BadXmlException If the server reports the request was bad.
+   * @throws ResourceNotFoundException If the source name doesn't exist on the server.
+   * @throws MiscClientException If the server indicates an unexpected problem has occurred.
+   */
+  public boolean deleteAllSensorData(String source)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
+    Response response =
+        makeRequest(Method.DELETE, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
+            + "/" + Server.ALL, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad timestamp provided in URI
+      throw new BadXmlException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified, or timestamp could not be found
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      return true;
+    }
+    else {
+      // Some unexpected type of error received, so punt
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
    * Returns the UserIndex containing all Users on the server. Note that only the admin user is
    * allowed to retrieve the UserIndex.
    * 

@@ -105,6 +105,9 @@ public class Server extends Application {
   /** URI parameter for retrieving latest sensor data. */
   public static final String LATEST = "latest";
 
+  /** URI parameter for deleting all sensor data. */
+  public static final String ALL = "all";
+
   /** Users JAXBContext. */
   private static final JAXBContext userJAXB;
   /** SensorData JAXBContext. */
