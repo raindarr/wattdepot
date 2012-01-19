@@ -1,6 +1,7 @@
 package org.wattdepot.server.db;
 
 import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.wattdepot.resource.property.jaxb.Property;
@@ -54,6 +55,16 @@ public class DbManagerTestHelper {
   @BeforeClass
   public static void startServer() throws Exception {
     DbManagerTestHelper.server = Server.newTestInstance();
+  }
+
+  /**
+   * Tears down the server resources (like TCP port bindings) so that later tests won't fail.
+   * 
+   * @throws Exception If a problem is encountered.
+   */
+  @AfterClass
+  public static void stopServer() throws Exception {
+    DbManagerTestHelper.server.shutdown();
   }
 
   /**

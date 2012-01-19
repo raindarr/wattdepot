@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 import static org.wattdepot.server.ServerProperties.ADMIN_EMAIL_KEY;
 import static org.wattdepot.server.ServerProperties.ADMIN_PASSWORD_KEY;
 import javax.xml.datatype.XMLGregorianCalendar;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.wattdepot.resource.property.jaxb.Property;
@@ -78,6 +79,16 @@ public class ServerTestHelper {
     timestamp1 = Tstamp.makeTimestamp("2009-07-28T09:00:00.000-10:00");
     timestamp2 = Tstamp.makeTimestamp("2009-07-28T09:15:00.000-10:00");
     timestamp3 = Tstamp.makeTimestamp("2009-07-28T09:30:00.000-10:00");
+  }
+
+  /**
+   * Tears down the server resources (like TCP port bindings) so that later tests won't fail.
+   * 
+   * @throws Exception If a problem is encountered.
+   */
+  @AfterClass
+  public static void stopServer() throws Exception {
+    ServerTestHelper.server.shutdown();
   }
 
   /**

@@ -57,6 +57,9 @@ public class Server extends Application {
   /** Holds the Restlet Component associated with this Server. */
   private Component component;
 
+  /** Holds the Jetty server associated with this Server. */
+  private org.mortbay.jetty.Server jettyServer;
+  
   /** Holds the hostname associated with this Server. */
   private String hostName;
 
@@ -256,10 +259,10 @@ public class Server extends Application {
       // Set up the Google Visualization API servlet
       server.gvizHostName = server.serverProperties.getGvizFullHost();
       int gvizPort = Integer.valueOf(server.serverProperties.get(GVIZ_PORT_KEY));
-      org.mortbay.jetty.Server jettyServer = new org.mortbay.jetty.Server(gvizPort);
+      server.jettyServer = new org.mortbay.jetty.Server(gvizPort);
       server.logger.warning("Google visualization URL: " + server.gvizHostName);
       Context jettyContext =
-          new Context(jettyServer, "/" + server.serverProperties.get(GVIZ_CONTEXT_ROOT_KEY));
+          new Context(server.jettyServer, "/" + server.serverProperties.get(GVIZ_CONTEXT_ROOT_KEY));
 
       ServletHolder servletHolder = new ServletHolder(new GVisualizationServlet(server));
       servletHolder.setInitParameter("applicationClassName",
@@ -271,7 +274,7 @@ public class Server extends Application {
       server.logger.info("Maximum Java heap size (MB): "
           + (Runtime.getRuntime().maxMemory() / 1000000.0));
       server.component.start();
-      jettyServer.start();
+      server.jettyServer.start();
       server.logger.warning("WattDepot server (Version " + getVersion() + ") now running.");
       return server;
     }
@@ -554,6 +557,7 @@ public class Server extends Application {
    */
   public void shutdown() throws Exception {
     this.component.stop();
+    this.jettyServer.stop();
   }
 
   /**
