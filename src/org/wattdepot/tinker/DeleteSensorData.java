@@ -10,7 +10,7 @@ import org.wattdepot.util.tstamp.Tstamp;
 
 public class DeleteSensorData {
 
-  public static final String hostUri = "http://server.wattdepot.org:8190/wattdepot/";
+  public static String hostUri;
   public static String username;
   public static String password;
   public static String source;
@@ -20,9 +20,10 @@ public class DeleteSensorData {
    * @throws Exception If things go wrong
    */
   public static void main(String[] args) throws Exception {
-    username = args[0];
-    password = args[1];
-    source = args[2];
+    hostUri = args[0];
+    username = args[1];
+    password = args[2];
+    source = args[3];
     WattDepotClient client = new WattDepotClient(hostUri, username, password);
 
     SourceSummary summary = client.getSourceSummary(source);
