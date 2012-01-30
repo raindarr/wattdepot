@@ -22,11 +22,11 @@
     <copy todir="${tmp.dir}">
       <fileset dir="${basedir}/build/classes" />
     </copy>
-    <!-- Unjar the libraries required for client (subset of those needed for server) -->
-    <unjar src="${lib.dir}/restlet/org.simpleframework.jar" dest="${tmp.dir}" />
-    <unjar src="${lib.dir}/restlet/org.restlet.jar" dest="${tmp.dir}" />
-    <unjar src="${lib.dir}/restlet/com.noelios.restlet.jar" dest="${tmp.dir}" />
-    <unjar src="${lib.dir}/restlet/com.noelios.restlet.ext.simple_3.1.jar" dest="${tmp.dir}" />
+    <!-- Unjar the libraries required for client (subset of those needed for server)
+    <unjar src="${lib.dir}/restlet/org.simpleframework.jar" dest="${tmp.dir}" /> 
+    <unjar src="${lib.dir}/restlet/org.restlet.ext.simple.jar" dest="${tmp.dir}" /> -->
+    <unjar src="${extlib.dir}/restlet/org.restlet.jar" dest="${tmp.dir}" />
+    
 
     <jar destfile="${build.jar.dir}/wattdepot-lib-client.jar" basedir="${tmp.dir}">
       <manifest>

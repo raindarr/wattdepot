@@ -2,7 +2,7 @@ package org.wattdepot.tinker;
 
 import org.restlet.Application;
 import org.restlet.Restlet;
-import org.restlet.Router;
+import org.restlet.routing.Router;
 
 /**
  * Web application that responds to ping requests.
@@ -17,7 +17,7 @@ public class PingApplication extends Application {
    * @return the newly created Restlet object
    */
   @Override
-  public synchronized Restlet createRoot() {
+  public synchronized Restlet createInboundRoot() {
     // Create a router Restlet that routes each call to a
     // new instance of PingResource.
     Router router = new Router(getContext());

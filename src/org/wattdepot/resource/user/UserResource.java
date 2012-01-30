@@ -1,13 +1,9 @@
 package org.wattdepot.resource.user;
 
 import javax.xml.bind.JAXBException;
-import org.restlet.Context;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.user.jaxb.User;
 
@@ -21,26 +17,15 @@ import org.wattdepot.resource.user.jaxb.User;
  */
 
 public class UserResource extends WattDepotResource {
-  /**
-   * Creates a new UsersResource object with the provided parameters.
-   * 
-   * @param context Restlet context for the resource
-   * @param request Restlet request
-   * @param response Restlet response
-   */
-  public UserResource(Context context, Request request, Response response) {
-    super(context, request, response);
-  }
 
   /**
    * Returns a full representation for a given variant.
    * 
    * @param variant the requested variant of this representation
    * @return the representation of this resource
-   * @throws ResourceException when the requested resource cannot be represented as requested.
    */
   @Override
-  public Representation represent(Variant variant) throws ResourceException {
+  public Representation get(Variant variant)  {
     String xmlString;
     if (variant.getMediaType().equals(MediaType.TEXT_XML)) {
       // If credentials are provided, they need to be valid
@@ -98,25 +83,5 @@ public class UserResource extends WattDepotResource {
     else {
       return null;
     }
-  }
-
-  /**
-   * Indicate the PUT method is not supported, until I have time to implement it.
-   * 
-   * @return False.
-   */
-  @Override
-  public boolean allowPut() {
-    return false;
-  }
-
-  /**
-   * Indicate the DELETE method is not supported, until I have time to implement it.
-   * 
-   * @return False.
-   */
-  @Override
-  public boolean allowDelete() {
-    return false;
   }
 }

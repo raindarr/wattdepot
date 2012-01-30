@@ -4,14 +4,10 @@ import java.io.IOException;
 import javax.xml.bind.JAXBException;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.util.tstamp.Tstamp;
-import org.restlet.Context;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -37,31 +33,26 @@ public class SensorDataResource extends WattDepotResource {
   private boolean fetchAll = false;
 
   /**
-   * Creates a new SensorDataResource object with the provided parameters, and only a text/xml
-   * representation.
-   * 
-   * @param context Restlet context for the resource
-   * @param request Restlet request
-   * @param response Restlet response
+   * Initialize with attributes from the Request.
    */
-  public SensorDataResource(Context context, Request request, Response response) {
-    super(context, request, response);
-    this.timestamp = (String) request.getAttributes().get("timestamp");
-    this.startTime = (String) request.getAttributes().get("startTime");
-    this.endTime = (String) request.getAttributes().get("endTime");
-    String fetchAllString = (String) request.getAttributes().get("fetchAll");
+  @Override  
+  protected void doInit() {  
+    super.doInit();
+    this.timestamp = (String) this.getRequest().getAttributes().get("timestamp");
+    this.startTime = (String) this.getRequest().getAttributes().get("startTime");
+    this.endTime = (String) this.getRequest().getAttributes().get("endTime");
+    String fetchAllString = (String) this.getRequest().getAttributes().get("fetchAll");
     this.fetchAll = "true".equalsIgnoreCase(fetchAllString);
   }
-
+  
   /**
    * Returns a full representation for a given variant.
    * 
    * @param variant the requested variant of this representation
    * @return the representation of this resource
-   * @throws ResourceException when the requested resource cannot be represented as requested.
    */
   @Override
-  public Representation represent(Variant variant) throws ResourceException {
+  public Representation get(Variant variant) {
     String xmlString;
     // First check if source in URI exists
     if (!validateKnownSource()) {
@@ -188,30 +179,22 @@ public class SensorDataResource extends WattDepotResource {
       return null;
     }
   }
-
-  /**
-   * Indicate the DELETE method is supported.
-   * 
-   * @return True.
-   */
-  @Override
-  public boolean allowDelete() {
-    return true;
-  }
-
+  
   /**
    * Implement the DELETE method that deletes an existing SensorData given its timestamp. Only the
    * SourceOwner (or an admin) can delete a SensorData resource.
+   * @param variant The type of Representation to deleted.
+   * @return Returns a null Representation.
    */
   @Override
-  public void removeRepresentations() {
+  public Representation delete(Variant variant) {
     // First check if source in URI exists
     if (!validateKnownSource()) {
-      return;
+      return null;
     }
     // If credentials are provided, they need to be valid
     if (!validateCredentials()) {
-      return;
+      return null;
     }
     if (validateSourceOwnerOrAdmin()) {
       // Is it a request to delete all sensor data?
@@ -223,7 +206,7 @@ public class SensorDataResource extends WattDepotResource {
           // all inputs have been validated by this point, so must be internal error
           setStatusInternalError(String.format("Unable to delete SensorData for timestamp %s",
               this.timestamp));
-          return;
+          return null;
         }
       }
       else {
@@ -234,12 +217,12 @@ public class SensorDataResource extends WattDepotResource {
         }
         catch (Exception e) {
           setStatusBadTimestamp(this.timestamp);
-          return;
+          return null;
         }
         // check if there is any sensor data for given timestamp
         if (!super.dbManager.hasSensorData(uriSource, timestampObj)) {
           setStatusTimestampNotFound(this.timestamp);
-          return;
+          return null;
         }
         if (super.dbManager.deleteSensorData(uriSource, timestampObj)) {
           getResponse().setStatus(Status.SUCCESS_OK);
@@ -248,39 +231,32 @@ public class SensorDataResource extends WattDepotResource {
           // all inputs have been validated by this point, so must be internal error
           setStatusInternalError(String.format("Unable to delete SensorData for timestamp %s",
               this.timestamp));
-          return;
+          return null;
         }
       }
     }
     else {
-      return;
+      return null;
     }
-  }
-
-  /**
-   * Indicate the PUT method is supported.
-   * 
-   * @return True.
-   */
-  @Override
-  public boolean allowPut() {
-    return true;
+    return null;
   }
 
   /**
    * Implement the PUT method that creates a SensorData resource.
    * 
-   * @param entity The entity to be posted.
+   * @param entity The entity to be put.
+   * @param variant The type of Representation to put.
+   * @return Returns a null Representation.
    */
   @Override
-  public void storeRepresentation(Representation entity) {
+  public Representation put(Representation entity, Variant variant) {
     // First check if source in URI exists
     if (!validateKnownSource()) {
-      return;
+      return null;
     }
     // If credentials are provided, they need to be valid
     if (!validateCredentials()) {
-      return;
+      return null;
     }
     if (validateSourceOwnerOrAdmin()) {
       XMLGregorianCalendar timestampObj = null;
@@ -290,7 +266,7 @@ public class SensorDataResource extends WattDepotResource {
       }
       catch (Exception e) {
         setStatusBadTimestamp(this.timestamp);
-        return;
+        return null;
       }
       // Get the payload.
       String entityString = null;
@@ -299,36 +275,36 @@ public class SensorDataResource extends WattDepotResource {
       }
       catch (IOException e) {
         setStatusMiscError("Bad or missing content");
-        return;
+        return null;
       }
       SensorData data;
       // Try to make the XML payload into sensor data, return failure if this fails.
       if ((entityString == null) || ("".equals(entityString))) {
         setStatusMiscError("Entity body was empty");
-        return;
+        return null;
       }
       try {
         data = makeSensorData(entityString);
       }
       catch (JAXBException e) {
         setStatusMiscError("Invalid SensorData representation: " + entityString);
-        return;
+        return null;
       }
       // Return failure if the payload XML timestamp doesn't match the URI timestamp.
       if ((this.timestamp == null) || (!this.timestamp.equals(data.getTimestamp().toString()))) {
         setStatusMiscError("Timestamp in URI does not match timestamp in sensor data instance.");
-        return;
+        return null;
       }
       // Return failure if the SensorData Source doesn't match the uriSource
       Source source = dbManager.getSource(uriSource);
       if (!source.toUri(server).equals(data.getSource())) {
         setStatusMiscError("SensorData payload Source field does not match source field in URI");
-        return;
+        return null;
       }
       // if there is any already existing sensor data for given timestamp, then PUT fails
       if (super.dbManager.hasSensorData(uriSource, timestampObj)) {
         setStatusResourceOverwrite(this.timestamp);
-        return;
+        return null;
       }
       if (dbManager.storeSensorData(data)) {
         getResponse().setStatus(Status.SUCCESS_CREATED);
@@ -337,11 +313,12 @@ public class SensorDataResource extends WattDepotResource {
         // all inputs have been validated by this point, so must be internal error
         setStatusInternalError(String.format("Unable to create SensorData for timestamp %s",
             this.timestamp));
-        return;
+        return null;
       }
     }
     else {
-      return;
+      return null;
     }
+    return null;
   }
 }

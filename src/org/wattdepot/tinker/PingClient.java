@@ -4,8 +4,8 @@ import java.io.IOException;
 import org.restlet.Client;
 import org.restlet.data.Method;
 import org.restlet.data.Protocol;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
+import org.restlet.Request;
+import org.restlet.Response;
 
 /**
  * Simple client that provides access to the Ping API, such as it is.

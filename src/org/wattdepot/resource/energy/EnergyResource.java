@@ -3,13 +3,9 @@ package org.wattdepot.resource.energy;
 import javax.xml.bind.JAXBException;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.util.tstamp.Tstamp;
-import org.restlet.Context;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.source.jaxb.Source;
 
@@ -25,18 +21,14 @@ public class EnergyResource extends WattDepotResource {
   private String startTime, endTime, interval;
 
   /**
-   * Creates a new EnergyResource object with the provided parameters, and only a text/xml
-   * representation.
-   * 
-   * @param context Restlet context for the resource
-   * @param request Restlet request
-   * @param response Restlet response
+   * Initialize with attributes from the Request.
    */
-  public EnergyResource(Context context, Request request, Response response) {
-    super(context, request, response);
-    this.startTime = (String) request.getAttributes().get("startTime");
-    this.endTime = (String) request.getAttributes().get("endTime");
-    this.interval = (String) request.getAttributes().get("samplingInterval");
+  @Override  
+  protected void doInit() {  
+    super.doInit();
+    this.startTime = (String) this.getRequest().getAttributes().get("startTime");
+    this.endTime = (String) this.getRequest().getAttributes().get("endTime");
+    this.interval = (String) this.getRequest().getAttributes().get("samplingInterval");
   }
 
   /**
@@ -44,10 +36,9 @@ public class EnergyResource extends WattDepotResource {
    * 
    * @param variant the requested variant of this representation
    * @return the representation of this resource
-   * @throws ResourceException when the requested resource cannot be represented as requested.
    */
   @Override
-  public Representation represent(Variant variant) throws ResourceException {
+  public Representation get(Variant variant) {
     String xmlString;
     // First check if source in URI exists
     if (!validateKnownSource()) {
@@ -119,25 +110,5 @@ public class EnergyResource extends WattDepotResource {
     else {
       return null;
     }
-  }
-
-  /**
-   * Indicate the DELETE method is not supported.
-   * 
-   * @return false.
-   */
-  @Override
-  public boolean allowDelete() {
-    return false;
-  }
-
-  /**
-   * Indicate the PUT method is not supported.
-   * 
-   * @return false.
-   */
-  @Override
-  public boolean allowPut() {
-    return false;
   }
 }

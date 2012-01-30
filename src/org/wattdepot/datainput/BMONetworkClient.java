@@ -9,8 +9,8 @@ import org.restlet.data.Method;
 import org.restlet.data.Preference;
 import org.restlet.data.Protocol;
 import org.restlet.data.Reference;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
+import org.restlet.Request;
+import org.restlet.Response;
 
 /**
  * Provides a means to retrieve sensor data from a BMO server.

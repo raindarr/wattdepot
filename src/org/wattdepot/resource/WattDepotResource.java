@@ -9,17 +9,14 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.restlet.Context;
 import org.restlet.data.CharacterSet;
 import org.restlet.data.Form;
 import org.restlet.data.Language;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.restlet.resource.Resource;
-import org.restlet.resource.StringRepresentation;
-import org.restlet.resource.Variant;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.representation.Variant;
+import org.restlet.resource.ServerResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
@@ -41,7 +38,7 @@ import org.wattdepot.util.tstamp.Tstamp;
  * @author Robert Brewer
  * @author Philip Johnson
  */
-public class WattDepotResource extends Resource {
+public class WattDepotResource extends ServerResource {
 
   /** Holds the class-wide User JAXBContext, which is thread-safe. */
   private static JAXBContext userJaxbContext;
@@ -95,22 +92,18 @@ public class WattDepotResource extends Resource {
   }
 
   /**
-   * Provides the following representational variants: TEXT_XML.
-   * 
-   * @param context The context.
-   * @param request The request object.
-   * @param response The response object.
+   * Initialize with attributes from the Request and only TEXT_XML variant.
    */
-  public WattDepotResource(Context context, Request request, Response response) {
-    super(context, request, response);
-    if (request.getChallengeResponse() != null) {
-      this.authUsername = request.getChallengeResponse().getIdentifier();
-      this.authPassword = new String(request.getChallengeResponse().getSecret());
+  @Override
+  protected void doInit() {
+    if (this.getRequest().getChallengeResponse() != null) {
+      this.authUsername = this.getRequest().getChallengeResponse().getIdentifier();
+      this.authPassword = new String(this.getRequest().getChallengeResponse().getSecret()); // NOPMD
     }
-    this.server = (Server) getContext().getAttributes().get("WattDepotServer");
-    this.dbManager = (DbManager) getContext().getAttributes().get("DbManager");
-    this.uriUser = (String) request.getAttributes().get("user");
-    this.uriSource = (String) request.getAttributes().get("source");
+    this.server = (Server) this.getContext().getAttributes().get("WattDepotServer");
+    this.dbManager = (DbManager) this.getContext().getAttributes().get("DbManager");
+    this.uriUser = (String) this.getRequest().getAttributes().get("user");
+    this.uriSource = (String) this.getRequest().getAttributes().get("source");
 
     // This resource has only one type of representation.
     getVariants().add(new Variant(MediaType.TEXT_XML));
@@ -507,8 +500,8 @@ public class WattDepotResource extends Resource {
    * cannot be found/calculated.
    * @throws JAXBException If there are problems mashalling the SensorData.
    */
-  public String getEnergy(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime, int interval)
-      throws JAXBException {
+  public String getEnergy(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime,
+      int interval) throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorData energyData = null;
@@ -546,8 +539,8 @@ public class WattDepotResource extends Resource {
    * cannot be found/calculated.
    * @throws JAXBException If there are problems mashalling the SensorData.
    */
-  public String getCarbon(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime, int interval)
-      throws JAXBException {
+  public String getCarbon(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime,
+      int interval) throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorData carbonData = null;

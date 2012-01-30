@@ -3,13 +3,9 @@ package org.wattdepot.resource.power;
 import javax.xml.bind.JAXBException;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.util.tstamp.Tstamp;
-import org.restlet.Context;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.source.jaxb.Source;
 
@@ -25,16 +21,12 @@ public class PowerResource extends WattDepotResource {
   private String timestamp;
 
   /**
-   * Creates a new PowerResource object with the provided parameters, and only a text/xml
-   * representation.
-   * 
-   * @param context Restlet context for the resource
-   * @param request Restlet request
-   * @param response Restlet response
+   * Initialize with attributes from the Request.
    */
-  public PowerResource(Context context, Request request, Response response) {
-    super(context, request, response);
-    this.timestamp = (String) request.getAttributes().get("timestamp");
+  @Override  
+  protected void doInit() {  
+    super.doInit();
+    this.timestamp = (String) this.getRequest().getAttributes().get("timestamp");
   }
 
   /**
@@ -42,10 +34,9 @@ public class PowerResource extends WattDepotResource {
    * 
    * @param variant the requested variant of this representation
    * @return the representation of this resource
-   * @throws ResourceException when the requested resource cannot be represented as requested.
    */
   @Override
-  public Representation represent(Variant variant) throws ResourceException {
+  public Representation get(Variant variant) {
     String xmlString;
     // First check if source in URI exists
     if (!validateKnownSource()) {
@@ -99,25 +90,5 @@ public class PowerResource extends WattDepotResource {
     else {
       return null;
     }
-  }
-
-  /**
-   * Indicate the DELETE method is not supported.
-   * 
-   * @return false.
-   */
-  @Override
-  public boolean allowDelete() {
-    return false;
-  }
-
-  /**
-   * Indicate the PUT method is not supported.
-   * 
-   * @return false.
-   */
-  @Override
-  public boolean allowPut() {
-    return false;
   }
 }

@@ -10,7 +10,6 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.restlet.Client;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.ChallengeScheme;
 import org.restlet.data.CharacterSet;
@@ -18,13 +17,13 @@ import org.restlet.data.Language;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.data.Preference;
-import org.restlet.data.Protocol;
 import org.restlet.data.Reference;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
+import org.restlet.Response;
 import org.restlet.data.Status;
-import org.restlet.resource.Representation;
-import org.restlet.resource.StringRepresentation;
+import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.resource.ClientResource;
+import org.restlet.resource.ResourceException;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -63,8 +62,6 @@ public class WattDepotClient {
   private String wattDepotUri;
   private String username;
   private String password;
-  /** The Restlet Client instance used to communicate with the server. */
-  private Client client;
 
   /** Users JAXBContext. */
   private static final JAXBContext userJAXB;
@@ -118,8 +115,7 @@ public class WattDepotClient {
     this.password = password;
     // nuke the Restlet loggers
     RestletLoggerUtil.removeRestletLoggers();
-    this.client = new Client(Protocol.HTTP);
-    this.client.setConnectTimeout(2000);
+
   }
 
   /**
@@ -156,21 +152,38 @@ public class WattDepotClient {
    * @param entity The representation to be sent with the request, or null if not needed.
    * @return The Response instance returned from the server.
    */
-  public Response makeRequest(Method method, String requestString, Preference<MediaType> mediaPref,
-      Representation entity) {
+  public Response makeRequest(Method method, String requestString,
+      Preference<MediaType> mediaPref, Representation entity) {
     Reference reference = new Reference(this.wattDepotUri + requestString);
-    Request request =
-        (entity == null) ? new Request(method, reference) : new Request(method, reference, entity);
-    request.getClientInfo().getAcceptedMediaTypes().add(mediaPref);
+    ClientResource client = new ClientResource(method, reference);
+    client.getClientInfo().getAcceptedMediaTypes().add(mediaPref);
+    client.getRequest().setEntity(entity);
+
     if (!isAnonymous()) {
       ChallengeResponse authentication =
           new ChallengeResponse(scheme, this.username, this.password);
-      request.setChallengeResponse(authentication);
+      client.setChallengeResponse(authentication);
     }
-    Response response = this.client.handle(request);
+
+    try {
+      Representation representation = client.handle();
+      if (method == Method.GET) {
+        // TODO: this seems like a terrible way to do this
+        client.getResponse().setEntity(representation.getText(), mediaPref.getMetadata());
+      }
+    }
+    catch (ResourceException e) {
+      // set the status of the Response to pass the error back
+      client.getResponse().setStatus(e.getStatus());
+    }
+    catch (IOException e) { //NOPMD
+      // We couldn't get the text from the representation.
+      // The calling code will handle it.
+    }
+
     // Release the request object, which hopefully closes the network socket
-    request.release();
-    return response;
+    client.release();
+    return client.getResponse();
   }
 
   /**
@@ -525,8 +538,9 @@ public class WattDepotClient {
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
    */
-  private double getLatestSensorDataValue(String source, String key) throws NotAuthorizedException,
-      ResourceNotFoundException, BadXmlException, MiscClientException {
+  private double getLatestSensorDataValue(String source, String key)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
     SensorData data = getLatestSensorData(source);
     return data.getProperties().getPropertyAsDouble(key);
   }
@@ -831,7 +845,8 @@ public class WattDepotClient {
   public double getEnergyGenerated(String source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    return getEnergyValue(source, startTime, endTime, samplingInterval, SensorData.ENERGY_GENERATED);
+    return getEnergyValue(source, startTime, endTime, samplingInterval,
+        SensorData.ENERGY_GENERATED);
   }
 
   /**
@@ -990,10 +1005,13 @@ public class WattDepotClient {
     Representation rep =
         new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
             CharacterSet.UTF_8);
+
     Response response =
         makeRequest(Method.PUT, Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource())
-            + "/" + Server.SENSORDATA_URI + "/" + data.getTimestamp().toXMLFormat(), XML_MEDIA, rep);
+            + "/" + Server.SENSORDATA_URI + "/" + data.getTimestamp().toXMLFormat(), XML_MEDIA,
+            rep);
     Status status = response.getStatus();
+
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
       // credentials were unacceptable to server
       throw new NotAuthorizedException(status);
@@ -1070,9 +1088,8 @@ public class WattDepotClient {
    * @throws ResourceNotFoundException If the source name doesn't exist on the server.
    * @throws MiscClientException If the server indicates an unexpected problem has occurred.
    */
-  public boolean deleteAllSensorData(String source)
-      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
-      MiscClientException {
+  public boolean deleteAllSensorData(String source) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
     Response response =
         makeRequest(Method.DELETE, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
             + "/" + Server.ALL, XML_MEDIA, null);
@@ -1161,7 +1178,8 @@ public class WattDepotClient {
       }
       catch (ResourceNotFoundException e) {
         // We got the SourceIndex already, so we know the source exists. this should never happen
-        throw new MiscClientException("SourceRef from Source index had non-existent source name", e);
+        throw new MiscClientException("SourceRef from Source index had non-existent source name",
+            e);
       }
     }
     return userList;
@@ -1180,7 +1198,8 @@ public class WattDepotClient {
    */
   public User getUser(String username) throws NotAuthorizedException, ResourceNotFoundException,
       BadXmlException, MiscClientException {
-    Response response = makeRequest(Method.GET, Server.USERS_URI + "/" + username, XML_MEDIA, null);
+    Response response =
+        makeRequest(Method.GET, Server.USERS_URI + "/" + username, XML_MEDIA, null);
     Status status = response.getStatus();
 
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
@@ -1330,7 +1349,8 @@ public class WattDepotClient {
    */
   public Source getSource(String source) throws NotAuthorizedException, ResourceNotFoundException,
       BadXmlException, MiscClientException {
-    Response response = makeRequest(Method.GET, Server.SOURCES_URI + "/" + source, XML_MEDIA, null);
+    Response response =
+        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source, XML_MEDIA, null);
     Status status = response.getStatus();
 
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
@@ -1399,10 +1419,12 @@ public class WattDepotClient {
     else {
       overwriteFlag = "";
     }
+
     Response response =
         makeRequest(Method.PUT, Server.SOURCES_URI + "/" + source.getName() + overwriteFlag,
             XML_MEDIA, rep);
     Status status = response.getStatus();
+
     if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
       // credentials were unacceptable to server
       throw new NotAuthorizedException(status);
@@ -1496,6 +1518,7 @@ public class WattDepotClient {
    * @throws MiscClientException If the server rejected the snapshot request for some other reason.
    */
   public boolean makeSnapshot() throws NotAuthorizedException, MiscClientException {
+
     Response response =
         makeRequest(Method.PUT, Server.DATABASE_URI + "/" + "snapshot", XML_MEDIA, null);
     Status status = response.getStatus();

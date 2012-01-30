@@ -25,7 +25,7 @@ import org.mortbay.jetty.servlet.ServletHolder;
 import org.restlet.Application;
 import org.restlet.Component;
 import org.restlet.Restlet;
-import org.restlet.Router;
+import org.restlet.routing.Router;
 import org.restlet.data.Protocol;
 import org.wattdepot.resource.carbon.CarbonResource;
 import org.wattdepot.resource.db.DatabaseResource;
@@ -454,9 +454,10 @@ public class Server extends Application {
    * @return the newly created Restlet object
    */
   @Override
-  public synchronized Restlet createRoot() {
+  public synchronized Restlet createInboundRoot() {
     Router router = new Router(getContext());
-
+    router.setDefaultMatchingQuery(true);
+    
     // This Router is used to control access to the User resource
     // Router userRouter = new Router(getContext());
     router.attach("/" + USERS_URI, UserResource.class);

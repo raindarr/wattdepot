@@ -1,9 +1,8 @@
 package org.wattdepot.server;
 
 import org.restlet.Context;
-import org.restlet.Guard;
+import org.restlet.security.ChallengeAuthenticator;
 import org.restlet.data.ChallengeScheme;
-import org.restlet.data.Request;
 
 /**
  * Performs the authentication of HTTP requests for WattDepot, currently using HTTP Basic
@@ -15,7 +14,7 @@ import org.restlet.data.Request;
  * 
  * @author Robert Brewer
  */
-public class WattDepotAuthenticator extends Guard {
+public class WattDepotAuthenticator extends ChallengeAuthenticator {
 
   /**
    * Creates the WattDepotAuthenticator for HTTP Basic authentication.
@@ -34,7 +33,8 @@ public class WattDepotAuthenticator extends Guard {
    * @param secret The password.
    * @return True if the credentials are valid.
    */
-  @Override
+//TODO: This doesn't work with Restlet 2.0, but it isn't being used now anyway 
+/*  @Override
   public boolean checkSecret(Request request, String identifier, char[] secret) {
     ServerProperties serverProps =
         (ServerProperties) getContext().getAttributes().get("ServerProperties");
@@ -47,5 +47,5 @@ public class WattDepotAuthenticator extends Guard {
             + ", admin username: " + adminUsername + ", admin password: " + adminPassword);
     // For now, only accept requests from the admin user
     return identifier.equals(adminUsername) && new String(secret).equals(adminPassword);
-  }
+  }*/
 }

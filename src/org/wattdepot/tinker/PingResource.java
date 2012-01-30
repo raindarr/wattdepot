@@ -1,14 +1,11 @@
 package org.wattdepot.tinker;
 
-import org.restlet.Context;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.resource.Representation;
-import org.restlet.resource.Resource;
+import org.restlet.representation.Representation;
+import org.restlet.resource.ServerResource;
 import org.restlet.resource.ResourceException;
-import org.restlet.resource.StringRepresentation;
-import org.restlet.resource.Variant;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.representation.Variant;
 
 /**
  * It's the machine that goes ping! http://www.youtube.com/watch?v=NcHdF1eHhgc&feature=channel_page
@@ -18,7 +15,7 @@ import org.restlet.resource.Variant;
  * 
  * @author Robert Brewer
  */
-public class PingResource extends Resource {
+public class PingResource extends ServerResource {
 
   /**
    * String to send as a response to the ping. 
@@ -33,10 +30,21 @@ public class PingResource extends Resource {
    * @param request Restlet request
    * @param response Restlet response
    */
-  public PingResource(Context context, Request request, Response response) {
+/*  public PingResource(Context context, Request request, Response response) {
     super(context, request, response);
+    super();
+    this.setRequest(request);
+    this.setResponse(response);
 
     // This representation has only one type of representation.
+    getVariants().add(new Variant(MediaType.TEXT_PLAIN));
+  } */
+  
+  /**
+   * Initialize with only a text/plain representation.
+   */
+  @Override  
+  protected void doInit() throws ResourceException {  
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
   }
 
@@ -48,7 +56,7 @@ public class PingResource extends Resource {
    * @throws ResourceException when the requested resource cannot be represented as requested.
    */
   @Override
-  public Representation represent(Variant variant) throws ResourceException {
+  public Representation get(Variant variant) {
     return new StringRepresentation(HELLO_WORLD_TEXT, MediaType.TEXT_PLAIN);
   }
 

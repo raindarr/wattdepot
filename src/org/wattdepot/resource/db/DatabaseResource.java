@@ -3,11 +3,9 @@
  */
 package org.wattdepot.resource.db;
 
-import org.restlet.Context;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.restlet.resource.Representation;
+import org.restlet.representation.Representation;
+import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
 
 /**
@@ -21,37 +19,25 @@ public class DatabaseResource extends WattDepotResource {
   /** Contains the database method desired. */
   protected String methodString;
 
-  /**
-   * Creates a new DatabaseResource object with the provided parameters.
-   * 
-   * @param context Restlet context for the resource
-   * @param request Restlet request
-   * @param response Restlet response
-   */
-  public DatabaseResource(Context context, Request request, Response response) {
-    super(context, request, response);
-    // Right now, this resource is write-only. This prevents GETs
-    this.setReadable(false);
-    this.methodString = (String) request.getAttributes().get("method");
-  }
 
   /**
-   * Indicate the PUT method is supported.
-   * 
-   * @return True.
+   * Initialize with attributes from the Request.
    */
   @Override
-  public boolean allowPut() {
-    return true;
+  protected void doInit() {
+    super.doInit();
+    this.methodString = (String) this.getRequest().getAttributes().get("method");
   }
 
   /**
    * Implement the PUT method that executes the method provided.
    * 
    * @param entity The entity to be posted.
+   * @param variant The variant of Representation to put.
+   * @return Returns a null Representation.
    */
   @Override
-  public void storeRepresentation(Representation entity) {
+  public Representation put(Representation entity, Variant variant) {
     // If credentials are provided, they need to be valid
     if (validateCredentials()) {
       if (isAdminUser()) {
@@ -62,7 +48,7 @@ public class DatabaseResource extends WattDepotResource {
           else {
             // all inputs have been validated by this point, so must be internal error
             setStatusInternalError("Unable to create database snapshot");
-            return;
+            return null;
           }
         }
         else {
@@ -72,11 +58,9 @@ public class DatabaseResource extends WattDepotResource {
       }
       else {
         setStatusBadCredentials();
-        return;
+        return null;
       }
     }
-    else {
-      return;
-    }
+    return null;
   }
 }

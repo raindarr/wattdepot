@@ -5,7 +5,7 @@ package org.wattdepot.resource.gviz;
 //import org.restlet.data.Request;
 //import org.restlet.data.Response;
 //import org.restlet.resource.Representation;
-import org.restlet.resource.Resource;
+import org.restlet.resource.ServerResource;
 //import org.restlet.resource.ResourceException;
 //import org.restlet.resource.StringRepresentation;
 //import org.restlet.resource.Variant;
@@ -24,7 +24,7 @@ import org.restlet.resource.Resource;
  * @author Robert Brewer
  */
 
-public class GVisualizationResource extends Resource {
+public class GVisualizationResource extends ServerResource {
 //
 //  /** The parameters sent to the data source. */
 //  protected String parameters = null;

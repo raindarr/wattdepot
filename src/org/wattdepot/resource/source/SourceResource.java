@@ -2,14 +2,10 @@ package org.wattdepot.resource.source;
 
 import java.io.IOException;
 import javax.xml.bind.JAXBException;
-import org.restlet.Context;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.restlet.resource.Representation;
-import org.restlet.resource.ResourceException;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.source.jaxb.Source;
 
@@ -29,18 +25,14 @@ public class SourceResource extends WattDepotResource {
   private boolean overwrite = false;
 
   /**
-   * Creates a new SourceResource object with the provided parameters, and only a text/xml
-   * representation.
-   * 
-   * @param context Restlet context for the resource
-   * @param request Restlet request
-   * @param response Restlet response
+   * Initialize with attributes from the Request.
    */
-  public SourceResource(Context context, Request request, Response response) {
-    super(context, request, response);
-    String fetchAllString = (String) request.getAttributes().get("fetchAll");
+  @Override  
+  protected void doInit() {  
+    super.doInit();
+    String fetchAllString = (String) this.getRequest().getAttributes().get("fetchAll");
     this.fetchAll = "true".equalsIgnoreCase(fetchAllString);
-    String overwriteString = (String) request.getAttributes().get("overwrite");
+    String overwriteString = (String) this.getRequest().getAttributes().get("overwrite");
     this.overwrite = "true".equalsIgnoreCase(overwriteString);
   }
 
@@ -49,10 +41,9 @@ public class SourceResource extends WattDepotResource {
    * 
    * @param variant the requested variant of this representation
    * @return the representation of this resource
-   * @throws ResourceException when the requested resource cannot be represented as requested.
    */
   @Override
-  public Representation represent(Variant variant) throws ResourceException {
+  public Representation get(Variant variant)  {
     String xmlString;
     // If credentials are provided, they need to be valid
     if (!isAnonymous() && !validateCredentials()) {
@@ -116,25 +107,17 @@ public class SourceResource extends WattDepotResource {
   }
 
   /**
-   * Indicate the PUT method is supported.
-   * 
-   * @return True.
-   */
-  @Override
-  public boolean allowPut() {
-    return true;
-  }
-
-  /**
    * Implement the PUT method that creates a Source resource.
    * 
-   * @param entity The entity to be posted.
+   * @param entity The entity to be put.
+   * @param variant The type of Representation to put.
+   * @return Returns a null Representation.
    */
   @Override
-  public void storeRepresentation(Representation entity) {
+  public Representation put(Representation entity, Variant variant) {
     // If credentials are provided, they need to be valid
     if (!validateCredentials()) {
-      return;
+      return null;
     }
     // Get the payload.
     String entityString = null;
@@ -143,14 +126,14 @@ public class SourceResource extends WattDepotResource {
     }
     catch (IOException e) {
       setStatusMiscError("Bad or missing content");
-      return;
+      return null;
     }
     Source source;
     String sourceName;
     // Try to make the XML payload into Source, return failure if this fails.
     if ((entityString == null) || ("".equals(entityString))) {
       setStatusMiscError("Entity body was empty");
-      return;
+      return null;
     }
     try {
       source = makeSource(entityString);
@@ -158,18 +141,18 @@ public class SourceResource extends WattDepotResource {
     }
     catch (JAXBException e) {
       setStatusMiscError("Invalid Source representation: " + entityString);
-      return;
+      return null;
     }
     // Return failure if the name of Source doesn't match the name given in URI
     if (!uriSource.equals(sourceName)) {
       setStatusMiscError("Soure Name field does not match source field in URI");
-      return;
+      return null;
     }
     if (overwrite) {
       Source existingSource = dbManager.getSource(sourceName);
       // If source already exists, must be owner to overwrite
       if ((existingSource != null) && (!validateSourceOwnerOrAdmin())) {
-        return;
+        return null;
       }
       if (dbManager.storeSource(source, overwrite)) {
         getResponse().setStatus(Status.SUCCESS_CREATED);
@@ -177,7 +160,7 @@ public class SourceResource extends WattDepotResource {
       else {
         // all inputs have been validated by this point, so must be internal error
         setStatusInternalError(String.format("Unable to create Source named %s", uriSource));
-        return;
+        return null;
       }
     }
     else {
@@ -188,24 +171,15 @@ public class SourceResource extends WattDepotResource {
         else {
           // all inputs have been validated by this point, so must be internal error
           setStatusInternalError(String.format("Unable to create Source named %s", uriSource));
-          return;
+          return null;
         }
       }
       else {
         // if Source with given name already exists and not overwriting, then fail
         setStatusResourceOverwrite(uriSource);
-        return;
+        return null;
       }
     }
-  }
-
-  /**
-   * Indicate the DELETE method is not supported, until I have time to implement it.
-   * 
-   * @return False.
-   */
-  @Override
-  public boolean allowDelete() {
-    return false;
+    return null;
   }
 }

@@ -17,7 +17,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.restlet.data.Response;
+import org.restlet.Response;
 import org.restlet.data.Status;
 import org.wattdepot.client.BadXmlException;
 import org.wattdepot.client.MiscClientException;
