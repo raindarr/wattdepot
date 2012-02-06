@@ -16,6 +16,7 @@ public class QueryTestServlet extends DataSourceServlet {
   /** Keep Eclipse happy. */
   private static final long serialVersionUID = 1L;
 
+  @Override
   public DataTable generateDataTable(Query query, HttpServletRequest request) {
     // Create a data table,
     DataTable data = new DataTable();

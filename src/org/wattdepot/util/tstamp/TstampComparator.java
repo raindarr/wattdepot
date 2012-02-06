@@ -20,6 +20,7 @@ public class TstampComparator implements Serializable, Comparator<XMLGregorianCa
    * @param tstamp2 The second tstamp.
    * @return -1, 0, or +1 depending. 
    */
+  @Override
   public int compare(XMLGregorianCalendar tstamp1, XMLGregorianCalendar tstamp2) {
     if (Tstamp.greaterThan(tstamp1, tstamp2)) {
       return 1;

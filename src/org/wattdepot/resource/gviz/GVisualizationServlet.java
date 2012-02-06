@@ -104,6 +104,7 @@ public class GVisualizationServlet extends DataSourceServlet {
   }
 
   /** {@inheritDoc} */
+  @Override
   public DataTable generateDataTable(Query query, HttpServletRequest request)
       throws DataSourceException {
     String remainingUri, sourceName;
