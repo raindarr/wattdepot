@@ -70,7 +70,7 @@ public class SharkLogSensor {
   protected RowParser parser;
 
   /**
-   * Creates the new TabularFileSensor.
+   * Creates the new SharkLogSensor.
    * 
    * @param filename Name of the file to read data from.
    * @param uri URI of the server to send data to (ending in "/").
