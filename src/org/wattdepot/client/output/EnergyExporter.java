@@ -21,11 +21,11 @@ import org.wattdepot.util.tstamp.Tstamp;
 import au.com.bytecode.opencsv.CSVWriter;
 
 /**
- * Retrieves daily energy data for a list of sources and produces a CSV file with the results.
+ * Retrieves energy data for a list of sources and produces a CSV file with the results.
  * 
  * @author Robert Brewer
  */
-public class DailyEnergyExporter {
+public class EnergyExporter {
 
   private static final String IO_ERROR_MESSAGE = "Got IO error writing to file: ";
 
@@ -47,12 +47,15 @@ public class DailyEnergyExporter {
   /** Last day to retrieve energy data for. */
   protected XMLGregorianCalendar endDate;
 
+  /** Length of the energy interval for each column, in days. */
+  protected int intervalDays;
+
   protected static final int MINUTES_IN_DAY = 60 * 24;
 
   private static final String toolName = "DailyEnergyExporter";
 
   /**
-   * Creates the new DailyEnergyExporter.
+   * Creates the new EnergyExporter.
    * 
    * @param filename Name of the file to send data to.
    * @param uri URI of the server to retrieve data from (ending in "/").
@@ -60,9 +63,10 @@ public class DailyEnergyExporter {
    * @param debug Whether to display debugging data or not.
    * @param startDate First day to retrieve energy data for.
    * @param endDate Last day to retrieve energy data for.
+   * @param intervalDays Length of the energy interval for each column, in days.
    */
-  public DailyEnergyExporter(String filename, String uri, String[] sources, boolean debug,
-      XMLGregorianCalendar startDate, XMLGregorianCalendar endDate) {
+  public EnergyExporter(String filename, String uri, String[] sources, boolean debug,
+      XMLGregorianCalendar startDate, XMLGregorianCalendar endDate, int intervalDays) {
     this.filename = filename;
     this.serverUri = uri;
     // Make Findbugs happy with a clone
@@ -70,6 +74,7 @@ public class DailyEnergyExporter {
     this.debug = debug;
     this.startDate = startDate;
     this.endDate = endDate;
+    this.intervalDays = intervalDays;
   }
 
   /**
@@ -133,7 +138,8 @@ public class DailyEnergyExporter {
     // Since endDate is the last day to get data for, the timestamp list actually should have
     // N+1 entries, with the last entry being equal to endDate + 1 day.
     List<XMLGregorianCalendar> timestampList =
-        Tstamp.getTimestampList(startDate, Tstamp.incrementDays(endDate, 1), MINUTES_IN_DAY);
+        Tstamp.getTimestampList(startDate, Tstamp.incrementDays(endDate, 1), intervalDays
+            * MINUTES_IN_DAY);
 
     if ((timestampList == null) || (timestampList.isEmpty())) {
       System.err.println("Bad start or end date provided, aborting.");
@@ -173,7 +179,8 @@ public class DailyEnergyExporter {
         XMLGregorianCalendar start = timestampList.get(i - 1);
         XMLGregorianCalendar end = timestampList.get(i);
         if (debug) {
-          System.out.format("start: %s, end: %s%n", start.toString(), end.toString());
+          System.out.format("source: %s, start: %s, end: %s%n", sourceName, start.toString(),
+              end.toString());
         }
         try {
           energy[i] = Double.toString(client.getEnergyConsumed(sourceName, start, end, 0));
@@ -217,8 +224,7 @@ public class DailyEnergyExporter {
   }
 
   /**
-   * Processes command line arguments and starts data output. For now, actually doesn't take any
-   * command line arguments.
+   * Processes command line arguments and starts data output.
    * 
    * @param args command line arguments.
    */
@@ -235,12 +241,14 @@ public class DailyEnergyExporter {
         "Start date (inclusive) in XML format (2012-01-01T00:00:00.000-10:00)");
     options.addOption("e", "endDate", true,
         "End date (inclusive) in XML format (2012-01-31T00:00:00.000-10:00)");
+    options.addOption("i", "interval", true, "Interval between columns in days, defaults to 1");
     CommandLine cmd = null;
 
     String filename = null, uri = null, sourceNamesArg = null;
     String[] sources = null;
     boolean debug;
     XMLGregorianCalendar startDate = null, endDate = null;
+    int intervalDays = 1;
 
     CommandLineParser parser = new PosixParser();
     HelpFormatter formatter = new HelpFormatter();
@@ -309,6 +317,15 @@ public class DailyEnergyExporter {
       formatter.printHelp(toolName, options);
       System.exit(1);
     }
+    if (cmd.hasOption("i")) {
+      try {
+        intervalDays = Integer.parseInt(cmd.getOptionValue("i"));
+      }
+      catch (NumberFormatException e) {
+        System.err.println("Unable to parse interval, exiting: " + e);
+        System.exit(1);
+      }
+    }
 
     debug = cmd.hasOption("d");
 
@@ -318,12 +335,20 @@ public class DailyEnergyExporter {
       System.out.println("sources:   " + Arrays.toString(sources));
       System.out.println("startDate: " + startDate);
       System.out.println("endDate:   " + endDate);
+      System.out.println("interval:  " + intervalDays);
       System.out.println("debug:     " + debug);
     }
 
-    DailyEnergyExporter outputClient =
-        new DailyEnergyExporter(filename, uri, sources, debug, startDate, endDate);
-    outputClient.process();
+    EnergyExporter outputClient =
+        new EnergyExporter(filename, uri, sources, debug, startDate, endDate, intervalDays);
+    // Just do it
+    if (outputClient.process()) {
+      System.out.println("Successfully output data.");
+      System.exit(0);
+    }
+    else {
+      System.err.println("Problem encountered outputting data.");
+      System.exit(2);
+    }
   }
-
 }
