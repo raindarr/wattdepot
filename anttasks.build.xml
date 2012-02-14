@@ -1,0 +1,201 @@
+<project name="wattdepot" default="echoMessage" xmlns:ivy="antlib:org.apache.ivy.ant">
+ <description>
+  Ant tasks for the WattDepot system. 
+  </description>
+  
+  <!--Just run this by default -->
+  <target name="echoMessage">
+	<echo message="These tasks are called by the Maven pom.xml"/>
+  </target>
+  
+  
+  <target name="jar-standalone">
+	<property name="tmp.dir" location="${project.build.directory}/tmp" />
+	<property name="build.jar.dir" location="${project.build.directory}/jar" />
+	<!-- Define the directories and distribution name -->
+	<delete dir="${tmp.dir}" quiet="yes" />
+	<mkdir dir="${tmp.dir}" />
+	<mkdir dir="${build.jar.dir}" />
+	<!-- Copy over all local classes -->
+	<copy todir="${tmp.dir}">
+	  <fileset dir="${project.build.outputDirectory}" />
+	</copy>
+	
+	<!-- Unjar the libraries required for client (subset of those needed for server) -->
+	<unjar src="${settings.localRepository}/org/restlet/jse/org.restlet/${restlet.version}/org.restlet-${restlet.version}.jar" dest="${tmp.dir}" />
+	
+	<jar destfile="${build.jar.dir}/wattdepot-lib-client.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Implementation-Title" value="WattDepot client library" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+	
+	<unjar src="${settings.localRepository}/commons-cli/commons-cli/${commons-cli.version}/commons-cli-${commons-cli.version}.jar" dest="${tmp.dir}" />
+	
+	<jar destfile="${build.jar.dir}/wattdepot-sensor-examplestreaming.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.datainput.ExampleStreamingSensor" />
+		<attribute name="Implementation-Title" value="WattDepot ExampleStreamingSensor" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<jar destfile="${build.jar.dir}/wattdepot-sensor-ted5000.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.sensor.ted.Ted5000Sensor" />
+		<attribute name="Implementation-Title" value="WattDepot TED 5000 Sensor" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<jar destfile="${build.jar.dir}/wattdepot-client-monitor.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.client.monitor.MonitorSourceClient" />
+		<attribute name="Implementation-Title" value="WattDepot MonitorSourceClient" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<jar destfile="${build.jar.dir}/wattdepot-client-snapshot.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.client.snapshot.SnapshotClient" />
+		<attribute name="Implementation-Title" value="WattDepot SnapshotClient" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<jar destfile="${build.jar.dir}/wattdepot-converter-log.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.datainput.SensorLogDataConverter" />
+		<attribute name="Implementation-Title" value="WattDepot SensorLogDataConverter" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<unjar src="${settings.localRepository}/net/sf/opencsv/opencsv/${opencsv.version}/opencsv-${opencsv.version}.jar" dest="${tmp.dir}" />
+
+	<jar destfile="${build.jar.dir}/wattdepot-sensor-tabular.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.datainput.TabularFileSensor" />
+		<attribute name="Implementation-Title" value="WattDepot TabularFileSensor" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<jar destfile="${build.jar.dir}/wattdepot-converter-shark.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.datainput.SharkLogSensor" />
+		<attribute name="Implementation-Title" value="WattDepot SharkLogSensor" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<jar destfile="${build.jar.dir}/wattdepot-sensor-bmo.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.datainput.BMOSensor" />
+		<attribute name="Implementation-Title" value="WattDepot BMOSensor" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<jar destfile="${build.jar.dir}/wattdepot-converter-oscar.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.datainput.OscarDataConverter" />
+		<attribute name="Implementation-Title" value="WattDepot OscarDataConverter" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<!-- This is a bit of a kludge, as only this jar file needs the Jamod library -->
+	<unjar src="${settings.localRepository}/net/wimpi/modbus/jamod/${modbus-jamod.version}/jamod-${modbus-jamod.version}.jar" dest="${tmp.dir}" />
+	<jar destfile="${build.jar.dir}/wattdepot-sensor-shark.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.sensor.modbus.SharkSensor" />
+		<attribute name="Implementation-Title" value="WattDepot SharkSensor" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+
+	<!-- Unjar the additional libraries required for server -->
+	<unjar src="${settings.localRepository}/commons-lang/commons-lang/${commons-lang.version}/commons-lang-${commons-lang.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/commons-logging/commons-logging/${commons-logging.version}/commons-logging-${commons-logging.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/org/mortbay/jetty/servlet-api-2.5/${jetty.version}/servlet-api-2.5-${jetty.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/org/mortbay/jetty/jetty/${jetty.version}/jetty-${jetty.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/org/mortbay/jetty/jetty-util/${jetty.version}/jetty-util-${jetty.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/com/ibm/icu/icu4j/${icu4j.version}/icu4j-${icu4j.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/com/google/collections/google-collections/${google-collections.version}/google-collections-${google-collections.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/com/google/visualization/visualization-datasource/${google-visualization-java.version}/visualization-datasource-${google-visualization-java.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/org/apache/derby/derby/${derby.version}/derby-${derby.version}.jar" dest="${tmp.dir}" />
+
+	<jar destfile="${build.jar.dir}/wattdepot-server.jar" basedir="${tmp.dir}">
+	  <manifest>
+		<attribute name="Main-Class" value="org.wattdepot.server.Server" />
+		<attribute name="Implementation-Title" value="WattDepot Server" />
+		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Vendor"
+				   value="Collaborative Software Development Laboratory, University of Hawaii" />
+	  </manifest>
+	</jar>
+	<delete dir="${tmp.dir}" />
+
+  </target>
+  
+  
+  
+  
+   <!-- While recent versions of Java 1.6 include JAXB 2.1.X, they don't appear to include the
+       jar file that includes the xjc Ant task. So you have to install the reference implementation
+       of JAXB to use this build file -->
+  
+  
+  <target name="jaxb" description="Runs the XJC compiler.">
+<!-- Make sure that the JAXB compiler is available. -->
+  <available file="${env.JAXB_HOME}/lib/jaxb-xjc.jar" property="jaxb.xjc.available" />
+  <fail message="Could not find ${env.JAXB_HOME}/lib/jaxb-xjc.jar. See Section 3.0 of http://code.google.com/p/hackystat/wiki/InstallingJAXBinJava5" unless="jaxb.xjc.available" />
+
+  <taskdef name="xjc" classname="com.sun.tools.xjc.XJCTask">
+    <classpath>
+      <fileset dir="${env.JAXB_HOME}/lib" includes="*.jar" />
+    </classpath>
+  </taskdef>
+  
+
+  <echo message="Compiling using ${env.JAXB_HOME}." />
+    <xjc schema="${basedir}/src/main/resources/xml/schema/sensordata.xsd" extension="true" destdir="src" package="org.wattdepot.resource.sensordata.jaxb">
+      <produces dir="${project.build.sourceDirectory}/org/wattdepot/resource/sensordata/jaxb" includes="*" />
+    </xjc>
+    <xjc schema="${basedir}/src/main/resources/xml/schema/source.xsd" extension="true" destdir="src" package="org.wattdepot.resource.source.jaxb">
+      <produces dir="${project.build.sourceDirectory}/org/wattdepot/resource/source/jaxb" includes="*" />
+    </xjc>
+    <xjc schema="${basedir}/src/main/resources/xml/schema/source-summary.xsd" extension="true" destdir="src" package="org.wattdepot.resource.source.summary.jaxb">
+      <produces dir="${project.build.sourceDirectory}/org/wattdepot/resource/source/summary/jaxb" includes="*" />
+    </xjc>
+    <xjc schema="${basedir}/src/main/resources/xml/schema/user.xsd" extension="true" destdir="src" package="org.wattdepot.resource.user.jaxb">
+      <produces dir="${project.build.sourceDirectory}/org/wattdepot/resource/user/jaxb" includes="*" />
+    </xjc>
+  </target>
+  
+  </project>
