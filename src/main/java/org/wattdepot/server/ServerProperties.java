@@ -29,6 +29,14 @@ public class ServerProperties {
   public static final String DB_DIR_KEY = "wattdepot-server.db.dir";
   /** The database snapshot directory key. */
   public static final String DB_SNAPSHOT_KEY = "wattdepot-server.db.snapshot";
+  /** The database catalog name. */
+  public static final String DB_DATABASE_NAME = "wattdepot-server.db.dbName";
+  /** The database port number. */
+  public static final String DB_PORT = "wattdepot-server.db.port";
+  /** The database username. */
+  public static final String DB_USERNAME = "wattdepot-server.db.username";
+  /** The database password. */
+  public static final String DB_PASSWORD = "wattdepot-server.db.password";
   /** The database implementation class. */
   public static final String DB_IMPL_KEY = "wattdepot-server.db.impl";
   /** The hostname key. */
@@ -55,6 +63,8 @@ public class ServerProperties {
   public static final String TEST_DB_DIR_KEY = "wattdepot-server.test.db.dir";
   /** The database snapshot directory key during testing. */
   public static final String TEST_DB_SNAPSHOT_KEY = "wattdepot-server.test.db.snapshot";
+  /** The database catalog name during testing. */
+  public static final String TEST_DB_DATABASE_NAME = "wattdepot-server.db.dbName";
   /** The test admin email key. */
   public static final String TEST_ADMIN_EMAIL_KEY = "wattdepot-server.test.admin.email";
   /** The test admin password. */
@@ -121,6 +131,9 @@ public class ServerProperties {
     properties.setProperty(DB_DIR_KEY, serverHome + "/db");
     properties.setProperty(DB_SNAPSHOT_KEY, serverHome + "/db-snapshot");
     properties.setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
+    properties.setProperty(DB_PORT, "5432");
+    properties.setProperty(DB_DATABASE_NAME, "wattdepot");
+    
     properties.setProperty(HOSTNAME_KEY, "localhost");
     properties.setProperty(LOGGING_LEVEL_KEY, "INFO");
     properties.setProperty(RESTLET_LOGGING_KEY, FALSE);
@@ -136,6 +149,7 @@ public class ServerProperties {
     properties.setProperty(TEST_PORT_KEY, "8183");
     properties.setProperty(TEST_GVIZ_PORT_KEY, "8185");
     properties.setProperty(TEST_HOSTNAME_KEY, "localhost");
+    properties.setProperty(TEST_DB_DATABASE_NAME, "testwattdepot");
 
     FileInputStream stream = null;
     try {
@@ -201,6 +215,7 @@ public class ServerProperties {
     properties.setProperty(DB_SNAPSHOT_KEY, properties.getProperty(TEST_DB_SNAPSHOT_KEY));
     properties.setProperty(PORT_KEY, properties.getProperty(TEST_PORT_KEY));
     properties.setProperty(GVIZ_PORT_KEY, properties.getProperty(TEST_GVIZ_PORT_KEY));
+    properties.setProperty(DB_DATABASE_NAME, properties.getProperty(TEST_DB_DATABASE_NAME));
     properties.setProperty(TEST_INSTALL_KEY, TRUE);
     // Change the db implementation class if DB_IMPL_KEY is in system properties.
     String dbImpl = System.getProperty(DB_IMPL_KEY);

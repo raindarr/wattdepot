@@ -27,6 +27,7 @@
 	<junit.version>4.8.2</junit.version>
 	<modbus-jamod.version>1.2</modbus-jamod.version>
 	<opencsv.version>2.0</opencsv.version>
+	<postgres.version>8.3-603.jdbc3</postgres.version>
 	<restlet.version>2.0.11</restlet.version>
 	
 	<!-- Maven Plugin Versions -->
@@ -111,6 +112,11 @@
 		<artifactId>jamod</artifactId>
 		<version>${modbus-jamod.version}</version>
 	</dependency>
+	<dependency>
+		<groupId>postgresql</groupId>
+		<artifactId>postgresql</artifactId>
+		<version>${postgres.version}</version>
+	</dependency>
 </dependencies>
 <repositories>
 	<repository>
@@ -150,6 +156,7 @@
 					<exclude>**/TestDb*.java</exclude>
 					<exclude>**/TestDerbyStorageImplementation.java</exclude>
 					<exclude>**/TestBerkeleyDbImplementation.java</exclude>
+					<exclude>**/TestPostgresStorageImplementation.java</exclude>
 					<exclude>**/StressTest.java</exclude>
 				</excludes>
 			</configuration>
@@ -171,6 +178,7 @@
 							<exclude>**/tinker/**</exclude>
 							<exclude>**/TestDerbyStorageImplementation.java</exclude>
 							<exclude>**/TestBerkeleyDbImplementation.java</exclude>
+							<exclude>**/TestPostgresStorageImplementation.java</exclude>
 							<exclude>**/StressTest.java</exclude>
 						</excludes>
 					</configuration>
@@ -192,6 +200,7 @@
 						<excludes>
 							<exclude>**/tinker/**</exclude>
 							<exclude>**/TestBerkeleyDbImplementation.java</exclude>
+							<exclude>**/TestPostgresStorageImplementation.java</exclude>
 							<exclude>**/StressTest.java</exclude>
 						</excludes>
 					</configuration>
@@ -213,6 +222,29 @@
 						<excludes>
 							<exclude>**/tinker/**</exclude>
 							<exclude>**/TestDerbyStorageImplementation.java</exclude>
+							<exclude>**/TestPostgresStorageImplementation.java</exclude>
+							<exclude>**/StressTest.java</exclude>
+						</excludes>
+					</configuration>
+				</execution>
+				<execution>
+					<id>Postgres-Implementation tests</id>
+					<phase>test</phase>
+					<goals>
+						<goal>test</goal>
+					</goals>
+					<configuration>
+						<systemPropertyVariables>
+							<wattdepot-server.db.impl>org.wattdepot.server.db.postgres.PostgresStorageImplementation</wattdepot-server.db.impl>
+						</systemPropertyVariables>
+						<includes>
+							<include>**/TestDb*.java</include>
+							<include>**/TestPostgresStorageImplementation.java</include>
+						</includes>
+						<excludes>
+							<exclude>**/tinker/**</exclude>
+							<exclude>**/TestDerbyStorageImplementation.java</exclude>
+							<exclude>**/TestBerkeleyDbImplementation.java</exclude>
 							<exclude>**/StressTest.java</exclude>
 						</excludes>
 					</configuration>
