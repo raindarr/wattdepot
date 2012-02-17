@@ -1839,6 +1839,9 @@ public class PostgresStorageImplementation extends DbImplementation {
    * to be on, and works on Postgres 8.3 and above. When combined with write ahead log (WAL)
    * archiving, this enables Point-In-Time recovery. For more information, see:
    * http://www.postgresql.org/docs/8.3/interactive/continuous-archiving.html
+   * 
+   * This doesn't work on all systems because of permissions. Backups can also be done fairly easily
+   * outside of the WattDepot system.
    */
   @Override
   public boolean makeSnapshot() {
@@ -1866,8 +1869,8 @@ public class PostgresStorageImplementation extends DbImplementation {
         rs.close();
 
         // now zip the whole data directory up as a backup
-        this.logger.info("PostgreSQL: Creating zip backup from "+dataPath);
-        
+        this.logger.info("PostgreSQL: Creating zip backup from " + dataPath);
+
         FileOutputStream fout =
             new FileOutputStream(server.getServerProperties()
                 .get(ServerProperties.DB_SNAPSHOT_KEY) + ".zip");
@@ -1979,7 +1982,8 @@ public class PostgresStorageImplementation extends DbImplementation {
       }
     }
     else {
-      this.logger.info("PostgreSQL: makeSnapshot() tried to zip null file "+fileSource.getName());
+      this.logger
+          .info("PostgreSQL: makeSnapshot() tried to zip null file " + fileSource.getName());
     }
 
   }

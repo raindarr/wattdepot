@@ -246,6 +246,8 @@
 							<exclude>**/TestDerbyStorageImplementation.java</exclude>
 							<exclude>**/TestBerkeleyDbImplementation.java</exclude>
 							<exclude>**/StressTest.java</exclude>
+							<!-- snapshot doesn't work with Postgres -->
+							<exclude>**/TestDbManagerSnapshot.java</exclude>
 						</excludes>
 					</configuration>
 				</execution>

@@ -27,17 +27,4 @@ public class TestDbManager extends DbManagerTestHelper {
   public void testIndexTables() {
     assertTrue("Unable to index DB tables", manager.indexTables());
   }
-
-  /**
-   * Tests the makeSnapshot method. Note that at the DbManager level we cannot test any deeper than
-   * this, since this could be a stub method for implementations that do not have snapshot support.
-   * For a more in-depth test of snapshot creationg, see
-   * org.wattdepot.server.db.derby.TestDerbyStorageImplementation().
-   * 
-   * @see org.wattdepot.server.db.derby.TestDerbyStorageImplementation
-   */
-  @Test
-  public void testMakeSnapshot() {
-    assertTrue("Unable to create snapshot", manager.makeSnapshot());
-  }
 }

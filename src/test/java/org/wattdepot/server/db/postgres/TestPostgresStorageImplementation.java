@@ -3,6 +3,7 @@ package org.wattdepot.server.db.postgres;
 import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.util.Date;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.wattdepot.server.ServerProperties;
 import org.wattdepot.server.db.DbManagerTestHelper;
@@ -20,6 +21,7 @@ public class TestPostgresStorageImplementation extends DbManagerTestHelper {
    * 
    */
   @Test
+  @Ignore("This doesn't work on all systems because of permissions")
   public void testMakeSnapshot() {
     File backupZip =
         new File(server.getServerProperties().get(ServerProperties.DB_SNAPSHOT_KEY) + ".zip");
