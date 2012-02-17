@@ -1866,6 +1866,8 @@ public class PostgresStorageImplementation extends DbImplementation {
         rs.close();
 
         // now zip the whole data directory up as a backup
+        this.logger.info("PostgreSQL: Creating zip backup from "+dataPath);
+        
         FileOutputStream fout =
             new FileOutputStream(server.getServerProperties()
                 .get(ServerProperties.DB_SNAPSHOT_KEY) + ".zip");
@@ -1881,15 +1883,15 @@ public class PostgresStorageImplementation extends DbImplementation {
       }
     }
     catch (SQLException e) {
-      this.logger.info("PostgreSQL: Error in makeSnapshot():" + StackTrace.toString(e));
+      this.logger.warning("PostgreSQL: Error in makeSnapshot():" + StackTrace.toString(e));
       success = false;
     }
     catch (FileNotFoundException e) {
-      this.logger.info("PostgreSQL: Error in makeSnapshot():" + StackTrace.toString(e));
+      this.logger.warning("PostgreSQL: Error in makeSnapshot():" + StackTrace.toString(e));
       success = false;
     }
     catch (IOException e) {
-      this.logger.info("PostgreSQL: IO Error in makeSnapshot():" + StackTrace.toString(e));
+      this.logger.warning("PostgreSQL: IO Error in makeSnapshot():" + StackTrace.toString(e));
       success = false;
     }
     finally {
@@ -1926,7 +1928,7 @@ public class PostgresStorageImplementation extends DbImplementation {
         }
       }
     }
-    this.logger.fine("Created snapshot of database.");
+    this.logger.fine("PostgreSQL: Created snapshot of database.");
 
     return success;
   }
@@ -1939,7 +1941,7 @@ public class PostgresStorageImplementation extends DbImplementation {
    * @param fileSource The directory to zip
    * @param parent The name of the parent directory
    */
-  private static void addDirectory(ZipOutputStream zout, File fileSource, String parent) {
+  private void addDirectory(ZipOutputStream zout, File fileSource, String parent) {
 
     // get sub-folder/files list
     File[] files = fileSource.listFiles();
@@ -1975,6 +1977,9 @@ public class PostgresStorageImplementation extends DbImplementation {
           System.out.println("IOException :" + ioe);
         }
       }
+    }
+    else {
+      this.logger.info("PostgreSQL: makeSnapshot() tried to zip null file "+fileSource.getName());
     }
 
   }
