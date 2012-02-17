@@ -26,7 +26,7 @@ public class TestPostgresStorageImplementation extends DbManagerTestHelper {
     Date before = null;
 
     if (backupZip.exists()) {
-      assertTrue("Backup logfile isn't a file!", backupZip.isFile());
+      assertTrue("Backup zip isn't a file!", backupZip.isFile());
       before = new Date(backupZip.lastModified());
     }
     else {
@@ -34,11 +34,12 @@ public class TestPostgresStorageImplementation extends DbManagerTestHelper {
     }
     assertTrue("Unable to create snapshot", manager.makeSnapshot());
     assertTrue("No backup zip created", backupZip.isFile());
+    assertTrue("Backup zip is empty", backupZip.length() > 0);
 
     if (before != null) {
       // Only need to check if modification time changed if there was a snapshot directory before
       Date after = new Date(backupZip.lastModified());
-      assertTrue("Backup log not modified", after.after(before));
+      assertTrue("Backup zip not modified", after.after(before));
     }
   }
 }

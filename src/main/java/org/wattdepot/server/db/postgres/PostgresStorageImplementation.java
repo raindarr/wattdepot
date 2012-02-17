@@ -1735,7 +1735,7 @@ public class PostgresStorageImplementation extends DbImplementation {
    * (as of version 8.3) so this should be done somewhat regularly on tables that are frequently
    * updated.
    * 
-   * @return True if the maintenance succeeded 
+   * @return True if the maintenance succeeded
    */
   @Override
   public boolean performMaintenance() {
@@ -1861,20 +1861,24 @@ public class PostgresStorageImplementation extends DbImplementation {
       String dataPath = "";
       if (rs.next()) {
         dataPath = rs.getString("setting");
+
+        s.close();
+        rs.close();
+
+        // now zip the whole data directory up as a backup
+        FileOutputStream fout =
+            new FileOutputStream(server.getServerProperties()
+                .get(ServerProperties.DB_SNAPSHOT_KEY) + ".zip");
+        ZipOutputStream zout = new ZipOutputStream(fout);
+        File fileSource = new File(dataPath);
+        addDirectory(zout, fileSource, "");
+        zout.close();
+
+        success = true;
       }
-      s.close();
-      rs.close();
-
-      // now zip the whole data directory up as a backup
-      FileOutputStream fout =
-          new FileOutputStream(server.getServerProperties().get(ServerProperties.DB_SNAPSHOT_KEY)
-              + ".zip");
-      ZipOutputStream zout = new ZipOutputStream(fout);
-      File fileSource = new File(dataPath);
-      addDirectory(zout, fileSource, "");
-      zout.close();
-
-      success = true;
+      else {
+        success = false;
+      }
     }
     catch (SQLException e) {
       this.logger.info("PostgreSQL: Error in makeSnapshot():" + StackTrace.toString(e));
@@ -1939,35 +1943,37 @@ public class PostgresStorageImplementation extends DbImplementation {
 
     // get sub-folder/files list
     File[] files = fileSource.listFiles();
+    if (files != null) {
 
-    for (int i = 0; i < files.length; i++) {
-      // if the file is directory, call the function recursively
-      if (files[i].isDirectory()) {
-        if (!files[i].getName().equals("pg_xlog")) {
-          addDirectory(zout, files[i], parent + files[i].getName() + "/");
-        }
-        continue;
-      }
-
-      // it is a file and not directory, so add it to the zip file
-      try {
-        byte[] buffer = new byte[1024];
-        FileInputStream fin = new FileInputStream(files[i]);
-        zout.putNextEntry(new ZipEntry(parent + files[i].getName()));
-
-        // After creating entry in the zip file, actually write the file.
-        int length;
-
-        while ((length = fin.read(buffer)) > 0) {
-          zout.write(buffer, 0, length);
+      for (int i = 0; i < files.length; i++) {
+        // if the file is directory, call the function recursively
+        if (files[i].isDirectory()) {
+          if (!files[i].getName().equals("pg_xlog")) {
+            addDirectory(zout, files[i], parent + files[i].getName() + "/");
+          }
+          continue;
         }
 
-        zout.closeEntry();
-        fin.close();
+        // it is a file and not directory, so add it to the zip file
+        try {
+          byte[] buffer = new byte[1024];
+          FileInputStream fin = new FileInputStream(files[i]);
+          zout.putNextEntry(new ZipEntry(parent + files[i].getName()));
 
-      }
-      catch (IOException ioe) {
-        System.out.println("IOException :" + ioe);
+          // After creating entry in the zip file, actually write the file.
+          int length;
+
+          while ((length = fin.read(buffer)) > 0) {
+            zout.write(buffer, 0, length);
+          }
+
+          zout.closeEntry();
+          fin.close();
+
+        }
+        catch (IOException ioe) {
+          System.out.println("IOException :" + ioe);
+        }
       }
     }
 
