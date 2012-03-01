@@ -22,8 +22,9 @@
 	<derby.version>10.5.3.0_1</derby.version>
 	<google-collections.version>1.0-rc2</google-collections.version>
 	<google-visualization-java.version>1.0.2</google-visualization-java.version>
+	<httpunit.version>1.7</httpunit.version>
 	<icu4j.version>4.0.1</icu4j.version>
-	<jetty.version>6.1.9</jetty.version>
+	<json.version>20090211</json.version>
 	<junit.version>4.8.2</junit.version>
 	<modbus-jamod.version>1.2</modbus-jamod.version>
 	<opencsv.version>2.0</opencsv.version>
@@ -32,7 +33,6 @@
 	
 	<!-- Maven Plugin Versions -->
 	<antrun.plugin.version>1.7</antrun.plugin.version>
-	<appassembler.plugin.version>1.1.1</appassembler.plugin.version>
 	<assembly.plugin.version>2.3</assembly.plugin.version>
 	<checkstyle.plugin.version>2.8</checkstyle.plugin.version>
 	<findbugs.plugin.version>2.4.0</findbugs.plugin.version>
@@ -72,11 +72,6 @@
 		<artifactId>opencsv</artifactId>
 		<version>${opencsv.version}</version>
 	</dependency>
-	<dependency>
-		<groupId>org.mortbay.jetty</groupId>
-		<artifactId>maven-jetty-plugin</artifactId>
-		<version>${jetty.version}</version>
-	</dependency>
     <dependency>
 		<groupId>com.ibm.icu</groupId>
 		<artifactId>icu4j</artifactId>
@@ -106,7 +101,7 @@
 		<groupId>org.restlet.jse</groupId>  
 		<artifactId>org.restlet</artifactId>  
 		<version>${restlet.version}</version>  
-	</dependency>  
+	</dependency> 
 	<dependency>
 		<groupId>net.wimpi.modbus</groupId>
 		<artifactId>jamod</artifactId>
@@ -117,6 +112,17 @@
 		<artifactId>postgresql</artifactId>
 		<version>${postgres.version}</version>
 	</dependency>
+	<dependency>
+		<groupId>httpunit</groupId>
+		<artifactId>httpunit</artifactId>
+		<version>${httpunit.version}</version>
+	</dependency>
+    <dependency>
+		<groupId>org.json</groupId>
+		<artifactId>json</artifactId>
+		<version>${json.version}</version>
+	</dependency>
+            
 </dependencies>
 <repositories>
 	<repository>

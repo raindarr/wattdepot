@@ -35,16 +35,19 @@ public class SensorDataResource extends WattDepotResource {
   /**
    * Initialize with attributes from the Request.
    */
-  @Override  
-  protected void doInit() {  
+  @Override
+  protected void doInit() {
     super.doInit();
     this.timestamp = (String) this.getRequest().getAttributes().get("timestamp");
-    this.startTime = (String) this.getRequest().getAttributes().get("startTime");
-    this.endTime = (String) this.getRequest().getAttributes().get("endTime");
-    String fetchAllString = (String) this.getRequest().getAttributes().get("fetchAll");
+    this.startTime =
+        (String) this.getRequest().getResourceRef().getQueryAsForm().getFirstValue("startTime");
+    this.endTime =
+        (String) this.getRequest().getResourceRef().getQueryAsForm().getFirstValue("endTime");
+    String fetchAllString =
+        (String) this.getRequest().getResourceRef().getQueryAsForm().getFirstValue("fetchAll");
     this.fetchAll = "true".equalsIgnoreCase(fetchAllString);
   }
-  
+
   /**
    * Returns a full representation for a given variant.
    * 
@@ -179,10 +182,11 @@ public class SensorDataResource extends WattDepotResource {
       return null;
     }
   }
-  
+
   /**
    * Implement the DELETE method that deletes an existing SensorData given its timestamp. Only the
    * SourceOwner (or an admin) can delete a SensorData resource.
+   * 
    * @param variant The type of Representation to deleted.
    * @return Returns a null Representation.
    */

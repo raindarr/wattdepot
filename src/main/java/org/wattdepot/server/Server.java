@@ -2,8 +2,6 @@ package org.wattdepot.server;
 
 import static org.wattdepot.server.ServerProperties.CONTEXT_ROOT_KEY;
 import static org.wattdepot.server.ServerProperties.SERVER_HOME_DIR;
-import static org.wattdepot.server.ServerProperties.GVIZ_CONTEXT_ROOT_KEY;
-import static org.wattdepot.server.ServerProperties.GVIZ_PORT_KEY;
 import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
 import static org.wattdepot.server.ServerProperties.PORT_KEY;
 import static org.wattdepot.server.ServerProperties.TEST_INSTALL_KEY;
@@ -20,8 +18,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.mortbay.jetty.servlet.Context;
-import org.mortbay.jetty.servlet.ServletHolder;
 import org.restlet.Application;
 import org.restlet.Component;
 import org.restlet.Restlet;
@@ -30,7 +26,7 @@ import org.restlet.data.Protocol;
 import org.wattdepot.resource.carbon.CarbonResource;
 import org.wattdepot.resource.db.DatabaseResource;
 import org.wattdepot.resource.energy.EnergyResource;
-import org.wattdepot.resource.gviz.GVisualizationServlet;
+import org.wattdepot.resource.gviz.GVisualizationResource;
 import org.wattdepot.resource.health.HealthResource;
 import org.wattdepot.resource.power.PowerResource;
 import org.wattdepot.resource.sensordata.SensorDataResource;
@@ -58,14 +54,8 @@ public class Server extends Application {
   /** Holds the Restlet Component associated with this Server. */
   private Component component;
 
-  /** Holds the Jetty server associated with this Server. */
-  private org.mortbay.jetty.Server jettyServer;
-  
   /** Holds the hostname associated with this Server. */
   private String hostName;
-
-  /** Holds the hostname associated with the Google Visualization API service. */
-  private String gvizHostName;
 
   /** Holds the WattDepotLogger for the Server. */
   private Logger logger = null;
@@ -85,7 +75,7 @@ public class Server extends Application {
   /** The URI used for the users resource. */
   public static final String USERS_URI = "users";
 
-  /** The URI used for the users resource. */
+  /** The URI used for the google visualization resource. */
   public static final String GVIZ_URI = "gviz";
 
   /** URI fragment for source summary. */
@@ -105,6 +95,9 @@ public class Server extends Application {
 
   /** URI parameter for source name. */
   private static final String SOURCE_PARAM = "{source}";
+
+  /** URI parameter for timestamp. */
+  private static final String TIMESTAMP_PARAM = "{timestamp}";
 
   /** URI parameter for retrieving latest sensor data. */
   public static final String LATEST = "latest";
@@ -203,8 +196,8 @@ public class Server extends Application {
     Server server = new Server();
     server.serverProperties = serverProperties;
     server.logger =
-        WattDepotLogger.getLogger("org.wattdepot.server", server.serverProperties
-            .get(SERVER_HOME_DIR));
+        WattDepotLogger.getLogger("org.wattdepot.server",
+            server.serverProperties.get(SERVER_HOME_DIR));
     server.hostName = server.serverProperties.getFullHost();
     int port = Integer.valueOf(server.serverProperties.get(PORT_KEY));
     server.component = new Component();
@@ -256,26 +249,10 @@ public class Server extends Application {
     }
     else {
       // Only start server up for queries if when not compressing or reindexing
-
-      // Set up the Google Visualization API servlet
-      server.gvizHostName = server.serverProperties.getGvizFullHost();
-      int gvizPort = Integer.valueOf(server.serverProperties.get(GVIZ_PORT_KEY));
-      server.jettyServer = new org.mortbay.jetty.Server(gvizPort);
-      server.logger.warning("Google visualization URL: " + server.gvizHostName);
-      Context jettyContext =
-          new Context(server.jettyServer, "/" + server.serverProperties.get(GVIZ_CONTEXT_ROOT_KEY));
-
-      ServletHolder servletHolder = new ServletHolder(new GVisualizationServlet(server));
-      servletHolder.setInitParameter("applicationClassName",
-          "org.wattdepot.resource.gviz.GVisualizationServlet");
-      servletHolder.setInitOrder(1);
-      jettyContext.addServlet(servletHolder, "/sources/*");
-
       // Now let's open for business.
       server.logger.info("Maximum Java heap size (MB): "
           + (Runtime.getRuntime().maxMemory() / 1000000.0));
       server.component.start();
-      server.jettyServer.start();
       server.logger.warning("WattDepot server (Version " + getVersion() + ") now running.");
       return server;
     }
@@ -381,8 +358,8 @@ public class Server extends Application {
             }
           }
           else {
-            logger
-                .warning("Found unknown XML type in sensordata file " + sensorDataFile.toString());
+            logger.warning("Found unknown XML type in sensordata file "
+                + sensorDataFile.toString());
           }
         }
         logger.info("Loaded " + dataCount + " sensor data objects from defaults.");
@@ -457,8 +434,8 @@ public class Server extends Application {
   @Override
   public synchronized Restlet createInboundRoot() {
     Router router = new Router(getContext());
-    router.setDefaultMatchingQuery(true);
-    
+    router.setDefaultMatchingQuery(false);
+
     // This Router is used to control access to the User resource
     // Router userRouter = new Router(getContext());
     router.attach("/" + USERS_URI, UserResource.class);
@@ -471,53 +448,39 @@ public class Server extends Application {
 
     // Source does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI, SourceResource.class);
-    router.attach("/" + SOURCES_URI + "/?fetchAll={fetchAll}", SourceResource.class);
+    router.attach("/" + SOURCES_URI + "/", SourceResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM, SourceResource.class);
-    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "?overwrite={overwrite}",
-        SourceResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SUMMARY_URI,
         SourceSummaryResource.class);
 
     // SensorData does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI,
         SensorDataResource.class);
-    // Specifying all the combinations of optional parameters is bogus, but don't want to deal
-    // with parsing the query string right now.
-    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI
-        + "/?startTime={startTime}&endTime={endTime}&fetchAll={fetchAll}", SensorDataResource.class);
-    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI
-        + "/?startTime={startTime}&endTime={endTime}", SensorDataResource.class);
-    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/{timestamp}",
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/",
         SensorDataResource.class);
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/"
+        + TIMESTAMP_PARAM, SensorDataResource.class);
 
     // Power does its own authentication processing, so don't use Guard
-    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + POWER_URI + "/{timestamp}",
+    router.attach(
+        "/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + POWER_URI + "/" + TIMESTAMP_PARAM,
         PowerResource.class);
 
     // Energy does its own authentication processing, so don't use Guard
-    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI
-        + "/?startTime={startTime}&endTime={endTime}&samplingInterval={samplingInterval}",
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI + "/",
         EnergyResource.class);
-    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI
-        + "/?startTime={startTime}&endTime={endTime}", EnergyResource.class);
 
     // Carbon does its own authentication processing, so don't use Guard
-    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + CARBON_URI
-        + "/?startTime={startTime}&endTime={endTime}&samplingInterval={samplingInterval}",
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + CARBON_URI + "/",
         CarbonResource.class);
-    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + CARBON_URI
-        + "/?startTime={startTime}&endTime={endTime}", CarbonResource.class);
+
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + GVIZ_URI + "/{type}",
+        GVisualizationResource.class);
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + GVIZ_URI + "/{type}/"
+        + TIMESTAMP_PARAM, GVisualizationResource.class);
 
     // Database does its own authentication processing, so don't use Guard
     router.attach("/" + DATABASE_URI + "/" + "{method}", DatabaseResource.class);
-
-    // // Google Visualization API resource
-    // Route route = router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI,
-    // GVisualizationResource.class);
-    // route.getTemplate().setMatchingMode(Template.MODE_EQUALS);
-    // router.attach("/" + SOURCES_URI + "/{source}" + "/" + GVIZ_URI + "?{parameters}",
-    // GVisualizationResource.class);
-    // router.attachDefault(userGuard);
 
     return router;
   }
@@ -552,14 +515,12 @@ public class Server extends Application {
   }
 
   /**
-   * Shuts down the WattDepot server, in the hope that it will stop listening for connections. This
-   * might not actually work, currently untested.
+   * Shuts down the WattDepot server, in the hope that it will stop listening for connections.
    * 
    * @throws Exception if something goes wrong during the shutdown.
    */
   public void shutdown() throws Exception {
     this.component.stop();
-    this.jettyServer.stop();
   }
 
   /**

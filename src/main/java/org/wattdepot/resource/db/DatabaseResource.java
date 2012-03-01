@@ -19,14 +19,14 @@ public class DatabaseResource extends WattDepotResource {
   /** Contains the database method desired. */
   protected String methodString;
 
-
   /**
    * Initialize with attributes from the Request.
    */
   @Override
   protected void doInit() {
     super.doInit();
-    this.methodString = (String) this.getRequest().getAttributes().get("method");
+    this.methodString =
+        (String) this.getRequest().getAttributes().get("method");
   }
 
   /**

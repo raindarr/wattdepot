@@ -23,12 +23,16 @@ public class EnergyResource extends WattDepotResource {
   /**
    * Initialize with attributes from the Request.
    */
-  @Override  
-  protected void doInit() {  
+  @Override
+  protected void doInit() {
     super.doInit();
-    this.startTime = (String) this.getRequest().getAttributes().get("startTime");
-    this.endTime = (String) this.getRequest().getAttributes().get("endTime");
-    this.interval = (String) this.getRequest().getAttributes().get("samplingInterval");
+    this.startTime =
+        (String) this.getRequest().getResourceRef().getQueryAsForm().getFirstValue("startTime");
+    this.endTime =
+        (String) this.getRequest().getResourceRef().getQueryAsForm().getFirstValue("endTime");
+    this.interval =
+        (String) this.getRequest().getResourceRef().getQueryAsForm()
+            .getFirstValue("samplingInterval");
   }
 
   /**

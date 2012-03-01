@@ -107,12 +107,16 @@ public class PostgresStorageImplementation extends DbImplementation {
    */
   public PostgresStorageImplementation(Server server) {
     super(server);
-    connectionUrl =
-        "jdbc:postgresql://" + server.getServerProperties().get(ServerProperties.HOSTNAME_KEY)
-            + ":" + server.getServerProperties().get(ServerProperties.DB_PORT) + "/"
-            + server.getServerProperties().get(ServerProperties.DB_DATABASE_NAME) + "?user="
-            + server.getServerProperties().get(ServerProperties.DB_USERNAME) + "&password="
-            + server.getServerProperties().get(ServerProperties.DB_PASSWORD);
+    ServerProperties props = server.getServerProperties();
+    connectionUrl = props.get(ServerProperties.DATABASE_URL_KEY);
+    if (connectionUrl == null || connectionUrl.length() == 0) {
+      connectionUrl =
+          "jdbc:postgresql://" + server.getServerProperties().get(ServerProperties.HOSTNAME_KEY)
+              + ":" + props.get(ServerProperties.DB_PORT_KEY) + "/"
+              + props.get(ServerProperties.DB_DATABASE_NAME_KEY) + "?user="
+              + props.get(ServerProperties.DB_USERNAME_KEY) + "&password="
+              + props.get(ServerProperties.DB_PASSWORD_KEY);
+    }
 
     // Try to load the driver.
     try {
@@ -160,22 +164,23 @@ public class PostgresStorageImplementation extends DbImplementation {
   public void createDatabaseCatalog() {
     Connection conn = null;
     PreparedStatement s = null;
+    ServerProperties props = server.getServerProperties();
 
     try {
       String baseConnectionUrl =
-          "jdbc:postgresql://" + server.getServerProperties().get(ServerProperties.HOSTNAME_KEY)
-              + ":" + server.getServerProperties().get(ServerProperties.DB_PORT) + "?user="
-              + server.getServerProperties().get(ServerProperties.DB_USERNAME) + "&password="
-              + server.getServerProperties().get(ServerProperties.DB_PASSWORD);
+          "jdbc:postgresql://" + props.get(ServerProperties.HOSTNAME_KEY) + ":"
+              + props.get(ServerProperties.DB_PORT_KEY) + "?user="
+              + props.get(ServerProperties.DB_USERNAME_KEY) + "&password="
+              + props.get(ServerProperties.DB_PASSWORD_KEY);
 
       this.logger.info("Created database catalog "
-          + server.getServerProperties().get(ServerProperties.DB_DATABASE_NAME));
+          + props.get(ServerProperties.DB_DATABASE_NAME_KEY));
 
       String statement = "CREATE DATABASE ?";
 
       conn = DriverManager.getConnection(baseConnectionUrl);
       s = conn.prepareStatement(statement);
-      s.setString(1, server.getServerProperties().get(ServerProperties.DB_DATABASE_NAME));
+      s.setString(1, props.get(ServerProperties.DB_DATABASE_NAME_KEY));
       s.close();
       // Prepared Statements are somewhat picky about where you can put parameters,
       // and it doesn't like this one. Since the value is user-defined, I want to use them anyway.
@@ -192,7 +197,7 @@ public class PostgresStorageImplementation extends DbImplementation {
     catch (SQLException e) {
       String msg =
           "Failure attempting to create database catalog "
-              + server.getServerProperties().get(ServerProperties.DB_DATABASE_NAME) + ". ";
+              + props.get(ServerProperties.DB_DATABASE_NAME_KEY) + ". ";
       this.logger.warning(msg + StackTrace.toString(e));
       throw new RuntimeException(msg, e);
     }

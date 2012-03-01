@@ -23,20 +23,20 @@ public class ServerProperties {
   public static final String ADMIN_PASSWORD_KEY = "wattdepot-server.admin.password";
   /** The context root key. */
   public static final String CONTEXT_ROOT_KEY = "wattdepot-server.context.root";
-  /** The context root key. */
-  public static final String GVIZ_CONTEXT_ROOT_KEY = "wattdepot-server.gviz.context.root";
+  /** The database URL. */
+  public static final String DATABASE_URL_KEY = "wattdepot-server.db.url";
   /** The database directory key. */
   public static final String DB_DIR_KEY = "wattdepot-server.db.dir";
   /** The database snapshot directory key. */
   public static final String DB_SNAPSHOT_KEY = "wattdepot-server.db.snapshot";
   /** The database catalog name. */
-  public static final String DB_DATABASE_NAME = "wattdepot-server.db.dbName";
+  public static final String DB_DATABASE_NAME_KEY = "wattdepot-server.db.dbName";
   /** The database port number. */
-  public static final String DB_PORT = "wattdepot-server.db.port";
+  public static final String DB_PORT_KEY = "wattdepot-server.db.port";
   /** The database username. */
-  public static final String DB_USERNAME = "wattdepot-server.db.username";
+  public static final String DB_USERNAME_KEY = "wattdepot-server.db.username";
   /** The database password. */
-  public static final String DB_PASSWORD = "wattdepot-server.db.password";
+  public static final String DB_PASSWORD_KEY = "wattdepot-server.db.password";
   /** The database implementation class. */
   public static final String DB_IMPL_KEY = "wattdepot-server.db.impl";
   /** The hostname key. */
@@ -49,22 +49,20 @@ public class ServerProperties {
   public static final String SMTP_HOST_KEY = "wattdepot-server.smtp.host";
   /** The wattdepot-server port key. */
   public static final String PORT_KEY = "wattdepot-server.port";
-  /** The wattdepot-server Google Visualization API port key. */
-  public static final String GVIZ_PORT_KEY = "wattdepot-server.gviz.port";
   /** The test installation key. */
   public static final String TEST_INSTALL_KEY = "wattdepot-server.test.install";
   /** The test domain key. */
   public static final String TEST_DOMAIN_KEY = "wattdepot-server.test.domain";
   /** The wattdepot-server port key during testing. */
   public static final String TEST_PORT_KEY = "wattdepot-server.test.port";
-  /** The wattdepot-server port key during testing. */
-  public static final String TEST_GVIZ_PORT_KEY = "wattdepot-server.test.gviz.port";
   /** The wattdepot-server db dir during testing. */
   public static final String TEST_DB_DIR_KEY = "wattdepot-server.test.db.dir";
   /** The database snapshot directory key during testing. */
   public static final String TEST_DB_SNAPSHOT_KEY = "wattdepot-server.test.db.snapshot";
   /** The database catalog name during testing. */
-  public static final String TEST_DB_DATABASE_NAME = "wattdepot-server.db.dbName";
+  public static final String TEST_DB_DATABASE_NAME_KEY = "wattdepot-server.test.db.dbName";
+  /** The database port number during testing. */
+  public static final String TEST_DB_PORT_KEY = "wattdepot-server.test.db.port";
   /** The test admin email key. */
   public static final String TEST_ADMIN_EMAIL_KEY = "wattdepot-server.test.admin.email";
   /** The test admin password. */
@@ -127,19 +125,18 @@ public class ServerProperties {
     properties.setProperty(ADMIN_EMAIL_KEY, defaultAdmin);
     properties.setProperty(ADMIN_PASSWORD_KEY, defaultAdmin);
     properties.setProperty(CONTEXT_ROOT_KEY, "wattdepot");
-    properties.setProperty(GVIZ_CONTEXT_ROOT_KEY, "gviz");
     properties.setProperty(DB_DIR_KEY, serverHome + "/db");
     properties.setProperty(DB_SNAPSHOT_KEY, serverHome + "/db-snapshot");
-    properties.setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
-    properties.setProperty(DB_PORT, "5432");
-    properties.setProperty(DB_DATABASE_NAME, "wattdepot");
-    
+    properties
+        .setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
+    properties.setProperty(DB_PORT_KEY, "5432");
+    properties.setProperty(DB_DATABASE_NAME_KEY, "wattdepot");
+
     properties.setProperty(HOSTNAME_KEY, "localhost");
     properties.setProperty(LOGGING_LEVEL_KEY, "INFO");
     properties.setProperty(RESTLET_LOGGING_KEY, FALSE);
     properties.setProperty(SMTP_HOST_KEY, "mail.hawaii.edu");
     properties.setProperty(PORT_KEY, "8182");
-    properties.setProperty(GVIZ_PORT_KEY, "8184");
     properties.setProperty(TEST_DOMAIN_KEY, "example.com");
     properties.setProperty(TEST_INSTALL_KEY, FALSE);
     properties.setProperty(TEST_ADMIN_EMAIL_KEY, defaultAdmin);
@@ -147,9 +144,11 @@ public class ServerProperties {
     properties.setProperty(TEST_DB_DIR_KEY, serverHome + "/testdb");
     properties.setProperty(TEST_DB_SNAPSHOT_KEY, serverHome + "/testdb-snapshot");
     properties.setProperty(TEST_PORT_KEY, "8183");
-    properties.setProperty(TEST_GVIZ_PORT_KEY, "8185");
     properties.setProperty(TEST_HOSTNAME_KEY, "localhost");
-    properties.setProperty(TEST_DB_DATABASE_NAME, "testwattdepot");
+    properties.setProperty(TEST_DB_DATABASE_NAME_KEY, "testwattdepot");
+    properties.setProperty(TEST_DB_PORT_KEY, "5432");
+
+    // Use properties from file, if they exist.
 
     FileInputStream stream = null;
     try {
@@ -165,6 +164,7 @@ public class ServerProperties {
         stream.close();
       }
     }
+
     addServerSystemProperties(this.properties);
     trimProperties(properties);
 
@@ -214,8 +214,9 @@ public class ServerProperties {
     properties.setProperty(DB_DIR_KEY, properties.getProperty(TEST_DB_DIR_KEY));
     properties.setProperty(DB_SNAPSHOT_KEY, properties.getProperty(TEST_DB_SNAPSHOT_KEY));
     properties.setProperty(PORT_KEY, properties.getProperty(TEST_PORT_KEY));
-    properties.setProperty(GVIZ_PORT_KEY, properties.getProperty(TEST_GVIZ_PORT_KEY));
-    properties.setProperty(DB_DATABASE_NAME, properties.getProperty(TEST_DB_DATABASE_NAME));
+    properties
+        .setProperty(DB_DATABASE_NAME_KEY, properties.getProperty(TEST_DB_DATABASE_NAME_KEY));
+    properties.setProperty(DB_PORT_KEY, properties.getProperty(TEST_DB_PORT_KEY));
     properties.setProperty(TEST_INSTALL_KEY, TRUE);
     // Change the db implementation class if DB_IMPL_KEY is in system properties.
     String dbImpl = System.getProperty(DB_IMPL_KEY);
@@ -285,18 +286,6 @@ public class ServerProperties {
    */
   public String getFullHost() {
     return "http://" + get(HOSTNAME_KEY) + ":" + get(PORT_KEY) + "/" + get(CONTEXT_ROOT_KEY) + "/";
-  }
-
-  /**
-   * Returns the fully qualified host name of the Google Visualization API service, such as
-   * "http://localhost:9876/gviz/". Note, the String will end with "/", so there is no need to
-   * append another if you are constructing a URI.
-   * 
-   * @return The fully qualified host name.
-   */
-  public String getGvizFullHost() {
-    return "http://" + get(HOSTNAME_KEY) + ":" + get(GVIZ_PORT_KEY) + "/"
-        + get(GVIZ_CONTEXT_ROOT_KEY) + "/";
   }
 
 }

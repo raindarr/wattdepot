@@ -27,12 +27,14 @@ public class SourceResource extends WattDepotResource {
   /**
    * Initialize with attributes from the Request.
    */
-  @Override  
-  protected void doInit() {  
+  @Override
+  protected void doInit() {
     super.doInit();
-    String fetchAllString = (String) this.getRequest().getAttributes().get("fetchAll");
+    String fetchAllString =
+        (String) this.getRequest().getResourceRef().getQueryAsForm().getFirstValue("fetchAll");
     this.fetchAll = "true".equalsIgnoreCase(fetchAllString);
-    String overwriteString = (String) this.getRequest().getAttributes().get("overwrite");
+    String overwriteString =
+        (String) this.getRequest().getResourceRef().getQueryAsForm().getFirstValue("overwrite");
     this.overwrite = "true".equalsIgnoreCase(overwriteString);
   }
 
@@ -43,7 +45,7 @@ public class SourceResource extends WattDepotResource {
    * @return the representation of this resource
    */
   @Override
-  public Representation get(Variant variant)  {
+  public Representation get(Variant variant) {
     String xmlString;
     // If credentials are provided, they need to be valid
     if (!isAnonymous() && !validateCredentials()) {
