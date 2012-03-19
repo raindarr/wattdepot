@@ -46,6 +46,7 @@ public class SourceResource extends WattDepotResource {
    */
   @Override
   public Representation get(Variant variant) {
+    
     String xmlString;
     // If credentials are provided, they need to be valid
     if (!isAnonymous() && !validateCredentials()) {
@@ -64,6 +65,11 @@ public class SourceResource extends WattDepotResource {
             xmlString = getAllSources(fetchAll);
           }
           else {
+            if (!server.authenticate(getRequest(), getResponse())) {
+              // Not authenticated
+              setStatusBadCredentials();
+              return null;
+            }
             // Authenticated as some user
             xmlString = getOwnerSources(fetchAll);
           }

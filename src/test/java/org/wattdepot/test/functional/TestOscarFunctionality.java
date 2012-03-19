@@ -512,7 +512,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
    * @throws Exception If there are problems retrieving the Source list.
    */
   @Test
-  @Ignore("Only works in the Hawaii timezone")
+  @Ignore("Only works in the Hawaii timezone and on localhost:8183")
   public void testDisplaySourceSummary() throws Exception {
     // Parameter that would come from the command line
     String sourceName;

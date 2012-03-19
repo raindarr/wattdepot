@@ -48,6 +48,12 @@ import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbImplementation;
 import org.wattdepot.util.StackTrace;
 import org.wattdepot.util.tstamp.Tstamp;
+import static org.wattdepot.server.ServerProperties.DATABASE_URL_KEY;
+import static org.wattdepot.server.ServerProperties.DB_DATABASE_NAME_KEY;
+import static org.wattdepot.server.ServerProperties.DB_PORT_KEY;
+import static org.wattdepot.server.ServerProperties.DB_USERNAME_KEY;
+import static org.wattdepot.server.ServerProperties.DB_PASSWORD_KEY;
+import static org.wattdepot.server.ServerProperties.HOSTNAME_KEY;
 
 /**
  * Provides a implementation of DbImplementation using PostgreSQL.
@@ -56,6 +62,7 @@ import org.wattdepot.util.tstamp.Tstamp;
  * @author Robert Brewer
  * @author Philip Johnson
  */
+@SuppressWarnings("PMD.TooManyStaticImports")
 public class PostgresStorageImplementation extends DbImplementation {
 
   /** The logger message when executing a query. */
@@ -108,14 +115,31 @@ public class PostgresStorageImplementation extends DbImplementation {
   public PostgresStorageImplementation(Server server) {
     super(server);
     ServerProperties props = server.getServerProperties();
-    connectionUrl = props.get(ServerProperties.DATABASE_URL_KEY);
-    if (connectionUrl == null || connectionUrl.length() == 0) {
+
+    if (props.get(DATABASE_URL_KEY) == null || props.get(DATABASE_URL_KEY).length() == 0) {
       connectionUrl =
-          "jdbc:postgresql://" + server.getServerProperties().get(ServerProperties.HOSTNAME_KEY)
-              + ":" + props.get(ServerProperties.DB_PORT_KEY) + "/"
-              + props.get(ServerProperties.DB_DATABASE_NAME_KEY) + "?user="
-              + props.get(ServerProperties.DB_USERNAME_KEY) + "&password="
-              + props.get(ServerProperties.DB_PASSWORD_KEY);
+          "jdbc:postgresql://" + server.getServerProperties().get(HOSTNAME_KEY) + ":"
+              + props.get(DB_PORT_KEY) + "/" + props.get(DB_DATABASE_NAME_KEY) + "?user="
+              + props.get(DB_USERNAME_KEY) + "&password=" + props.get(DB_PASSWORD_KEY);
+    }
+    else {
+      connectionUrl = "jdbc:" + props.get(DATABASE_URL_KEY);
+      // make sure URL is JDBC compliant (default from Heroku isn't)
+      if (!connectionUrl.contains("postgresql:")) {
+        // assume connectionUrl is in the form postgres://username:password@host/dbName
+        String userInfo =
+            connectionUrl.substring(connectionUrl.indexOf("//") + 2, connectionUrl.indexOf("@"));
+        String username = userInfo.split(":")[0];
+        String password = userInfo.split(":")[1];
+        String host =
+            connectionUrl
+                .substring(connectionUrl.indexOf("@") + 1, connectionUrl.lastIndexOf("/"));
+        String dbName = connectionUrl.substring(connectionUrl.lastIndexOf("/") + 1);
+
+        connectionUrl =
+            "jdbc:postgresql://" + host + "/" + dbName + "?user=" + username + "&password="
+                + password;
+      }
     }
 
     // Try to load the driver.
@@ -168,19 +192,16 @@ public class PostgresStorageImplementation extends DbImplementation {
 
     try {
       String baseConnectionUrl =
-          "jdbc:postgresql://" + props.get(ServerProperties.HOSTNAME_KEY) + ":"
-              + props.get(ServerProperties.DB_PORT_KEY) + "?user="
-              + props.get(ServerProperties.DB_USERNAME_KEY) + "&password="
-              + props.get(ServerProperties.DB_PASSWORD_KEY);
+          "jdbc:postgresql://" + props.get(HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "?user="
+              + props.get(DB_USERNAME_KEY) + "&password=" + props.get(DB_PASSWORD_KEY);
 
-      this.logger.info("Created database catalog "
-          + props.get(ServerProperties.DB_DATABASE_NAME_KEY));
+      this.logger.info("Created database catalog " + props.get(DB_DATABASE_NAME_KEY));
 
       String statement = "CREATE DATABASE ?";
 
       conn = DriverManager.getConnection(baseConnectionUrl);
       s = conn.prepareStatement(statement);
-      s.setString(1, props.get(ServerProperties.DB_DATABASE_NAME_KEY));
+      s.setString(1, props.get(DB_DATABASE_NAME_KEY));
       s.close();
       // Prepared Statements are somewhat picky about where you can put parameters,
       // and it doesn't like this one. Since the value is user-defined, I want to use them anyway.
@@ -196,8 +217,8 @@ public class PostgresStorageImplementation extends DbImplementation {
     }
     catch (SQLException e) {
       String msg =
-          "Failure attempting to create database catalog "
-              + props.get(ServerProperties.DB_DATABASE_NAME_KEY) + ". ";
+          "Failure attempting to create database catalog " + props.get(DB_DATABASE_NAME_KEY)
+              + ". ";
       this.logger.warning(msg + StackTrace.toString(e));
       throw new RuntimeException(msg, e);
     }

@@ -46,6 +46,6 @@ public class TestDatabaseResource extends ServerTestHelper {
   @Test
   public void testSnapshot() throws WattDepotClientException {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-    assertTrue("Able to create snapshot with owner credentials", client.makeSnapshot());
+    assertTrue("Not able to create snapshot with admin credentials", client.makeSnapshot());
   }
 }

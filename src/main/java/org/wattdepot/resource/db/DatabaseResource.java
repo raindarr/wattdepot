@@ -38,6 +38,11 @@ public class DatabaseResource extends WattDepotResource {
    */
   @Override
   public Representation put(Representation entity, Variant variant) {
+    if (!server.authenticate(getRequest(), getResponse())) {
+      // Not authenticated
+      setStatusBadCredentials();
+      return null;
+    }
     // If credentials are provided, they need to be valid
     if (validateCredentials()) {
       if (isAdminUser()) {

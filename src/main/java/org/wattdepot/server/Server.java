@@ -20,6 +20,8 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.restlet.Application;
 import org.restlet.Component;
+import org.restlet.Request;
+import org.restlet.Response;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
 import org.restlet.data.Protocol;
@@ -104,6 +106,9 @@ public class Server extends Application {
 
   /** URI parameter for deleting all sensor data. */
   public static final String ALL = "all";
+
+  /** The authenticator to use for all resources. */
+  public WattDepotAuthenticator guard;
 
   /** Users JAXBContext. */
   private static final JAXBContext userJAXB;
@@ -211,6 +216,10 @@ public class Server extends Application {
     server.logger.warning("Starting WattDepot server.");
     server.logger.warning("Host: " + server.hostName);
     server.logger.info(server.serverProperties.echoProperties());
+
+    // Add the two known roles for users.
+    server.getRoles().add(WattDepotEnroler.ADMINISTRATOR);
+    server.getRoles().add(WattDepotEnroler.USER);
 
     Map<String, Object> attributes = server.getContext().getAttributes();
     // Put server and serverProperties in first, because dbManager() will look at serverProperties
@@ -482,7 +491,30 @@ public class Server extends Application {
     // Database does its own authentication processing, so don't use Guard
     router.attach("/" + DATABASE_URI + "/" + "{method}", DatabaseResource.class);
 
-    return router;
+    // Authenticate
+    guard = new WattDepotAuthenticator(getContext());
+    guard.setNext(router);
+
+    // return the authenticator as the entry point to WattDepot
+    return guard;
+
+  }
+
+  /**
+   * Authenticate user and return true or false. This manual call to challenge is needed because the
+   * Authenticator is optional.
+   * http://stackoverflow.com/questions/2217418/fine-grained-authentication-with-restlet
+   * 
+   * @param request The request to be authenticated.
+   * @param response The response to be authenticated.
+   * @return True if the request has already been authenticated, False if a challenge is needed.
+   */
+  public boolean authenticate(Request request, Response response) {
+    if (!request.getClientInfo().isAuthenticated()) {
+      guard.challenge(response, false);
+      return false;
+    }
+    return true;
   }
 
   /**

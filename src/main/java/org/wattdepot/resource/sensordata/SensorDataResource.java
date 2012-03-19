@@ -192,6 +192,12 @@ public class SensorDataResource extends WattDepotResource {
    */
   @Override
   public Representation delete(Variant variant) {
+    if (!server.authenticate(getRequest(), getResponse())) {
+      // Not authenticated
+      setStatusBadCredentials();
+      return null;
+    }
+    
     // First check if source in URI exists
     if (!validateKnownSource()) {
       return null;
@@ -254,6 +260,11 @@ public class SensorDataResource extends WattDepotResource {
    */
   @Override
   public Representation put(Representation entity, Variant variant) {
+    if (!server.authenticate(getRequest(), getResponse())) {
+      // Not authenticated
+      setStatusBadCredentials();
+      return null;
+    }
     // First check if source in URI exists
     if (!validateKnownSource()) {
       return null;

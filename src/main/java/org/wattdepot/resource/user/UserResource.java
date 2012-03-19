@@ -26,6 +26,12 @@ public class UserResource extends WattDepotResource {
    */
   @Override
   public Representation get(Variant variant)  {
+    if (!server.authenticate(getRequest(), getResponse())) {
+        // Not authenticated
+      setStatusBadCredentials();
+      return null;
+    }
+    
     String xmlString;
     if (variant.getMediaType().equals(MediaType.TEXT_XML)) {
       // If credentials are provided, they need to be valid

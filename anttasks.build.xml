@@ -142,13 +142,11 @@
 	<!-- Unjar the additional libraries required for server -->
 	<unjar src="${settings.localRepository}/commons-lang/commons-lang/${commons-lang.version}/commons-lang-${commons-lang.version}.jar" dest="${tmp.dir}" />
 	<unjar src="${settings.localRepository}/commons-logging/commons-logging/${commons-logging.version}/commons-logging-${commons-logging.version}.jar" dest="${tmp.dir}" />
-	<unjar src="${settings.localRepository}/org/mortbay/jetty/servlet-api-2.5/${jetty.version}/servlet-api-2.5-${jetty.version}.jar" dest="${tmp.dir}" />
-	<unjar src="${settings.localRepository}/org/mortbay/jetty/jetty/${jetty.version}/jetty-${jetty.version}.jar" dest="${tmp.dir}" />
-	<unjar src="${settings.localRepository}/org/mortbay/jetty/jetty-util/${jetty.version}/jetty-util-${jetty.version}.jar" dest="${tmp.dir}" />
 	<unjar src="${settings.localRepository}/com/ibm/icu/icu4j/${icu4j.version}/icu4j-${icu4j.version}.jar" dest="${tmp.dir}" />
 	<unjar src="${settings.localRepository}/com/google/collections/google-collections/${google-collections.version}/google-collections-${google-collections.version}.jar" dest="${tmp.dir}" />
 	<unjar src="${settings.localRepository}/com/google/visualization/visualization-datasource/${google-visualization-java.version}/visualization-datasource-${google-visualization-java.version}.jar" dest="${tmp.dir}" />
 	<unjar src="${settings.localRepository}/org/apache/derby/derby/${derby.version}/derby-${derby.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/postgresql/postgresql/${postgres.version}/postgresql-${postgres.version}.jar" dest="${tmp.dir}" />
 
 	<jar destfile="${build.jar.dir}/wattdepot-server.jar" basedir="${tmp.dir}">
 	  <manifest>

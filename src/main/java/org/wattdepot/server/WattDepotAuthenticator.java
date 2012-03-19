@@ -1,18 +1,18 @@
 package org.wattdepot.server;
 
 import org.restlet.Context;
+import org.restlet.Request;
+import org.restlet.Response;
 import org.restlet.security.ChallengeAuthenticator;
 import org.restlet.data.ChallengeScheme;
+import org.wattdepot.server.db.DbManager;
 
 /**
  * Performs the authentication of HTTP requests for WattDepot, currently using HTTP Basic
- * authentication. Actually does some authorization pre-processing in addition to authentication, by
- * determining which access control level the request belongs to. See
- * http://code.google.com/p/wattdepot/wiki/RestApi#Access_Control_Levels for more information.
+ * authentication. Calls WattDepotVerifier and WattDepotEnroler to perform authentication and add
+ * users to roles, respectively.
  * 
- * This is a work in progress, doesn't actually work yet.
- * 
- * @author Robert Brewer
+ * @author Andrea Connell
  */
 public class WattDepotAuthenticator extends ChallengeAuthenticator {
 
@@ -23,29 +23,25 @@ public class WattDepotAuthenticator extends ChallengeAuthenticator {
    */
   public WattDepotAuthenticator(Context context) {
     super(context, ChallengeScheme.HTTP_BASIC, "WattDepot");
+    setVerifier(new WattDepotVerifier((DbManager) getContext().getAttributes().get("DbManager")));
+    setEnroler(new WattDepotEnroler((DbManager) getContext().getAttributes().get("DbManager")));
+    setOptional(true);
   }
 
   /**
-   * Checks whether the provided credentials are valid.
+   * Authenticate if a ChallengeResponse is supplied. Otherwise attempt anonymous access.
    * 
-   * @param request The Restlet request.
-   * @param identifier The account name.
-   * @param secret The password.
-   * @return True if the credentials are valid.
+   * @param request The request to be authenticated.
+   * @param response The response to be authenticated.
+   * @return True if the user has been authenticated.
    */
-//TODO: This doesn't work with Restlet 2.0, but it isn't being used now anyway 
-/*  @Override
-  public boolean checkSecret(Request request, String identifier, char[] secret) {
-    ServerProperties serverProps =
-        (ServerProperties) getContext().getAttributes().get("ServerProperties");
-    String adminUsername = serverProps.get(ServerProperties.ADMIN_EMAIL_KEY);
-    String adminPassword = serverProps.get(ServerProperties.ADMIN_PASSWORD_KEY);
-
-    Server server = (Server) getContext().getAttributes().get("WattDepotServer");
-    server.getLogger().fine(
-        "request username: " + identifier + ", request password: " + new String(secret)
-            + ", admin username: " + adminUsername + ", admin password: " + adminPassword);
-    // For now, only accept requests from the admin user
-    return identifier.equals(adminUsername) && new String(secret).equals(adminPassword);
-  }*/
+  @Override
+  protected boolean authenticate(Request request, Response response) {
+    if (request.getChallengeResponse() == null) {
+      return false;
+    }
+    else {
+      return super.authenticate(request, response);
+    }
+  }
 }

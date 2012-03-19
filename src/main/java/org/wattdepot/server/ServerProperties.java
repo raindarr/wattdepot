@@ -69,6 +69,15 @@ public class ServerProperties {
   public static final String TEST_ADMIN_PASSWORD_KEY = "wattdepot-server.test.admin.password";
   /** The test hostname. */
   public static final String TEST_HOSTNAME_KEY = "wattdepot-server.test.hostname";
+  /** Heroku key. */
+  public static final String USE_HEROKU_KEY = "wattdepot-server.heroku";
+  /** Heroku test key. */
+  public static final String TEST_HEROKU_KEY = "wattdepot-server.test.heroku";
+  /** The hostname for Heroku. */
+  public static final String HEROKU_HOSTNAME_KEY = "wattdepot-server.heroku.hostname";
+  /** The heroku database URL. */
+  public static final String HEROKU_DATABASE_URL_KEY = "wattdepot-server.heroku.db.url";
+
   /** Where we store the properties. */
   private Properties properties;
 
@@ -127,8 +136,8 @@ public class ServerProperties {
     properties.setProperty(CONTEXT_ROOT_KEY, "wattdepot");
     properties.setProperty(DB_DIR_KEY, serverHome + "/db");
     properties.setProperty(DB_SNAPSHOT_KEY, serverHome + "/db-snapshot");
-    properties
-        .setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
+    properties.setProperty(DB_IMPL_KEY,
+        "org.wattdepot.server.db.derby.DerbyStorageImplementation");
     properties.setProperty(DB_PORT_KEY, "5432");
     properties.setProperty(DB_DATABASE_NAME_KEY, "wattdepot");
 
@@ -147,9 +156,19 @@ public class ServerProperties {
     properties.setProperty(TEST_HOSTNAME_KEY, "localhost");
     properties.setProperty(TEST_DB_DATABASE_NAME_KEY, "testwattdepot");
     properties.setProperty(TEST_DB_PORT_KEY, "5432");
+    properties.setProperty(USE_HEROKU_KEY, FALSE);
+    properties.setProperty(TEST_HEROKU_KEY, FALSE);
+
+    
+    // grab all of the properties in the environment
+    Map<String, String> systemProps = System.getenv();
+    for (Map.Entry<String, String> prop : systemProps.entrySet()) {
+      if (prop.getKey().startsWith("wattdepot-server.")) {
+        properties.setProperty(prop.getKey(), prop.getValue());
+      }
+    }
 
     // Use properties from file, if they exist.
-
     FileInputStream stream = null;
     try {
       stream = new FileInputStream(propFile);
@@ -166,6 +185,25 @@ public class ServerProperties {
     }
 
     addServerSystemProperties(this.properties);
+
+    // If this environment variable is set, get some extra config vars from Heroku.
+    if (properties.get(USE_HEROKU_KEY).equals(TRUE)) {
+      // Postgres is currently the only option on Heroku.
+      properties.setProperty(DB_IMPL_KEY,
+          "org.wattdepot.server.db.postgres.PostgresStorageImplementation");
+
+      // These two properties are set by Heroku, so we access them specifically
+      properties.setProperty(PORT_KEY, System.getenv("PORT"));
+      properties.setProperty(DATABASE_URL_KEY, System.getenv("DATABASE_URL"));
+    }
+    // If we want to run unit tests on Heroku, update the Database URL and Hostname properties.
+    else if (properties.get(TEST_HEROKU_KEY).equals(TRUE)) {
+      properties.setProperty(DB_IMPL_KEY,
+          "org.wattdepot.server.db.postgres.PostgresStorageImplementation");
+      properties.setProperty(DATABASE_URL_KEY, properties.getProperty(HEROKU_DATABASE_URL_KEY));
+      properties.setProperty(TEST_HOSTNAME_KEY, properties.getProperty(HEROKU_HOSTNAME_KEY));
+    }
+
     trimProperties(properties);
 
     // Now add to System properties. Since the Mailer class expects to find this stuff on the
@@ -285,7 +323,14 @@ public class ServerProperties {
    * @return The fully qualified host name.
    */
   public String getFullHost() {
-    return "http://" + get(HOSTNAME_KEY) + ":" + get(PORT_KEY) + "/" + get(CONTEXT_ROOT_KEY) + "/";
+    if (properties.getProperty(USE_HEROKU_KEY).equals(TRUE)
+        || properties.getProperty(TEST_HEROKU_KEY).equals(TRUE)) {
+      return "http://" + get(HOSTNAME_KEY) + "/" + get(CONTEXT_ROOT_KEY) + "/";
+    }
+    else {
+      return "http://" + get(HOSTNAME_KEY) + ":" + get(PORT_KEY) + "/" + get(CONTEXT_ROOT_KEY)
+          + "/";
+    }
   }
 
 }

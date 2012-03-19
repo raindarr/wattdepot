@@ -105,6 +105,10 @@ public class TestGVisualizationResource extends ServerTestHelper {
 
     // Test fetch all sensor data
     String response = wc.getResponse(sensorDataUrl).getText();
+
+    // strip out dates before compare to ignore time zone issues
+    expectedResponse = expectedResponse.replaceAll("new Date\\(([0-9,]*)\\)", "date");
+    response = response.replaceAll("new Date\\(([0-9,]*)\\)", "date");
     assertEquals("GViz sensordata response is incorrect", expectedResponse, response);
 
     // Test all parameters together
@@ -128,6 +132,10 @@ public class TestGVisualizationResource extends ServerTestHelper {
         "google.visualization.Query.setResponse({status:'ok',table:{cols:[{id:'timePoint',label:'Date & Time',type:'datetime',pattern:''},{id:'powerConsumed',label:'Power Cons. (W)',type:'number',pattern:''},{id:'powerGenerated',label:'Power Gen. (W)',type:'number',pattern:''},{id:'energyConsumed',label:'Energy Cons. (Wh)',type:'number',pattern:''},{id:'energyGenerated',label:'Energy Gen. (Wh)',type:'number',pattern:''},{id:'carbonEmitted',label:'Carbon (lbs CO2)',type:'number',pattern:''}],rows:[{c:[{v:new Date(2009,9,12,0,0,0)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,1,30)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,3,0)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,4,30)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,6,0)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,7,30)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,9,0)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,10,30)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,12,0)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,13,30)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]},{c:[{v:new Date(2009,9,12,0,15,0)},{v:0.0},{v:0.0},{v:0.0},{v:0.0},{v:0.0}]}]}});";
 
     String response = wc.getResponse(calculatedUrl).getText();
+
+    // strip out dates before compare to ignore time zone issues
+    expectedResponse = expectedResponse.replaceAll("new Date\\(([0-9,]*)\\)", "date");
+    response = response.replaceAll("new Date\\(([0-9,]*)\\)", "date");
     assertEquals("GViz calculated response is incorrect", expectedResponse, response);
 
     // Test all parameters
@@ -147,9 +155,7 @@ public class TestGVisualizationResource extends ServerTestHelper {
    */
   @Test
   public void testSensorDataDates() throws Exception {
-    String responseWithoutDate =
-        wc.getResponse(sensorDataUrl + "?" + startTime + timestamp1 + "&" + endTime + timestamp3)
-            .getText();
+    String responseWithoutDate = wc.getResponse(sensorDataUrl).getText();
     JSONObject withoutDate = getJsonObject(responseWithoutDate);
     assertTrue("GViz sensor data is not proper JSONP", withoutDate != null);
     assertTrue("GViz sensor data without date returns wrong number of rows",
