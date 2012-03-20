@@ -39,7 +39,7 @@ public class TestDerbyStorageImplementation extends DbManagerTestHelper {
     assertTrue("Unable to create snapshot", manager.makeSnapshot());
     // There is a potential race condition since we might test for the snapshot before it is made
     // as the snapshot is made asynchronously. Hopefully this kludge is good enough for the test.
-    Thread.sleep(4000);
+    Thread.sleep(10000);
     assertTrue("No snapshot directory created", snapshotDir.isDirectory());
     assertTrue("No backup log created", backupLog.isFile());
 
