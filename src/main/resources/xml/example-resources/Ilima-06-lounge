@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<Source>
+<Name>Ilima-06-lounge</Name>
+<Owner>http://server.example.com:8182/wattdepot/users/foo@example.com</Owner>
+<Public>true</Public>
+<Virtual>false</Virtual>
+<Coordinates>21.294642, -157.812727</Coordinates>
+<Location>Honolulu, Hawaii 96822</Location>
+<Description>Meter installed in Hale Aloha Ilima residence hall 6th floor lounge electrical closet.</Description>
+<Properties>
+ <Property>
+  <Key>energyDirection</Key>
+  <Value>consumer</Value>
+ </Property>
+ <Property>
+  <Key>supportsEnergyCounters</Key>
+  <Value>true</Value>
+ </Property>
+ <Property>
+  <Key>updateInterval</Key>
+  <Value>15</Value>
+ </Property>
+</Properties>
+</Source>

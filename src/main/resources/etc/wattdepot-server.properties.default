@@ -1,0 +1,16 @@
+## Administrator account, has full access to all WattDepot data
+## Change these to something unique and secure!
+wattdepot-server.admin.email = admin@example.com
+wattdepot-server.admin.password = CHANGE-ME
+
+## Backend storage implementation to use for data. Defaults to Derby
+#wattdepot-server.db.impl = org.wattdepot.server.db.derby.DerbyStorageImplementation
+#wattdepot-server.db.impl = org.wattdepot.server.db.postgres.PostgresStorageImplementation
+#wattdepot-server.db.impl = org.wattdepot.server.db.berkeleydb.BerkeleyDbImplementation
+
+## Canonical name of server. Useful when a server is known by several
+##  domain names. Optional.
+#wattdepot-server.hostname = wattdepot.example.com
+
+## TCP port used for incoming connections, defaults to 8182
+#wattdepot-server.port = 8182
