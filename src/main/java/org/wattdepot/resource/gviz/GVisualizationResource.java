@@ -3,6 +3,7 @@ package org.wattdepot.resource.gviz;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.GregorianCalendar;
+import java.util.Hashtable;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.restlet.data.MediaType;
@@ -474,9 +475,15 @@ public class GVisualizationResource extends WattDepotResource {
 
     Source source = this.dbManager.getSource(sourceName);
     List<Source> subSources = null;
+    Hashtable<String, Source> hash = null;
     if (displaySubsources && source.isVirtual()) {
       subSources = this.dbManager.getAllNonVirtualSubSources(source);
-      // System.out.println("subSources: " + subSources); // DEBUG
+
+      // store these in a hash so we don't have to get them from the database again.
+      hash = new Hashtable<String, Source>();
+      for (Source s : subSources) {
+        hash.put(s.getName(), s);
+      }
     }
 
     // Sets up the columns requested by any SELECT in the datasource query
@@ -508,21 +515,21 @@ public class GVisualizationResource extends WattDepotResource {
         String columnName = selectionColumn.getId();
         // If this is a subsource, then the custom property sourceName will be set
         String propertySourceName = selectionColumn.getCustomProperty("sourceName");
-        String currentSourceName;
+        Source currentSource;
         if (propertySourceName == null) {
           // normal column, not subsource
-          currentSourceName = sourceName;
+          currentSource = source;
         }
         else {
           // subsource, so use source name from column's custom property
-          currentSourceName = propertySourceName;
+          currentSource = hash.get(propertySourceName);
         }
         try {
           if (columnName.equals(TIME_POINT_COLUMN)) {
             row.addCell(new DateTimeValue(convertTimestamp(currentTimestamp)));
           }
           else if (columnName.endsWith(POWER_CONSUMED_COLUMN)) {
-            powerData = this.dbManager.getPower(currentSourceName, currentTimestamp);
+            powerData = this.dbManager.getPower(currentSource, currentTimestamp);
             if (powerData == null) {
               row.addCell(0);
             }
@@ -531,7 +538,7 @@ public class GVisualizationResource extends WattDepotResource {
             }
           }
           else if (columnName.endsWith(POWER_GENERATED_COLUMN)) {
-            powerData = this.dbManager.getPower(currentSourceName, currentTimestamp);
+            powerData = this.dbManager.getPower(currentSource, currentTimestamp);
             if (powerData == null) {
               row.addCell(0);
             }
@@ -541,7 +548,7 @@ public class GVisualizationResource extends WattDepotResource {
           }
           else if (columnName.endsWith(ENERGY_CONSUMED_COLUMN)) {
             energyData =
-                this.dbManager.getEnergy(currentSourceName, previousTimestamp, currentTimestamp,
+                this.dbManager.getEnergy(currentSource, previousTimestamp, currentTimestamp,
                     currentInterval);
             if (energyData == null) {
               row.addCell(0);
@@ -552,7 +559,7 @@ public class GVisualizationResource extends WattDepotResource {
           }
           else if (columnName.endsWith(ENERGY_GENERATED_COLUMN)) {
             energyData =
-                this.dbManager.getEnergy(currentSourceName, previousTimestamp, currentTimestamp,
+                this.dbManager.getEnergy(currentSource, previousTimestamp, currentTimestamp,
                     currentInterval);
             if (energyData == null) {
               row.addCell(0);
@@ -563,8 +570,8 @@ public class GVisualizationResource extends WattDepotResource {
           }
           else if (columnName.endsWith(CARBON_EMITTED_COLUMN)) {
             carbonData =
-                this.dbManager.getCarbon(currentSourceName, previousTimestamp, currentTimestamp,
-                    currentInterval);
+                this.dbManager.getCarbon(currentSource, previousTimestamp,
+                    currentTimestamp, currentInterval);
             if (carbonData == null) {
               row.addCell(0);
             }

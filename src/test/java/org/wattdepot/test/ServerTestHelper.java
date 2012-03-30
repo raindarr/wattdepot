@@ -180,7 +180,7 @@ public class ServerTestHelper {
    */
   protected SensorData makeTestSensorData1() throws Exception {
     return new SensorData(timestamp1, "JUnit", Source.sourceToUri(defaultPublicSource, server),
-        new Property(SensorData.POWER_CONSUMED, "10000"));
+        new Property(SensorData.POWER_CONSUMED, "10000.0"));
   }
 
   /**
@@ -192,7 +192,7 @@ public class ServerTestHelper {
    */
   protected SensorData makeTestSensorData2() throws Exception {
     return new SensorData(timestamp2, "FooTool", Source.sourceToUri(defaultPublicSource, server),
-        new Property(SensorData.POWER_CONSUMED, "11000"));
+        new Property(SensorData.POWER_CONSUMED, "11000.0"));
   }
 
   /**
@@ -204,7 +204,7 @@ public class ServerTestHelper {
    */
   protected SensorData makeTestSensorData3() throws Exception {
     return new SensorData(timestamp3, "JUnit", Source.sourceToUri(defaultPublicSource, server),
-        new Property(SensorData.POWER_CONSUMED, "9500"));
+        new Property(SensorData.POWER_CONSUMED, "9500.0"));
   }
 
   /**
@@ -216,6 +216,6 @@ public class ServerTestHelper {
    */
   protected SensorData makeTestSensorDataPrivateSource() throws Exception {
     return new SensorData(Tstamp.makeTimestamp("2009-07-28T09:40:00.000-10:00"), "JUnit", Source
-        .sourceToUri(defaultPrivateSource, server), new Property(SensorData.POWER_CONSUMED, "3000"));
+        .sourceToUri(defaultPrivateSource, server), new Property(SensorData.POWER_CONSUMED, "3000.0"));
   }
 }

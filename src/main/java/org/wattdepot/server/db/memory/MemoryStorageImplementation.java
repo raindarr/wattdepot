@@ -462,7 +462,7 @@ public class MemoryStorageImplementation extends DbImplementation {
    * If the given timestamp corresponds to an actual SensorData, then return a degenerate
    * SensorDataStraddle with both ends of the straddle set to the actual SensorData.
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestamp The timestamp of interest in the straddle.
    * @return A SensorDataStraddle that straddles the given timestamp. Returns null if: parameters
    * are null, the source doesn't exist, source has no sensor data, or there is no sensor data that
@@ -470,7 +470,7 @@ public class MemoryStorageImplementation extends DbImplementation {
    * @see org.wattdepot.server.db.memory#getSensorDataStraddleList
    */
   @Override
-  public SensorDataStraddle getSensorDataStraddle(String sourceName, XMLGregorianCalendar timestamp) {
+  public SensorDataStraddle getSensorDataStraddle(Source source, XMLGregorianCalendar timestamp) {
     // This is a kludge, create sentinels for times way outside our expected range
     SensorData beforeSentinel, afterSentinel;
     try {
@@ -484,18 +484,15 @@ public class MemoryStorageImplementation extends DbImplementation {
     }
     // initialize beforeData & afterData to sentinel values
     SensorData beforeData = beforeSentinel, afterData = afterSentinel;
-    if ((sourceName == null) || (timestamp == null)) {
+    if ((source == null) || (timestamp == null)) {
       return null;
     }
-    Source source = this.name2SourceHash.get(sourceName);
-    if (source == null) {
-      return null;
-    }
+  
     XMLGregorianCalendar dataTimestamp;
     int dataTimestampCompare;
     // Retrieve this Source's map of timestamps to SensorData
     ConcurrentMap<XMLGregorianCalendar, SensorData> sensorDataMap =
-        this.source2SensorDatasHash.get(sourceName);
+        this.source2SensorDatasHash.get(source.getName());
     if (sensorDataMap == null) {
       return null;
     }
@@ -536,7 +533,7 @@ public class MemoryStorageImplementation extends DbImplementation {
    * result will be a list containing at a single SensorDataStraddle, or null. In the case of a
    * non-virtual source, you might as well use getSensorDataStraddle.
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestamp The timestamp of interest in the straddle.
    * @return A list of SensorDataStraddles that straddle the given timestamp. Returns null if:
    * parameters are null, the source doesn't exist, or there is no sensor data that straddles the
@@ -544,21 +541,17 @@ public class MemoryStorageImplementation extends DbImplementation {
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle
    */
   @Override
-  public List<SensorDataStraddle> getSensorDataStraddleList(String sourceName,
+  public List<SensorDataStraddle> getSensorDataStraddleList(Source source,
       XMLGregorianCalendar timestamp) {
-    if ((sourceName == null) || (timestamp == null)) {
+    if ((source == null) || (timestamp == null)) {
       return null;
     }
-    Source baseSource = this.name2SourceHash.get(sourceName);
-    if (baseSource == null) {
-      return null;
-    }
+   
     // Want to go through sensordata for base source, and all subsources recursively
-    List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    List<Source> sourceList = getAllNonVirtualSubSources(source);
     List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>(sourceList.size());
     for (Source subSource : sourceList) {
-      String subSourceName = subSource.getName();
-      SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
+      SensorDataStraddle straddle = getSensorDataStraddle(subSource, timestamp);
       if (straddle == null) {
         // No straddle for this timestamp on this source, abort
         return null;
@@ -577,24 +570,19 @@ public class MemoryStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
-  public List<StraddleList> getStraddleLists(String sourceName,
+  public List<StraddleList> getStraddleLists(Source source,
       List<XMLGregorianCalendar> timestampList) {
-    if ((sourceName == null) || (timestampList == null)) {
-      return null;
-    }
-    Source baseSource = this.name2SourceHash.get(sourceName);
-    if (baseSource == null) {
+    if ((source == null) || (timestampList == null)) {
       return null;
     }
     // Want to go through sensordata for base source, and all subsources recursively
-    List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    List<Source> sourceList = getAllNonVirtualSubSources(source);
     List<StraddleList> masterList = new ArrayList<StraddleList>(sourceList.size());
     List<SensorDataStraddle> straddleList;
     for (Source subSource : sourceList) {
       straddleList = new ArrayList<SensorDataStraddle>(timestampList.size());
-      String subSourceName = subSource.getName();
       for (XMLGregorianCalendar timestamp : timestampList) {
-        SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
+        SensorDataStraddle straddle = getSensorDataStraddle(subSource, timestamp);
         if (straddle == null) {
           // No straddle for this timestamp on this source, abort
           return null;
@@ -615,23 +603,19 @@ public class MemoryStorageImplementation extends DbImplementation {
 
   /** {@inheritDoc} */
   @Override
-  public List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(String sourceName,
+  public List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(Source source,
       List<XMLGregorianCalendar> timestampList) {
     List<List<SensorDataStraddle>> masterList = new ArrayList<List<SensorDataStraddle>>();
-    if ((sourceName == null) || (timestampList == null)) {
+    if ((source == null) || (timestampList == null)) {
       return null;
     }
-    Source baseSource = this.name2SourceHash.get(sourceName);
-    if (baseSource == null) {
-      return null;
-    }
+   
     // Want to go through sensordata for base source, and all subsources recursively
-    List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    List<Source> sourceList = getAllNonVirtualSubSources(source);
     for (Source subSource : sourceList) {
       List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>();
-      String subSourceName = subSource.getName();
       for (XMLGregorianCalendar timestamp : timestampList) {
-        SensorDataStraddle straddle = getSensorDataStraddle(subSourceName, timestamp);
+        SensorDataStraddle straddle = getSensorDataStraddle(subSource, timestamp);
         if (straddle == null) {
           // No straddle for this timestamp on this source, abort
           return null;

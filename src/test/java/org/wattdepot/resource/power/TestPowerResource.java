@@ -258,7 +258,7 @@ public class TestPowerResource extends ServerTestHelper {
 
     // timestamp == beforeData == afterData, getPower should just return beforeData
     beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
-    beforeData = new SensorData(beforeTime, tool, source, new Property(POWER_GENERATED, "100"));
+    beforeData = new SensorData(beforeTime, tool, source, new Property(POWER_GENERATED, "100.0"));
     client.storeSensorData(beforeData);
     timestamp = beforeTime;
     assertEquals("getPower on degenerate straddle did not return beforeData", client.getPower(
@@ -268,9 +268,9 @@ public class TestPowerResource extends ServerTestHelper {
     // slope is 2 (100 W difference in 50 seconds)
     beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
     afterTime = Tstamp.makeTimestamp("2009-07-28T08:00:50.000-10:00");
-    beforeData = new SensorData(beforeTime, tool, source, new Property(POWER_GENERATED, "100"));
+    beforeData = new SensorData(beforeTime, tool, source, new Property(POWER_GENERATED, "100.0"));
     client.storeSensorData(beforeData);
-    afterData = new SensorData(afterTime, tool, source, new Property(POWER_GENERATED, "200"));
+    afterData = new SensorData(afterTime, tool, source, new Property(POWER_GENERATED, "200.0"));
     client.storeSensorData(afterData);
     timestamp = Tstamp.makeTimestamp("2009-07-28T08:00:25.000-10:00");
     powerData = client.getPower(sourceName, timestamp);

@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.wattdepot.datainput.OscarRowParser;
 import org.wattdepot.datainput.RowParseException;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbException;
 import org.wattdepot.test.ServerTestHelper;
@@ -662,7 +663,7 @@ public class TestGVisualizationResource extends ServerTestHelper {
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_4</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_5</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_6</Href>"
-                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_7</Href>"
+               // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_7</Href>"
                 + "</SubSources>" + "</Source>",
             "<?xml version=\"1.0\"?>"
                 + "<Source>"
@@ -675,8 +676,8 @@ public class TestGVisualizationResource extends ServerTestHelper {
                 + "<SubSources>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_5</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_6</Href>"
-                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_7</Href>"
-                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_8</Href>"
+               // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_7</Href>"
+               // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_8</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_9</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_10</Href>"
                 + "</SubSources>" + "</Source>",
@@ -703,7 +704,7 @@ public class TestGVisualizationResource extends ServerTestHelper {
                 + "<Location>To be looked up later</Location>"
                 + "<Description>Virtual resource for all independent power producers (non-HECO).</Description>"
                 + "<SubSources>"
-                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_AES</Href>"
+               // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_AES</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_HPOWER</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KALAELOA</Href>"
                 + "</SubSources>" + "</Source>",
@@ -727,6 +728,11 @@ public class TestGVisualizationResource extends ServerTestHelper {
     sourceJAXB = JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
     unmarshaller = sourceJAXB.createUnmarshaller();
     Source source;
+
+    if (!manager.storeUser(new User("oscar@wattdepot.org", "password", false, null))) {
+      throw new DbException("Unable to store oscar user");
+    }
+    
     // Go through each Source String in XML format, turn it into a Source, and store in DB
     for (String xmlInput : sourceXmlStrings) {
       source = (Source) unmarshaller.unmarshal(new StringReader(xmlInput));
