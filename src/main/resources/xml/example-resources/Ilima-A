@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Source>
+<Name>Ilima-A</Name>
+<Owner>http://server.example.com:8182/wattdepot/users/foo@example.com</Owner>
+<Public>true</Public>
+<Virtual>true</Virtual>
+<Coordinates>21.294642, -157.812727</Coordinates>
+<Location>Honolulu, Hawaii 96822</Location>
+<Description>Virtual source for lounge A (floors 3-4) of the Hale Aloha Ilima residence hall.</Description>
+<SubSources>
+ <Href>http://server.example.com:8182/wattdepot/sources/Ilima-04-lounge</Href>
+ <Href>http://server.example.com:8182/wattdepot/sources/Ilima-04-telco</Href>
+</SubSources>
+<Properties>
+ <Property>
+  <Key>energyDirection</Key>
+  <Value>consumer</Value>
+ </Property>
+</Properties>
+</Source>
