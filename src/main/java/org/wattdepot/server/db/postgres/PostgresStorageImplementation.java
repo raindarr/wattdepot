@@ -43,7 +43,7 @@ import org.wattdepot.server.db.DbImplementation;
 import org.wattdepot.util.StackTrace;
 import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
-import org.postgresql.jdbc3.Jdbc3PoolingDataSource;
+import org.postgresql.ds.PGConnectionPoolDataSource;
 import static org.wattdepot.server.ServerProperties.DATABASE_URL_KEY;
 import static org.wattdepot.server.ServerProperties.DB_DATABASE_NAME_KEY;
 import static org.wattdepot.server.ServerProperties.DB_PORT_KEY;
@@ -81,7 +81,7 @@ public class PostgresStorageImplementation extends DbImplementation {
    * The pooling data-source implementation provided here is not the most feature-rich in the world.
    * For one, there is no way to shrink the connection pool.
    */
-  private Jdbc3PoolingDataSource connectionPool;
+  private PGConnectionPoolDataSource connectionPool;
 
   /**
    * The SQL state indicating that INSERT tried to add data to a table with a preexisting key.
@@ -96,6 +96,18 @@ public class PostgresStorageImplementation extends DbImplementation {
    */
   public PostgresStorageImplementation(Server server) {
     super(server);
+
+    // Try to load the driver.
+    try {
+      Class.forName(driver);
+    }
+    catch (java.lang.ClassNotFoundException e) {
+      String msg =
+          "Postgres: Exception during DbManager initialization: " + "Postgres not on CLASSPATH.";
+      this.logger.warning(msg + "\n" + StackTrace.toString(e));
+      throw new RuntimeException(msg, e);
+    }
+
     ServerProperties props = server.getServerProperties();
 
     String hostName;
@@ -103,6 +115,7 @@ public class PostgresStorageImplementation extends DbImplementation {
     String dbName;
     String user;
     String password;
+
     if (props.get(DATABASE_URL_KEY) == null || props.get(DATABASE_URL_KEY).length() == 0) {
       hostName = props.get(HOSTNAME_KEY);
       port = props.get(DB_PORT_KEY);
@@ -126,11 +139,19 @@ public class PostgresStorageImplementation extends DbImplementation {
       hostName =
           connectionUrl.substring(connectionUrl.indexOf("@") + 1, connectionUrl.lastIndexOf("/"));
       dbName = connectionUrl.substring(connectionUrl.lastIndexOf("/") + 1);
+      if (dbName.contains("?")) {
+        dbName = dbName.substring(0, dbName.indexOf("?"));
+      }
       port = null;
+      
+      String params = "";
+      if (connectionUrl.contains("?")) {
+        params = "&" + connectionUrl.substring(connectionUrl.indexOf("?") + 1);
+      }
 
       connectionUrl =
           "jdbc:postgresql://" + hostName + "/" + dbName + "?user=" + user + "&password="
-              + password;
+              + password + params;
     }
     else {
       // assume we have a valid jdbc connectionUrl in the form
@@ -147,42 +168,24 @@ public class PostgresStorageImplementation extends DbImplementation {
       }
       dbName =
           connectionUrl.substring(connectionUrl.lastIndexOf("/") + 1, connectionUrl.indexOf("?"));
-      String userString = connectionUrl.substring(connectionUrl.indexOf("user=") + 5);
-      if (userString.indexOf("&") < 0) {
-        user = userString;
+      user = connectionUrl.substring(connectionUrl.indexOf("user=") + 5);
+      if (user.contains("&")) {  
+        user = user.substring(0, user.indexOf("&"));
       }
-      else {
-        user = userString.substring(0, userString.indexOf("&"));
-      }
-      String passwordString = connectionUrl.substring(connectionUrl.indexOf("password=") + 9);
-      if (passwordString.indexOf("&") < 0) {
-        password = passwordString;
-      }
-      else {
-        password = passwordString.substring(0, passwordString.indexOf("&"));
+      password = connectionUrl.substring(connectionUrl.indexOf("password=") + 9);
+      if (password.contains("&")) {
+        password = password.substring(0, password.indexOf("&"));
       }
     }
 
-    // Try to load the driver.
-    try {
-      Class.forName(driver);
-    }
-    catch (java.lang.ClassNotFoundException e) {
-      String msg =
-          "Postgres: Exception during DbManager initialization: " + "Postgres not on CLASSPATH.";
-      this.logger.warning(msg + "\n" + StackTrace.toString(e));
-      throw new RuntimeException(msg, e);
-    }
     Connection conn = null;
     try {
-      conn = DriverManager.getConnection(this.connectionUrl);
+      // if (Jdbc3PoolingDataSource.getDataSource("WattDepotSource") != null) {
+      // Jdbc3PoolingDataSource.getDataSource("WattDepotSource").close();
+      // }
 
-      if (Jdbc3PoolingDataSource.getDataSource("WattDepotSource") != null) {
-        Jdbc3PoolingDataSource.getDataSource("WattDepotSource").close();
-      }
-
-      connectionPool = new Jdbc3PoolingDataSource();
-      connectionPool.setDataSourceName("WattDepotSource");
+      connectionPool = new PGConnectionPoolDataSource();
+      // connectionPool.setDataSourceName("WattDepotSource");
       connectionPool.setServerName(hostName);
       connectionPool.setDatabaseName(dbName);
       connectionPool.setUser(user);
@@ -190,8 +193,8 @@ public class PostgresStorageImplementation extends DbImplementation {
       if (port != null) {
         connectionPool.setPortNumber(Integer.valueOf(port));
       }
-      connectionPool.setMaxConnections(10);
-      connectionPool.setInitialConnections(1);
+      // connectionPool.setMaxConnections(10);
+      // connectionPool.setInitialConnections(1);
 
       // take care of extra properties that might be used.
       if (this.connectionUrl.contains("ssl=true")) {
@@ -207,6 +210,7 @@ public class PostgresStorageImplementation extends DbImplementation {
               .setSslfactory(factoryString.substring(0, factoryString.indexOf("&")));
         }
       }
+      conn = this.connectionPool.getConnection();
     }
     catch (SQLException e) {
       String theError = (e).getSQLState();
@@ -292,20 +296,20 @@ public class PostgresStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public void initialize(boolean wipe) {
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      /** Run the shutdown hook for shutting down the connection pool. */
-      @Override
-      public void run() {
-        try {
-          if (Jdbc3PoolingDataSource.getDataSource("WattDepotSource") != null) {
-            Jdbc3PoolingDataSource.getDataSource("WattDepotSource").close();
-          }
-        }
-        catch (Exception e) { // NOPMD
-          // we tried.
-        }
-      }
-    });
+    // Runtime.getRuntime().addShutdownHook(new Thread() {
+    // /** Run the shutdown hook for shutting down the connection pool. */
+    // @Override
+    // public void run() {
+    // try {
+    // if (Jdbc3PoolingDataSource.getDataSource("WattDepotSource") != null) {
+    // Jdbc3PoolingDataSource.getDataSource("WattDepotSource").close();
+    // }
+    // }
+    // catch (Exception e) { // NOPMD
+    // // we tried.
+    // }
+    // }
+    // });
 
     String errorPrefix = "Error during initialization: ";
     try {

@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.wattdepot.client.NotAuthorizedException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
+import org.wattdepot.server.ServerProperties;
 import org.wattdepot.test.ServerTestHelper;
 
 /**
@@ -45,7 +46,9 @@ public class TestDatabaseResource extends ServerTestHelper {
    */
   @Test
   public void testSnapshot() throws WattDepotClientException {
-    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-    assertTrue("Not able to create snapshot with admin credentials", client.makeSnapshot());
+    if (!this.server.getServerProperties().get(ServerProperties.TEST_HEROKU_KEY).equals("true")) {
+      WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+      assertTrue("Not able to create snapshot with admin credentials", client.makeSnapshot());
+    }
   }
 }
