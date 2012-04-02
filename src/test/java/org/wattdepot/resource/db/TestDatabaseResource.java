@@ -46,7 +46,9 @@ public class TestDatabaseResource extends ServerTestHelper {
    */
   @Test
   public void testSnapshot() throws WattDepotClientException {
-    if (!this.server.getServerProperties().get(ServerProperties.TEST_HEROKU_KEY).equals("true")) {
+    // Don't bother testing on Heroku, since snapshots don't work there.
+    if (!ServerTestHelper.server.getServerProperties().get(ServerProperties.TEST_HEROKU_KEY)
+        .equals("true")) {
       WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
       assertTrue("Not able to create snapshot with admin credentials", client.makeSnapshot());
     }

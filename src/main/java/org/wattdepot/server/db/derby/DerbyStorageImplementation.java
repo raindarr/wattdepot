@@ -632,84 +632,86 @@ public class DerbyStorageImplementation extends DbImplementation {
     summary.setHref(Source.sourceToUri(sourceName, this.server));
     // Want to go through sensordata for base source, and all subsources recursively
     List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
-    XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null, currentTimestamp = null;
+    XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null;
     Timestamp sqlDataTimestamp = null;
     long dataCount = 0;
     String statement;
     Connection conn = null;
     PreparedStatement s = null;
     ResultSet rs = null;
-    // examine each of the subsources in turn
-    for (Source subSource : sourceList) {
-      String subSourceName = subSource.getName();
+
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      // Get first timestamp, last timestamp, and count of all timestamps for this list of sources
+      statement =
+          String
+              .format(
+                  "SELECT Max(Tstamp) as maxTime, Min(Tstamp) as minTime, Count(1) as dataCount FROM SensorData WHERE Source IN (%s)",
+                  preparePlaceHolders(sourceList.size()));
+
+      server.getLogger().fine(executeQueryMsg + statement);
+      String stmt = statement;
+      s = conn.prepareStatement(stmt);
+      // Add the name of each source to the IN clause of the SQL statement
+      for (int i = 0; i < sourceList.size(); i++) {
+        s.setString(i + 1, sourceList.get(i).getName());
+      }
+      rs = s.executeQuery();
+      if (rs.next()) {
+        sqlDataTimestamp = rs.getTimestamp("minTime");
+        if (sqlDataTimestamp != null) {
+          firstTimestamp = Tstamp.makeTimestamp(sqlDataTimestamp);
+        }
+        sqlDataTimestamp = rs.getTimestamp("maxTime");
+        if (sqlDataTimestamp != null) {
+          lastTimestamp = Tstamp.makeTimestamp(sqlDataTimestamp);
+        }
+        dataCount = rs.getInt("dataCount");
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info("DB: Error in getSourceSummary()" + StackTrace.toString(e));
+    }
+    finally {
       try {
-        // Get timestamp of first sensor data for this source
-        statement =
-            "SELECT Tstamp FROM SensorData WHERE Source = ? ORDER BY Tstamp ASC FETCH FIRST ROW ONLY";
-        conn = DriverManager.getConnection(connectionURL);
-        server.getLogger().fine(executeQueryMsg + statement);
-        s = conn.prepareStatement(statement);
-        s.setString(1, subSourceName);
-        rs = s.executeQuery();
-        if (rs.next()) {
-          sqlDataTimestamp = rs.getTimestamp(1);
-          currentTimestamp = Tstamp.makeTimestamp(sqlDataTimestamp);
-          // If this is the first source examined or this source's first data is earlier than
-          // that of any sources examined so far
-          if ((firstTimestamp == null) || (Tstamp.lessThan(currentTimestamp, firstTimestamp))) {
-            firstTimestamp = currentTimestamp;
-          }
+        if (rs != null) {
+          rs.close();
         }
-        // Clean up for next query
-        rs.close();
-        s.close();
-        // Get timestamp of last sensor data for this source
-        statement =
-            "SELECT Tstamp FROM SensorData WHERE Source = ? ORDER BY Tstamp DESC FETCH FIRST ROW ONLY";
-        server.getLogger().fine(executeQueryMsg + statement);
-        s = conn.prepareStatement(statement);
-        s.setString(1, subSourceName);
-        rs = s.executeQuery();
-        if (rs.next()) {
-          sqlDataTimestamp = rs.getTimestamp(1);
-          currentTimestamp = Tstamp.makeTimestamp(sqlDataTimestamp);
-          // If this is the first source examined or this source's last data is later than
-          // that of any sources examined so far
-          if ((lastTimestamp == null) || (Tstamp.greaterThan(currentTimestamp, lastTimestamp))) {
-            lastTimestamp = currentTimestamp;
-          }
+        if (s != null) {
+          s.close();
         }
-        // Clean up for next query
-        rs.close();
-        s.close();
-        // Get number of sensordata rows for this source
-        statement = "SELECT COUNT(1) FROM SensorData WHERE Source = ?";
-        server.getLogger().fine(executeQueryMsg + statement);
-        s = conn.prepareStatement(statement);
-        s.setString(1, subSourceName);
-        rs = s.executeQuery();
-        if (rs.next()) {
-          dataCount += rs.getInt(1);
+        if (conn != null) {
+          conn.close();
         }
       }
       catch (SQLException e) {
-        this.logger.info("DB: Error in getSourceSummary()" + StackTrace.toString(e));
-      }
-      finally {
-        try {
-          rs.close();
-          s.close();
-          conn.close();
-        }
-        catch (SQLException e) {
-          this.logger.warning(errorClosingMsg + StackTrace.toString(e));
-        }
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
       }
     }
+
     summary.setFirstSensorData(firstTimestamp);
     summary.setLastSensorData(lastTimestamp);
     summary.setTotalSensorDatas(dataCount);
     return summary;
+  }
+
+  /**
+   * Build a list of question marks separated by commas for the IN clause of a prepared statement.
+   * We need to put this in a separate method so that FindBugs doesn't complain about generating a
+   * prepared statement from a nonconstant string.
+   * 
+   * @param length The number of question marks that the string should include.
+   * @return A string of length-number question marks separated by commas.
+   */
+  private String preparePlaceHolders(int length) {
+    StringBuilder builder = new StringBuilder();
+    for (int i = 0; i < length;) {
+      builder.append("?");
+      if (++i < length) {
+        builder.append(",");
+      }
+    }
+    return builder.toString();
   }
 
   /** {@inheritDoc} */
@@ -852,7 +854,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       deleteSubSources(sourceName);
       deleteParentSources(sourceName);
       deleteSourceProperties(sourceName);
-      String statement = "DELETE FROM Source WHERE Name='" + sourceName + "'";
+      String statement = "DELETE FROM Source WHERE Name='" + sourceName.replace("'", "''") + "'";
       return deleteResource(statement);
     }
   }
@@ -865,8 +867,8 @@ public class DerbyStorageImplementation extends DbImplementation {
    * @return True if the subsources were successfully deleted.
    */
   public boolean deleteSubSources(String sourceName) {
-    return deleteResource("DELETE FROM SourceHierarchy WHERE ParentSourceName = '" + sourceName
-        + "'");
+    return deleteResource("DELETE FROM SourceHierarchy WHERE ParentSourceName = '"
+        + sourceName.replace("'", "''") + "'");
   }
 
   /**
@@ -877,9 +879,9 @@ public class DerbyStorageImplementation extends DbImplementation {
    * @return True if the parent sources were successfully deleted.
    */
   public boolean deleteParentSources(String sourceName) {
-    return deleteResource("DELETE FROM SourceHierarchy WHERE SubSourceName='" + sourceName + "'");
+    return deleteResource("DELETE FROM SourceHierarchy WHERE SubSourceName='"
+        + sourceName.replace("'", "''") + "'");
   }
-
 
   /**
    * Delete a source's Property entries from SourceProperty table.
@@ -888,7 +890,8 @@ public class DerbyStorageImplementation extends DbImplementation {
    * @return True if the properties were successfully deleted.
    */
   public boolean deleteSourceProperties(String sourceName) {
-    return deleteResource("DELETE FROM SourceProperty WHERE SourceName='" + sourceName + "'");
+    return deleteResource("DELETE FROM SourceProperty WHERE SourceName='"
+        + sourceName.replace("'", "''") + "'");
   }
 
   /** The SQL string for creating the SensorData table. */
@@ -1379,8 +1382,8 @@ public class DerbyStorageImplementation extends DbImplementation {
       deleteSensorDataProperties(sourceName, timestamp);
 
       String statement =
-          "DELETE FROM SensorData WHERE Source='" + sourceName + "' AND Tstamp='"
-              + Tstamp.makeTimestamp(timestamp) + "'";
+          "DELETE FROM SensorData WHERE Source='" + sourceName.replace("'", "''")
+              + "' AND Tstamp='" + Tstamp.makeTimestamp(timestamp) + "'";
       succeeded = deleteResource(statement);
       return succeeded;
     }
@@ -1397,7 +1400,8 @@ public class DerbyStorageImplementation extends DbImplementation {
     else {
       deleteSensorDataProperties(sourceName);
 
-      String statement = "DELETE FROM SensorData WHERE Source='" + sourceName + "'";
+      String statement =
+          "DELETE FROM SensorData WHERE Source='" + sourceName.replace("'", "''") + "'";
       succeeded = deleteResource(statement);
     }
     return succeeded;
@@ -1411,8 +1415,8 @@ public class DerbyStorageImplementation extends DbImplementation {
    * @return True if the properties were successfully deleted.
    */
   public boolean deleteSensorDataProperties(String sourceName, XMLGregorianCalendar timestamp) {
-    return deleteResource("DELETE FROM SensorDataProperty WHERE Source='" + sourceName
-        + "' AND Tstamp='" + Tstamp.makeTimestamp(timestamp) + "'");
+    return deleteResource("DELETE FROM SensorDataProperty WHERE Source='"
+        + sourceName.replace("'", "''") + "' AND Tstamp='" + Tstamp.makeTimestamp(timestamp) + "'");
   }
 
   /**
@@ -1422,7 +1426,8 @@ public class DerbyStorageImplementation extends DbImplementation {
    * @return True if the properties were successfully deleted.
    */
   public boolean deleteSensorDataProperties(String sourceName) {
-    return deleteResource("DELETE FROM SensorDataProperty WHERE Source='" + sourceName + "'");
+    return deleteResource("DELETE FROM SensorDataProperty WHERE Source='"
+        + sourceName.replace("'", "''") + "'");
   }
 
   /**
@@ -1849,7 +1854,8 @@ public class DerbyStorageImplementation extends DbImplementation {
     else {
       deleteUserProperties(username);
 
-      String statement = "DELETE FROM WattDepotUser WHERE Username='" + username + "'";
+      String statement =
+          "DELETE FROM WattDepotUser WHERE Username='" + username.replace("'", "''") + "'";
       return deleteResource(statement);
       // TODO add code to delete sources and sensordata owned by the user
     }
@@ -1862,7 +1868,8 @@ public class DerbyStorageImplementation extends DbImplementation {
    * @return True if the properties were successfully deleted.
    */
   public boolean deleteUserProperties(String username) {
-    return deleteResource("DELETE FROM WattDepotUserProperty WHERE Username='" + username + "'");
+    return deleteResource("DELETE FROM WattDepotUserProperty WHERE Username='"
+        + username.replace("'", "''") + "'");
   }
 
   /**
