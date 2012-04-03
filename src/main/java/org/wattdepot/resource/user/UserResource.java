@@ -25,19 +25,9 @@ public class UserResource extends WattDepotResource {
    * @return the representation of this resource
    */
   @Override
-  public Representation get(Variant variant)  {
-    if (!server.authenticate(getRequest(), getResponse())) {
-        // Not authenticated
-      setStatusBadCredentials();
-      return null;
-    }
-    
+  public Representation get(Variant variant) {
     String xmlString;
     if (variant.getMediaType().equals(MediaType.TEXT_XML)) {
-      // If credentials are provided, they need to be valid
-      if (!isAnonymous() && !validateCredentials()) {
-        return null;
-      }
       if (uriUser == null) {
         // URI had no user parameter, which means the request is for the list of all users
         try {
@@ -58,7 +48,7 @@ public class UserResource extends WattDepotResource {
         }
       }
       else {
-        User user = dbManager.getUser(authUsername);
+        User user = dbManager.getUser(uriUser);
         if (user == null) {
           // Note that technically this doesn't represent bad credentials, it is a request for a
           // user that doesn't exist. However, if the user doesn't exist, then any credentials
@@ -68,7 +58,8 @@ public class UserResource extends WattDepotResource {
           return null;
         }
         else {
-          if (user.getEmail().equals(authUsername) && user.getPassword().equals(authPassword)) {
+          if (isAdminUser()
+              || (user.getEmail().equals(authUsername) && user.getPassword().equals(authPassword))) {
             try {
               xmlString = getUser(user);
               return getStringRepresentation(xmlString);

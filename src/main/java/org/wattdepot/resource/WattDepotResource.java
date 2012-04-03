@@ -13,6 +13,7 @@ import org.restlet.data.CharacterSet;
 import org.restlet.data.Form;
 import org.restlet.data.Language;
 import org.restlet.data.MediaType;
+import org.restlet.data.Method;
 import org.restlet.data.Status;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
@@ -27,6 +28,7 @@ import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
+import org.wattdepot.server.WattDepotEnroler;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.tstamp.Tstamp;
@@ -119,6 +121,14 @@ public class WattDepotResource extends ServerResource {
       getResponse().getAttributes().put("org.restlet.http.headers", responseHeaders);
     }
     responseHeaders.add("Access-Control-Allow-Origin", "*");
+
+    if (!isAnonymous() && !validateCredentials()) {
+      this.server.guard.forbid(this.getResponse());
+    }
+
+    if (uriSource != null && this.getMethod() == Method.GET) {
+      validateUriSource();
+    }
   }
 
   /**
@@ -603,20 +613,11 @@ public class WattDepotResource extends ServerResource {
    * @return True if the credentials match, false if they don't or the user doesn't exist
    */
   public boolean validateCredentials() {
-    User user = dbManager.getUser(authUsername);
-    if (user == null) {
+    if (!server.authenticate(getRequest(), getResponse())) {
       setStatusBadCredentials();
       return false;
     }
-    else {
-      if (user.getEmail().equals(authUsername) && user.getPassword().equals(authPassword)) {
-        return true;
-      }
-      else {
-        setStatusBadCredentials();
-        return false;
-      }
-    }
+    return true;
   }
 
   /**
@@ -626,11 +627,7 @@ public class WattDepotResource extends ServerResource {
    * @return True if the username in the credentials is an administrator, false otherwise.
    */
   public boolean isAdminUser() {
-    User user = dbManager.getUser(authUsername);
-    if (user == null) {
-      return false;
-    }
-    return user.isAdmin();
+    return isInRole(WattDepotEnroler.ADMINISTRATOR.getName());
   }
 
   /**
@@ -653,15 +650,18 @@ public class WattDepotResource extends ServerResource {
    * otherwise.
    */
   public boolean isSourceOwner(String sourceName) {
-    Source source = dbManager.getSource(sourceName);
-    User user = dbManager.getUser(authUsername);
-    if ((source == null) || (user == null)) {
+    if (isAnonymous()) {
       return false;
     }
+    Source source = dbManager.getSource(sourceName);
+    if (source == null) {
+      return false;
+    }
+
     else {
       // Check if the URI of the authenticated user matches the URI of the owner for the source
       // parameter in the URI
-      return user.toUri(this.server).equals(source.getOwner());
+      return User.userToUri(authUsername, this.server).equals(source.getOwner());
     }
   }
 
@@ -682,6 +682,28 @@ public class WattDepotResource extends ServerResource {
       // later??
       this.responseMsg = ResponseMessage.notSourceOwner(this, authUsername, uriSource);
       getResponse().setStatus(Status.CLIENT_ERROR_UNAUTHORIZED, removeNewLines(this.responseMsg));
+      return false;
+    }
+  }
+
+  /**
+   * Returns true if the uriSource is valid and is either public or valid for the authenticated user
+   * to view.
+   * 
+   * @return True if the source in the URI is valid and accessible to the current user.
+   */
+  public boolean validateUriSource() {
+    if (validateKnownSource()) {
+      Source source = dbManager.getSource(uriSource);
+      // If source is private, check if current user is allowed to view
+      if (!source.isPublic()) {
+        return validateSourceOwnerOrAdmin();
+      }
+      else {
+        return true;
+      }
+    }
+    else {
       return false;
     }
   }

@@ -57,19 +57,7 @@ public class SensorDataResource extends WattDepotResource {
   @Override
   public Representation get(Variant variant) {
     String xmlString;
-    // First check if source in URI exists
-    if (!validateKnownSource()) {
-      return null;
-    }
-    // If credentials are provided, they need to be valid
-    if (!isAnonymous() && !validateCredentials()) {
-      return null;
-    }
-    Source source = dbManager.getSource(uriSource);
-    // If source is private, check if current user is allowed to view
-    if ((!source.isPublic()) && (!validateSourceOwnerOrAdmin())) {
-      return null;
-    }
+
     // If we make it here, we're all clear to send the XML: either source is public or source is
     // private but user is authorized to GET.
     if (variant.getMediaType().equals(MediaType.TEXT_XML)) {
@@ -192,18 +180,9 @@ public class SensorDataResource extends WattDepotResource {
    */
   @Override
   public Representation delete(Variant variant) {
-    if (!server.authenticate(getRequest(), getResponse())) {
-      // Not authenticated
-      setStatusBadCredentials();
-      return null;
-    }
-    
+
     // First check if source in URI exists
     if (!validateKnownSource()) {
-      return null;
-    }
-    // If credentials are provided, they need to be valid
-    if (!validateCredentials()) {
       return null;
     }
     if (validateSourceOwnerOrAdmin()) {
@@ -260,19 +239,12 @@ public class SensorDataResource extends WattDepotResource {
    */
   @Override
   public Representation put(Representation entity, Variant variant) {
-    if (!server.authenticate(getRequest(), getResponse())) {
-      // Not authenticated
-      setStatusBadCredentials();
-      return null;
-    }
+
     // First check if source in URI exists
     if (!validateKnownSource()) {
       return null;
     }
-    // If credentials are provided, they need to be valid
-    if (!validateCredentials()) {
-      return null;
-    }
+
     if (validateSourceOwnerOrAdmin()) {
       XMLGregorianCalendar timestampObj = null;
       // check if timestamp is OK

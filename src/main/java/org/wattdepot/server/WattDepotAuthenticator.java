@@ -5,6 +5,7 @@ import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.security.ChallengeAuthenticator;
 import org.restlet.data.ChallengeScheme;
+import org.restlet.data.Status;
 import org.wattdepot.server.db.DbManager;
 
 /**
@@ -43,5 +44,16 @@ public class WattDepotAuthenticator extends ChallengeAuthenticator {
     else {
       return super.authenticate(request, response);
     }
+  }
+
+  /**
+   * Set an UNAUTHORIZED status (rather than the default FORBIDDEN) to match with the client's
+   * expectation.
+   * 
+   * @param response The response.
+   */
+  @Override
+  public void forbid(Response response) {
+    response.setStatus(Status.CLIENT_ERROR_UNAUTHORIZED);
   }
 }

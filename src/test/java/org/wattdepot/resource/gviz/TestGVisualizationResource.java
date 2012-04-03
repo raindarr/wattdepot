@@ -64,6 +64,9 @@ public class TestGVisualizationResource extends ServerTestHelper {
   /** URL of the gviz resource for a virtual source. */
   private static String gvizVirtualUrl = server.getHostName() + Server.SOURCES_URI
       + "/SIM_HONOLULU/gviz/";
+  /** URL of the gviz resource for a private source. */
+  private static String gvizPrivateUrl = server.getHostName() + Server.SOURCES_URI
+      + "/SIM_HPOWER/gviz/";
   /** URL of the sensor data gviz resource. */
   private static String sensorDataUrl = gvizUrl + "sensordata";
   /** URL of the calculated gviz resource. */
@@ -108,8 +111,8 @@ public class TestGVisualizationResource extends ServerTestHelper {
     String response = wc.getResponse(sensorDataUrl).getText();
 
     // strip out dates before compare to ignore time zone issues
-    expectedResponse = expectedResponse.replaceAll("new Date\\(([0-9,]*)\\)", "date");
-    response = response.replaceAll("new Date\\(([0-9,]*)\\)", "date");
+    // expectedResponse = expectedResponse.replaceAll("new Date\\(([0-9,]*)\\)", "date");
+    // response = response.replaceAll("new Date\\(([0-9,]*)\\)", "date");
     assertEquals("GViz sensordata response is incorrect", expectedResponse, response);
 
     // Test all parameters together
@@ -119,6 +122,36 @@ public class TestGVisualizationResource extends ServerTestHelper {
                 + query + "&" + tqx).getText();
     assertTrue("GViz sensor data with all params is not proper JSONP",
         validateJson(responseAllParams));
+  }
+
+  /**
+   * Test that a private source cannot be accessed by a non-owner.
+   * 
+   * @throws Exception HttpException expected.
+   */
+  @Test(expected = HttpException.class)
+  public void testPrivateSource() throws Exception {
+    wc.getResponse(gvizPrivateUrl + "sensordata").getText();
+    fail("GViz private source does not throw expected error.");
+  }
+
+  /**
+   * Test that a private subsource cannot be viewed by using the displaySubsources parameter of a
+   * calculated GViz query.
+   * 
+   * @throws Exception if URL cannot be found, if URL returns an error, or if JSON cannot be parsed.
+   */
+  @Test
+  public void testPrivateSubsource() throws Exception {
+    String response =
+        wc.getResponse(
+            server.getHostName() + Server.SOURCES_URI + "/SIM_IPP/gviz/calculated?" + startTime
+                + timestamp1 + "&" + endTime + timestamp2 + "&displaySubsources=true").getText();
+    JSONObject json = getJsonObject(response);
+    assertEquals("GViz calculated response with private subsource has incorrect columns", 11,
+        this.getNumColumns(json));
+    assertTrue("GViz calculated response with private subsource mentions the subsource",
+        !response.contains("HPOWER"));
   }
 
   /**
@@ -135,8 +168,8 @@ public class TestGVisualizationResource extends ServerTestHelper {
     String response = wc.getResponse(calculatedUrl).getText();
 
     // strip out dates before compare to ignore time zone issues
-    expectedResponse = expectedResponse.replaceAll("new Date\\(([0-9,]*)\\)", "date");
-    response = response.replaceAll("new Date\\(([0-9,]*)\\)", "date");
+    // expectedResponse = expectedResponse.replaceAll("new Date\\(([0-9,]*)\\)", "date");
+    // response = response.replaceAll("new Date\\(([0-9,]*)\\)", "date");
     assertEquals("GViz calculated response is incorrect", expectedResponse, response);
 
     // Test all parameters
@@ -182,10 +215,32 @@ public class TestGVisualizationResource extends ServerTestHelper {
    * 
    * @throws Exception if URL cannot be found or if URL returns an error.
    */
-  @Test(expected = HttpException.class)
+  @Test
+  // (expected = HttpException.class)
   public void testCalculatedDates() throws Exception {
-    wc.getResponse(gvizUrl + "calculated").getText();
-    fail("GViz calculated without dates does not throw error.");
+    String responseNoDates = wc.getResponse(gvizUrl + "calculated").getText();
+    assertEquals("GViz calculated without dates does not throw expected error.",
+        expectedJsonpPrefix + "{status:'error',errors:[{reason:'INVALID_REQUEST',"
+            + "message:'Valid startTime and endTime parameters are required.'}]});",
+        responseNoDates);
+
+    String responseBadInterval =
+        wc.getResponse(
+            gvizUrl + "calculated?" + startTime + timestamp2 + "&" + endTime + timestamp1)
+            .getText();
+    assertEquals("GViz calculated with bad interval does not throw expected error.",
+        expectedJsonpPrefix + "{status:'error',errors:[{reason:'INVALID_REQUEST',"
+            + "message:'startTime parameter later than endTime parameter'}]});",
+        responseBadInterval);
+
+    String responseInvalidDates =
+        wc.getResponse(gvizUrl + "calculated?" + startTime + "bogus&" + endTime + timestamp1)
+            .getText();
+    assertEquals("GViz calculated with invalid dates does not throw expected error.",
+        expectedJsonpPrefix + "{status:'error',errors:[{reason:'INVALID_REQUEST',"
+            + "message:'Invalid Start Time'}]});", responseInvalidDates);
+
+    // fail("GViz calculated without dates does not throw error.");
   }
 
   /**
@@ -285,29 +340,19 @@ public class TestGVisualizationResource extends ServerTestHelper {
     JSONObject json12 = getJsonObject(response12);
     assertTrue("GViz response is not proper JSONP", json12 != null);
     assertTrue("GViz sampling interval returns wrong number of results", getNumRows(json12) == 3);
-  }
 
-  /**
-   * Test that a sampling interval greater than the date range on a calculated query will return an
-   * error.
-   * 
-   * @throws Exception if URL cannot be found or if URL returns an error.
-   */
-  @Test(expected = HttpException.class)
-  public void testSamplingIntervalTooHigh() throws Exception {
-    wc.getResponse(calculatedUrl + "&" + samplingInterval + "60").getText();
-    fail("GViz setting samplingInterval too high does not throw error.");
-  }
+    String responseTooHigh =
+        wc.getResponse(calculatedUrl + "&" + samplingInterval + "60").getText();
+    assertEquals("GViz setting samplingInterval too high does not throw expected error.",
+        expectedJsonpPrefix + "{status:'error',errors:[{reason:'INVALID_REQUEST',"
+            + "message:'samplingInterval parameter was larger than time range.'}]});",
+        responseTooHigh);
 
-  /**
-   * Test that a negative sampling interval on a calculated query will return an error.
-   * 
-   * @throws Exception if URL cannot be found or if URL returns an error.
-   */
-  @Test(expected = HttpException.class)
-  public void testSamplingIntervalNegative() throws Exception {
-    wc.getResponse(calculatedUrl + "&" + samplingInterval + "-60").getText();
-    fail("GViz setting samplingInterval negative does not throw error.");
+    String responseTooLow =
+        wc.getResponse(calculatedUrl + "&" + samplingInterval + "-60").getText();
+    assertEquals("GViz setting samplingInterval below zero does not throw expected error.",
+        expectedJsonpPrefix + "{status:'error',errors:[{reason:'INVALID_REQUEST',"
+            + "message:'samplingInterval parameter was less than 0.'}]});", responseTooLow);
   }
 
   /**
@@ -498,7 +543,7 @@ public class TestGVisualizationResource extends ServerTestHelper {
                 + "<Source>"
                 + "<Name>SIM_HPOWER</Name>"
                 + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
-                + "<Public>true</Public>"
+                + "<Public>false</Public>"
                 + "<Virtual>false</Virtual>"
                 + "<Coordinates>0,0,0</Coordinates>"
                 + "<Location>To be looked up later</Location>"
@@ -663,21 +708,22 @@ public class TestGVisualizationResource extends ServerTestHelper {
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_4</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_5</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_6</Href>"
-               // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_7</Href>"
+                // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_7</Href>"
                 + "</SubSources>" + "</Source>",
             "<?xml version=\"1.0\"?>"
                 + "<Source>"
                 + "<Name>SIM_WAIAU</Name>"
                 + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
-                + "<Public>true</Public>" + "<Virtual>true</Virtual>"
+                + "<Public>true</Public>"
+                + "<Virtual>true</Virtual>"
                 + "<Coordinates>0,0,0</Coordinates>"
                 + "<Location>To be looked up later</Location>"
                 + "<Description>Virtual resource for all Waiau power plants.</Description>"
                 + "<SubSources>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_5</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_6</Href>"
-               // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_7</Href>"
-               // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_8</Href>"
+                // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_7</Href>"
+                // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_8</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_9</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_10</Href>"
                 + "</SubSources>" + "</Source>",
@@ -704,7 +750,7 @@ public class TestGVisualizationResource extends ServerTestHelper {
                 + "<Location>To be looked up later</Location>"
                 + "<Description>Virtual resource for all independent power producers (non-HECO).</Description>"
                 + "<SubSources>"
-               // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_AES</Href>"
+                // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_AES</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_HPOWER</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KALAELOA</Href>"
                 + "</SubSources>" + "</Source>",
@@ -732,7 +778,7 @@ public class TestGVisualizationResource extends ServerTestHelper {
     if (!manager.storeUser(new User("oscar@wattdepot.org", "password", false, null))) {
       throw new DbException("Unable to store oscar user");
     }
-    
+
     // Go through each Source String in XML format, turn it into a Source, and store in DB
     for (String xmlInput : sourceXmlStrings) {
       source = (Source) unmarshaller.unmarshal(new StringReader(xmlInput));

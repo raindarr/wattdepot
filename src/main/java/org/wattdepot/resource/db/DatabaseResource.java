@@ -25,8 +25,7 @@ public class DatabaseResource extends WattDepotResource {
   @Override
   protected void doInit() {
     super.doInit();
-    this.methodString =
-        (String) this.getRequest().getAttributes().get("method");
+    this.methodString = (String) this.getRequest().getAttributes().get("method");
   }
 
   /**
@@ -38,33 +37,25 @@ public class DatabaseResource extends WattDepotResource {
    */
   @Override
   public Representation put(Representation entity, Variant variant) {
-    if (!server.authenticate(getRequest(), getResponse())) {
-      // Not authenticated
-      setStatusBadCredentials();
-      return null;
-    }
-    // If credentials are provided, they need to be valid
-    if (validateCredentials()) {
-      if (isAdminUser()) {
-        if ("snapshot".equalsIgnoreCase(this.methodString)) {
-          if (super.dbManager.makeSnapshot()) {
-            getResponse().setStatus(Status.SUCCESS_CREATED);
-          }
-          else {
-            // all inputs have been validated by this point, so must be internal error
-            setStatusInternalError("Unable to create database snapshot");
-            return null;
-          }
+    if (isAdminUser()) {
+      if ("snapshot".equalsIgnoreCase(this.methodString)) {
+        if (super.dbManager.makeSnapshot()) {
+          getResponse().setStatus(Status.SUCCESS_CREATED);
         }
         else {
-          // Unknown method requested, return error
-          setStatusMiscError("Bad method passed to Database resource");
+          // all inputs have been validated by this point, so must be internal error
+          setStatusInternalError("Unable to create database snapshot");
+          return null;
         }
       }
       else {
-        setStatusBadCredentials();
-        return null;
+        // Unknown method requested, return error
+        setStatusMiscError("Bad method passed to Database resource");
       }
+    }
+    else {
+      setStatusBadCredentials();
+      return null;
     }
     return null;
   }
