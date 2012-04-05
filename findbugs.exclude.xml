@@ -28,10 +28,4 @@
   </Match>
 
 
-  <!-- Assume that the postgres guys know what they're doing. -->
-  <Match>
-    <Class name="org.hackystat.sensorbase.db.postgres.PostgresImplementation" />
-    <Bug pattern="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING"/>
-  </Match>
-
 </FindBugsFilter>

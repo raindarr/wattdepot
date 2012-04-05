@@ -27,7 +27,7 @@
 	<jar destfile="${build.jar.dir}/wattdepot-lib-client.jar" basedir="${tmp.dir}">
 	  <manifest>
 		<attribute name="Implementation-Title" value="WattDepot client library" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -39,7 +39,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.datainput.ExampleStreamingSensor" />
 		<attribute name="Implementation-Title" value="WattDepot ExampleStreamingSensor" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -49,7 +49,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.sensor.ted.Ted5000Sensor" />
 		<attribute name="Implementation-Title" value="WattDepot TED 5000 Sensor" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -59,7 +59,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.client.monitor.MonitorSourceClient" />
 		<attribute name="Implementation-Title" value="WattDepot MonitorSourceClient" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -69,7 +69,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.client.snapshot.SnapshotClient" />
 		<attribute name="Implementation-Title" value="WattDepot SnapshotClient" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -79,7 +79,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.datainput.SensorLogDataConverter" />
 		<attribute name="Implementation-Title" value="WattDepot SensorLogDataConverter" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -91,7 +91,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.datainput.TabularFileSensor" />
 		<attribute name="Implementation-Title" value="WattDepot TabularFileSensor" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -101,7 +101,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.datainput.SharkLogSensor" />
 		<attribute name="Implementation-Title" value="WattDepot SharkLogSensor" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -111,7 +111,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.datainput.BMOSensor" />
 		<attribute name="Implementation-Title" value="WattDepot BMOSensor" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -121,7 +121,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.datainput.OscarDataConverter" />
 		<attribute name="Implementation-Title" value="WattDepot OscarDataConverter" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -133,7 +133,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.sensor.modbus.SharkSensor" />
 		<attribute name="Implementation-Title" value="WattDepot SharkSensor" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
@@ -152,7 +152,7 @@
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.server.Server" />
 		<attribute name="Implementation-Title" value="WattDepot Server" />
-		<attribute name="Implementation-Version" value="${maven.project.version}" />
+		<attribute name="Implementation-Version" value="${project.version}" />
 		<attribute name="Implementation-Vendor"
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>

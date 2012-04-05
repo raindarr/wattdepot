@@ -49,7 +49,7 @@ import static org.wattdepot.server.ServerProperties.DB_DATABASE_NAME_KEY;
 import static org.wattdepot.server.ServerProperties.DB_PORT_KEY;
 import static org.wattdepot.server.ServerProperties.DB_USERNAME_KEY;
 import static org.wattdepot.server.ServerProperties.DB_PASSWORD_KEY;
-import static org.wattdepot.server.ServerProperties.HOSTNAME_KEY;
+import static org.wattdepot.server.ServerProperties.DB_HOSTNAME_KEY;
 
 /**
  * Provides a implementation of DbImplementation using PostgreSQL.
@@ -117,14 +117,14 @@ public class PostgresStorageImplementation extends DbImplementation {
     String password;
 
     if (props.get(DATABASE_URL_KEY) == null || props.get(DATABASE_URL_KEY).length() == 0) {
-      hostName = props.get(HOSTNAME_KEY);
+      hostName = props.get(DB_HOSTNAME_KEY);
       port = props.get(DB_PORT_KEY);
       dbName = props.get(DB_DATABASE_NAME_KEY);
       user = props.get(DB_USERNAME_KEY);
       password = props.get(DB_PASSWORD_KEY);
 
       connectionUrl =
-          "jdbc:postgresql://" + props.get(HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "/"
+          "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "/"
               + props.get(DB_DATABASE_NAME_KEY) + "?user=" + props.get(DB_USERNAME_KEY)
               + "&password=" + props.get(DB_PASSWORD_KEY);
     }
@@ -180,12 +180,8 @@ public class PostgresStorageImplementation extends DbImplementation {
 
     Connection conn = null;
     try {
-      // if (Jdbc3PoolingDataSource.getDataSource("WattDepotSource") != null) {
-      // Jdbc3PoolingDataSource.getDataSource("WattDepotSource").close();
-      // }
 
       connectionPool = new PGConnectionPoolDataSource();
-      // connectionPool.setDataSourceName("WattDepotSource");
       connectionPool.setServerName(hostName);
       connectionPool.setDatabaseName(dbName);
       connectionPool.setUser(user);
@@ -193,8 +189,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       if (port != null) {
         connectionPool.setPortNumber(Integer.valueOf(port));
       }
-      // connectionPool.setMaxConnections(10);
-      // connectionPool.setInitialConnections(1);
 
       // take care of extra properties that might be used.
       if (this.connectionUrl.contains("ssl=true")) {
@@ -248,7 +242,7 @@ public class PostgresStorageImplementation extends DbImplementation {
 
     try {
       String baseConnectionUrl =
-          "jdbc:postgresql://" + props.get(HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "?user="
+          "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "?user="
               + props.get(DB_USERNAME_KEY) + "&password=" + props.get(DB_PASSWORD_KEY);
 
       this.logger.info("Created database catalog " + props.get(DB_DATABASE_NAME_KEY));
