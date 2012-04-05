@@ -1,7 +1,9 @@
 package org.wattdepot.resource.user;
 
+import java.io.IOException;
 import javax.xml.bind.JAXBException;
 import org.restlet.data.MediaType;
+import org.restlet.data.Status;
 import org.restlet.representation.Representation;
 import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
@@ -81,4 +83,68 @@ public class UserResource extends WattDepotResource {
       return null;
     }
   }
+
+  /**
+   * Implement the PUT method that creates a User resource.
+   * 
+   * @param entity The entity to be put.
+   * @param variant The type of Representation to put.
+   * @return Returns a null Representation.
+   */
+  @Override
+  public Representation put(Representation entity, Variant variant) {
+    // Need to be an admin to create a user
+    if (!isAdminUser()) {
+      setStatusBadCredentials();
+      return null;
+    }
+    // Get the payload.
+    String entityString = null;
+    try {
+      entityString = entity.getText();
+    }
+    catch (IOException e) {
+      setStatusMiscError("Bad or missing content");
+      return null;
+    }
+    User user;
+    String userName;
+    // Try to make the XML payload into User, return failure if this fails.
+    if ((entityString == null) || ("".equals(entityString))) {
+      setStatusMiscError("Entity body was empty");
+      return null;
+    }
+    try {
+      user = makeUser(entityString);
+      userName = user.getEmail();
+    }
+    catch (JAXBException e) {
+      setStatusMiscError("Invalid User representation: " + entityString);
+      return null;
+    }
+    // Return failure if the name of User doesn't match the name given in URI
+    if (!uriUser.equals(userName)) {
+      setStatusMiscError("Username field does not match user field in URI");
+      return null;
+    }
+
+    if (super.dbManager.getUser(uriUser) == null) {
+      if (dbManager.storeUser(user)) {
+        getResponse().setStatus(Status.SUCCESS_CREATED);
+      }
+      else {
+        // all inputs have been validated by this point, so must be internal error
+        setStatusInternalError(String.format("Unable to create User named %s", uriUser));
+        return null;
+      }
+    }
+    else {
+      // if User with given name already exists and not overwriting, then fail
+      setStatusResourceOverwrite(uriUser);
+      return null;
+    }
+
+    return null;
+  }
+
 }
