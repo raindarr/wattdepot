@@ -7,7 +7,6 @@ import org.restlet.data.MediaType;
 import org.restlet.representation.Representation;
 import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
-import org.wattdepot.resource.source.jaxb.Source;
 
 /**
  * Represents electrical energy determined by sensor data from a particular source.
@@ -44,19 +43,7 @@ public class EnergyResource extends WattDepotResource {
   @Override
   public Representation get(Variant variant) {
     String xmlString;
-    // First check if source in URI exists
-    if (!validateKnownSource()) {
-      return null;
-    }
-    // If credentials are provided, they need to be valid
-    if (!isAnonymous() && !validateCredentials()) {
-      return null;
-    }
-    Source source = dbManager.getSource(uriSource);
-    // If source is private, check if current user is allowed to view
-    if ((!source.isPublic()) && (!validateSourceOwnerOrAdmin())) {
-      return null;
-    }
+    
     // If we make it here, we're all clear to send the XML: either source is public or source is
     // private but user is authorized to GET.
     if (variant.getMediaType().equals(MediaType.TEXT_XML)) {

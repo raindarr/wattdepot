@@ -23,7 +23,6 @@ import org.restlet.data.Status;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
-import org.restlet.resource.ResourceException;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -168,15 +167,11 @@ public class WattDepotClient {
     try {
       Representation representation = client.handle();
       if (method == Method.GET) {
-        // TODO: this seems like a terrible way to do this
+        // TODO: this seems dumb, but I can't get the Restlet 2.0 way to work
         client.getResponse().setEntity(representation.getText(), mediaPref.getMetadata());
       }
     }
-    catch (ResourceException e) {
-      // set the status of the Response to pass the error back
-      client.getResponse().setStatus(e.getStatus());
-    }
-    catch (IOException e) { //NOPMD
+    catch (IOException e) { // NOPMD
       // We couldn't get the text from the representation.
       // The calling code will handle it.
     }
@@ -424,6 +419,7 @@ public class WattDepotClient {
   public SensorData getSensorData(String source, XMLGregorianCalendar timestamp)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
+
     Response response =
         makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
             + "/" + timestamp.toXMLFormat(), XML_MEDIA, null);
@@ -1227,6 +1223,59 @@ public class WattDepotClient {
     }
     else {
       // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Stores a User resource in the server. If a User resource with this username already exists, no
+   * action is performed and the method throws a OverwriteAttemptedException.
+   * 
+   * @param user The User resource to be stored.
+   * @return True if the User could be stored, false otherwise.
+   * @throws JAXBException If there are problems marshalling the object for upload.
+   * @throws NotAuthorizedException If the client is not authorized to store the User.
+   * @throws BadXmlException If the server reports that the XML sent was bad, or there was no XML,
+   * or the fields in the XML don't match the URI.
+   * @throws OverwriteAttemptedException If there is already a User on the server with the same
+   * username.
+   * @throws MiscClientException If the server indicates an unexpected problem has occurred.
+   */
+  public boolean storeUser(User user) throws JAXBException, NotAuthorizedException,
+      BadXmlException, OverwriteAttemptedException, MiscClientException {
+    Marshaller marshaller = userJAXB.createMarshaller();
+    StringWriter writer = new StringWriter();
+    if (user == null) {
+      return false;
+    }
+    else {
+      marshaller.marshal(user, writer);
+    }
+    Representation rep =
+        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
+            CharacterSet.UTF_8);
+
+    Response response =
+        makeRequest(Method.PUT, Server.USERS_URI + "/" + user.getEmail(), XML_MEDIA, rep);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      // bad XML in entity body
+      throw new BadXmlException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
+      // client attempted to overwrite existing data and didn't set overwrite to true
+      throw new OverwriteAttemptedException(status);
+    }
+    if (status.isSuccess()) {
+      return true;
+    }
+    else {
+      // Some unexpected type of error received, so punt
       throw new MiscClientException(status);
     }
   }

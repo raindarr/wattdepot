@@ -85,7 +85,8 @@ public class DbManager {
       dbConstructor = dbClass.getConstructor(constructorParam);
     }
     catch (Exception e) {
-      String msg = "DB error instantiating " + dbClassName + ". Could not find Constructor(server)";
+      String msg =
+          "DB error instantiating " + dbClassName + ". Could not find Constructor(server)";
       server.getLogger().warning(msg + "\n" + StackTrace.toString(e));
       throw new IllegalArgumentException(e);
     }
@@ -326,15 +327,15 @@ public class DbManager {
    * If the given timestamp corresponds to an actual SensorData, then return a degenerate
    * SensorDataStraddle with both ends of the straddle set to the actual SensorData.
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestamp The timestamp of interest in the straddle.
    * @return A SensorDataStraddle that straddles the given timestamp. Returns null if: parameters
    * are null, the source doesn't exist, source has no sensor data, or there is no sensor data that
    * straddles the timestamp.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddleList
    */
-  public SensorDataStraddle getSensorDataStraddle(String sourceName, XMLGregorianCalendar timestamp) {
-    return this.dbImpl.getSensorDataStraddle(sourceName, timestamp);
+  public SensorDataStraddle getSensorDataStraddle(Source source, XMLGregorianCalendar timestamp) {
+    return this.dbImpl.getSensorDataStraddle(source, timestamp);
   }
 
   /**
@@ -343,16 +344,16 @@ public class DbManager {
    * result will be a list containing at a single SensorDataStraddle, or null. In the case of a
    * non-virtual source, you might as well use getSensorDataStraddle.
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestamp The timestamp of interest in the straddle.
    * @return A list of SensorDataStraddles that straddle the given timestamp. Returns null if:
    * parameters are null, the source doesn't exist, or there is no sensor data that straddles the
    * timestamp.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle
    */
-  public List<SensorDataStraddle> getSensorDataStraddleList(String sourceName,
+  public List<SensorDataStraddle> getSensorDataStraddleList(Source source,
       XMLGregorianCalendar timestamp) {
-    return this.dbImpl.getSensorDataStraddleList(sourceName, timestamp);
+    return this.dbImpl.getSensorDataStraddleList(source, timestamp);
   }
 
   /**
@@ -362,52 +363,64 @@ public class DbManager {
    * virtual source, the result is a list of StraddleLists, one for each non-virtual subsource
    * (determined recursively).
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestampList The list of timestamps of interest in each straddle.
    * @return A list of StraddleLists. Returns null if: parameters are null, the source doesn't
    * exist, or there is no sensor data that straddles any of the timestamps.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle
    */
-  public List<StraddleList> getStraddleLists(String sourceName,
+  public List<StraddleList> getStraddleLists(Source source,
       List<XMLGregorianCalendar> timestampList) {
-    return this.dbImpl.getStraddleLists(sourceName, timestampList);
+    return this.dbImpl.getStraddleLists(source, timestampList);
   }
 
   /**
-   * Given a virtual source name, and a List of timestamps, returns a List (one member for each
+   * Given a virtual source and a List of timestamps, returns a List (one member for each
    * non-virtual subsource) that contains Lists of SensorDataStraddles that straddle each of the
    * given timestamps. If the given source is non-virtual, then the result will be a list containing
    * a single List of SensorDataStraddles, or null.
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestampList The list of timestamps of interest in each straddle.
    * @return A list of lists of SensorDataStraddles that straddle the given timestamp. Returns null
    * if: parameters are null, the source doesn't exist, or there is no sensor data that straddles
    * any of the timestamps.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle getSensorDataStraddle
    */
-  public List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(String sourceName,
+  public List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(Source source,
       List<XMLGregorianCalendar> timestampList) {
-    return this.dbImpl.getSensorDataStraddleListOfLists(sourceName, timestampList);
+    return this.dbImpl.getSensorDataStraddleListOfLists(source, timestampList);
   }
 
   /**
-   * Returns the power in SensorData format for the Source name given in the URI and the given
-   * timestamp, or null if no power data exists.
+   * Returns the power in SensorData format for the given Source name and timestamp, or null if no power
+   * data exists.
    * 
-   * @param sourceName The source name.
+   * @param sourceName The name of the source.
    * @param timestamp The timestamp requested.
    * @return The requested power in SensorData format, or null if it cannot be found/calculated.
    */
   public SensorData getPower(String sourceName, XMLGregorianCalendar timestamp) {
-    return this.dbImpl.getPower(sourceName, timestamp);
+    return this.getPower(this.getSource(sourceName), timestamp);
+  }
+  
+  /**
+   * Returns the power in SensorData format for the given Source and timestamp, or null if no power
+   * data exists.
+   * 
+   * @param source The source object.
+   * @param timestamp The timestamp requested.
+   * @return The requested power in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getPower(Source source, XMLGregorianCalendar timestamp) {
+    return this.dbImpl.getPower(source, timestamp);
   }
 
   /**
    * Returns the energy in SensorData format for the Source name given over the range of time
    * between startTime and endTime, or null if no energy data exists.
    * 
-   * @param sourceName The source name.
+   * @param sourceName The name of the source.
    * @param startTime The start of the range requested.
    * @param endTime The start of the range requested.
    * @param interval The sampling interval requested.
@@ -415,14 +428,29 @@ public class DbManager {
    */
   public SensorData getEnergy(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
-    return this.dbImpl.getEnergy(sourceName, startTime, endTime, interval);
+    return this.getEnergy(this.getSource(sourceName), startTime, endTime, interval);
+  }
+  
+  /**
+   * Returns the energy in SensorData format for the Source given over the range of time
+   * between startTime and endTime, or null if no energy data exists.
+   * 
+   * @param source The source object.
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getEnergy(Source source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int interval) {
+    return this.dbImpl.getEnergy(source, startTime, endTime, interval);
   }
 
   /**
    * Returns the carbon emitted in SensorData format for the Source name given over the range of
    * time between startTime and endTime, or null if no carbon data exists.
    * 
-   * @param sourceName The source name.
+   * @param sourceName The name of the source.
    * @param startTime The start of the range requested.
    * @param endTime The start of the range requested.
    * @param interval The sampling interval requested.
@@ -430,7 +458,22 @@ public class DbManager {
    */
   public SensorData getCarbon(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
-    return this.dbImpl.getCarbon(sourceName, startTime, endTime, interval);
+    return this.getCarbon(this.getSource(sourceName), startTime, endTime, interval);
+  }
+  
+  /**
+   * Returns the carbon emitted in SensorData format for the Source given over the range of
+   * time between startTime and endTime, or null if no carbon data exists.
+   * 
+   * @param source The source object.
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested carbon in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getCarbon(Source source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int interval) {
+    return this.dbImpl.getCarbon(source, startTime, endTime, interval);
   }
 
   /**

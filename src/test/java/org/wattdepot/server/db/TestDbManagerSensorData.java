@@ -39,8 +39,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
   private final SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(),
       data3 = makeTestSensorData3();
 
-  private final XMLGregorianCalendar unknownTimestamp =
-      Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
+  private final XMLGregorianCalendar unknownTimestamp = Tstamp
+      .makeTimestamp("2009-07-28T08:00:00.000-10:00");
 
   /** Make PMD happy. */
   private static final String UNABLE_TO_STORE_DATA = "Unable to store SensorData";
@@ -83,24 +83,24 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     createTestData();
 
     // case #1: empty database should have no SensorData
-    assertTrue("Freshly created database contains SensorData", manager.getSensorDataIndex(
-        this.source1.getName()).getSensorDataRef().isEmpty());
+    assertTrue("Freshly created database contains SensorData",
+        manager.getSensorDataIndex(this.source1.getName()).getSensorDataRef().isEmpty());
 
     // case #2: after storing a single SensorData should have SensorDataIndex with one SensorDataRef
     // that matches original SensorData
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
     assertSame("getSensorDataIndex returned wrong number of SensorDataRefs", manager
         .getSensorDataIndex(this.source1.getName()).getSensorDataRef().size(), 1);
-    assertTrue("getSensorDataIndex didn't return expected SensorDataRef", manager
-        .getSensorDataIndex(this.source1.getName()).getSensorDataRef().get(0).equalsSensorData(
-            this.data1));
+    assertTrue("getSensorDataIndex didn't return expected SensorDataRef",
+        manager.getSensorDataIndex(this.source1.getName()).getSensorDataRef().get(0)
+            .equalsSensorData(this.data1));
 
     // case #3: after storing three SensorDatas should have SensorDataIndex with three
     // SensorDataRefs that match original SensorDatas
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data3));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data2));
-    assertSame("getSensorData returned wrong number of SensorDataRefs", manager.getSensorDataIndex(
-        this.source1.getName()).getSensorDataRef().size(), 3);
+    assertSame("getSensorData returned wrong number of SensorDataRefs", manager
+        .getSensorDataIndex(this.source1.getName()).getSensorDataRef().size(), 3);
     // Now compare the SensorDataRefs to the original SensorData
     List<SensorDataRef> retrievedRefs =
         manager.getSensorDataIndex(this.source1.getName()).getSensorDataRef();
@@ -108,24 +108,24 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.add(this.data1);
     origData.add(this.data2);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
-        retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
+        SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
 
     // Confirm that SensorData list is sorted
     for (int i = 0; i < origData.size(); i++) {
-      assertTrue("getSensorDataIndex index not sorted", retrievedRefs.get(i).equalsSensorData(
-          origData.get(i)));
+      assertTrue("getSensorDataIndex index not sorted",
+          retrievedRefs.get(i).equalsSensorData(origData.get(i)));
     }
 
     // case #4: deleting a SensorData should leave two SensorDataRefs in SensorDataIndex
-    assertTrue("Unable to delete data1", manager.deleteSensorData(this.source1.getName(), data1
-        .getTimestamp()));
+    assertTrue("Unable to delete data1",
+        manager.deleteSensorData(this.source1.getName(), data1.getTimestamp()));
     assertSame("getSensorDataIndex returned wrong number of SensorDataRefs", manager
         .getSensorDataIndex(this.source1.getName()).getSensorDataRef().size(), 2);
 
     // case #5: retrieving SensorDataIndex for bogus Source name
-    assertNull("Found SensorDataIndex for bogus Source name", manager
-        .getSensorDataIndex("bogus-source-1"));
+    assertNull("Found SensorDataIndex for bogus Source name",
+        manager.getSensorDataIndex("bogus-source-1"));
 
     // case #6: retrieving SensorDataIndex for empty Source name
     assertNull("Found SensorDataIndex for empty Source name", manager.getSensorDataIndex(""));
@@ -153,8 +153,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data3));
 
     // case #1: start time after end time
-    assertNull("SensorDataIndex generated for bogus start and end times", manager
-        .getSensorDataIndex(this.source1.getName(), end, start));
+    assertNull("SensorDataIndex generated for bogus start and end times",
+        manager.getSensorDataIndex(this.source1.getName(), end, start));
   }
 
   /**
@@ -205,29 +205,33 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.add(this.data1);
     origData.add(this.data2);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
-        retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
+        SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
     assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
     // range covering only data1
     assertSame("getSensorDataIndex didn't contain all expected SensorData", manager
         .getSensorDataIndex(this.source1.getName(), before1, between1And2).getSensorDataRef()
         .size(), 1);
-    assertTrue("getSensorDataIndex didn't return expected data", manager.getSensorDataIndex(
-        this.source1.getName(), before1, between1And2).getSensorDataRef().get(0).equalsSensorData(
-        this.data1));
-    assertEquals("getSensorDatas didn't return expected data", this.data1, manager.getSensorDatas(
-        this.source1.getName(), before1, between1And2).getSensorData().get(0));
+    assertTrue("getSensorDataIndex didn't return expected data",
+        manager.getSensorDataIndex(this.source1.getName(), before1, between1And2)
+            .getSensorDataRef().get(0).equalsSensorData(this.data1));
+    assertEquals(
+        "getSensorDatas didn't return expected data",
+        this.data1,
+        manager.getSensorDatas(this.source1.getName(), before1, between1And2).getSensorData()
+            .get(0));
 
     // case #5: range covering only data2
     assertSame("getSensorDataIndex didn't contain all expected SensorData", manager
         .getSensorDataIndex(this.source1.getName(), between1And2, between2And3).getSensorDataRef()
         .size(), 1);
-    assertTrue("getSensorDataIndex didn't return expected ", manager.getSensorDataIndex(
-        this.source1.getName(), between1And2, between2And3).getSensorDataRef().get(0)
-        .equalsSensorData(this.data2));
-    assertEquals("getSensorDatas didn't return expected data", this.data2, manager.getSensorDatas(
-        this.source1.getName(), between1And2, between2And3).getSensorData().get(0));
+    assertTrue("getSensorDataIndex didn't return expected ",
+        manager.getSensorDataIndex(this.source1.getName(), between1And2, between2And3)
+            .getSensorDataRef().get(0).equalsSensorData(this.data2));
+    assertEquals("getSensorDatas didn't return expected data", this.data2,
+        manager.getSensorDatas(this.source1.getName(), between1And2, between2And3).getSensorData()
+            .get(0));
 
     // range covering data1 & data2
     retrievedRefs =
@@ -238,42 +242,44 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.clear();
     origData.add(this.data1);
     origData.add(this.data2);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
-        retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
+        SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
     assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
     // range covering data2 & data3
     retrievedRefs =
-        manager.getSensorDataIndex(this.source1.getName(), between1And2, after3).getSensorDataRef();
+        manager.getSensorDataIndex(this.source1.getName(), between1And2, after3)
+            .getSensorDataRef();
     retrievedDatas =
         manager.getSensorDatas(this.source1.getName(), between1And2, after3).getSensorData();
     origData.clear();
     origData.add(this.data2);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
-        retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
+        SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
     assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
     // range starting exactly at data1 and ending exactly at data3
-    retrievedRefs = manager.getSensorDataIndex(this.source1.getName(), at1, at3).getSensorDataRef();
+    retrievedRefs =
+        manager.getSensorDataIndex(this.source1.getName(), at1, at3).getSensorDataRef();
     retrievedDatas = manager.getSensorDatas(this.source1.getName(), at1, at3).getSensorData();
     origData.clear();
     origData.add(this.data1);
     origData.add(this.data2);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
-        retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
+        SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
     assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
     // Confirm that SensorData list is sorted
     for (int i = 0; i < origData.size(); i++) {
-      assertTrue("getSensorDataIndex index not sorted", retrievedRefs.get(i).equalsSensorData(
-          origData.get(i)));
+      assertTrue("getSensorDataIndex index not sorted",
+          retrievedRefs.get(i).equalsSensorData(origData.get(i)));
     }
 
     // deleting data2 should leave data1 & data3 if interval covers all three
-    assertTrue("Unable to delete data2", manager.deleteSensorData(this.source1.getName(), data2
-        .getTimestamp()));
+    assertTrue("Unable to delete data2",
+        manager.deleteSensorData(this.source1.getName(), data2.getTimestamp()));
     retrievedRefs =
         manager.getSensorDataIndex(this.source1.getName(), before1, after3).getSensorDataRef();
     retrievedDatas =
@@ -281,39 +287,39 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     origData.clear();
     origData.add(this.data1);
     origData.add(this.data3);
-    assertTrue(REFS_DONT_MATCH_SENSORDATA, SensorDataRef.compareSensorDataRefsToSensorDatas(
-        retrievedRefs, origData));
+    assertTrue(REFS_DONT_MATCH_SENSORDATA,
+        SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
     assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
     // retrieving SensorDataIndex for bogus Source name
-    assertNull("Found SensorDataIndex for bogus Source name", manager.getSensorDataIndex(
-        "bogus-source-2", before1, after3));
-    assertNull("Got non-null List for bogus Source name", manager.getSensorDatas("bogus-source-2",
-        before1, after3));
+    assertNull("Found SensorDataIndex for bogus Source name",
+        manager.getSensorDataIndex("bogus-source-2", before1, after3));
+    assertNull("Got non-null List for bogus Source name",
+        manager.getSensorDatas("bogus-source-2", before1, after3));
 
     // retrieving SensorDataIndex for empty Source name
-    assertNull("Found SensorDataIndex for empty Source name", manager.getSensorDataIndex("",
-        before1, after3));
-    assertNull("Got non-null List for emtpy Source name", manager.getSensorDatas("", before1,
-        after3));
+    assertNull("Found SensorDataIndex for empty Source name",
+        manager.getSensorDataIndex("", before1, after3));
+    assertNull("Got non-null List for emtpy Source name",
+        manager.getSensorDatas("", before1, after3));
 
     // retrieving SensorDataIndex for null Source name
-    assertNull("Found SensorDataIndex for null Source name", manager.getSensorDataIndex(null,
-        before1, after3));
-    assertNull("Got non-null List for null Source name", manager.getSensorDatas(null, before1,
-        after3));
+    assertNull("Found SensorDataIndex for null Source name",
+        manager.getSensorDataIndex(null, before1, after3));
+    assertNull("Got non-null List for null Source name",
+        manager.getSensorDatas(null, before1, after3));
 
     // retrieving SensorDataIndex for null startTime
-    assertNull("Found SensorDataIndex for null startTime", manager.getSensorDataIndex(this.source1
-        .getName(), null, after3));
-    assertNull("Got non-null List for null startTime", manager.getSensorDatas(this.source1
-        .getName(), null, after3));
+    assertNull("Found SensorDataIndex for null startTime",
+        manager.getSensorDataIndex(this.source1.getName(), null, after3));
+    assertNull("Got non-null List for null startTime",
+        manager.getSensorDatas(this.source1.getName(), null, after3));
 
     // retrieving SensorDataIndex for null endTime
-    assertNull("Found SensorDataIndex for null endTime", manager.getSensorDataIndex(this.source1
-        .getName(), before1, null));
-    assertNull("Got non-null List for null startTime", manager.getSensorDatas(this.source1
-        .getName(), before1, null));
+    assertNull("Found SensorDataIndex for null endTime",
+        manager.getSensorDataIndex(this.source1.getName(), before1, null));
+    assertNull("Got non-null List for null startTime",
+        manager.getSensorDatas(this.source1.getName(), before1, null));
   }
 
   /**
@@ -327,39 +333,39 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     createTestData();
 
     // case #1: retrieve SensorData from empty DB
-    assertNull("Able to retrieve SensorData from empty DB", manager.getSensorData(this.source1
-        .getName(), this.data1.getTimestamp()));
+    assertNull("Able to retrieve SensorData from empty DB",
+        manager.getSensorData(this.source1.getName(), this.data1.getTimestamp()));
 
     // case #2: retrieve stored SensorData
     // Add data to source
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
-    assertEquals(DATA_DOES_NOT_MATCH, this.data1, manager.getSensorData(source1.getName(),
-        this.data1.getTimestamp()));
+    assertEquals(DATA_DOES_NOT_MATCH, this.data1,
+        manager.getSensorData(source1.getName(), this.data1.getTimestamp()));
 
     // case #3: store second SensorData, verify retrieval
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
-    assertEquals(DATA_DOES_NOT_MATCH, this.data2, manager.getSensorData(source1.getName(),
-        this.data2.getTimestamp()));
+    assertEquals(DATA_DOES_NOT_MATCH, this.data2,
+        manager.getSensorData(source1.getName(), this.data2.getTimestamp()));
 
     // case #4: retrieving SensorData for bogus Source name
-    assertNull("Found SensorData for bogus Source name", manager.getSensorData("bogus-source-3",
-        this.data1.getTimestamp()));
+    assertNull("Found SensorData for bogus Source name",
+        manager.getSensorData("bogus-source-3", this.data1.getTimestamp()));
 
     // case #5: retrieving SensorData for empty Source name
-    assertNull("Found SensorData for empty Source name", manager.getSensorData("", this.data1
-        .getTimestamp()));
+    assertNull("Found SensorData for empty Source name",
+        manager.getSensorData("", this.data1.getTimestamp()));
 
     // case #6: retrieving SensorData for null Source name
-    assertNull("Found SensorData for null Source name", manager.getSensorData(null, this.data1
-        .getTimestamp()));
+    assertNull("Found SensorData for null Source name",
+        manager.getSensorData(null, this.data1.getTimestamp()));
 
     // case #7: retrieving SensorData for timestamp that doesn't correspond to any stored data
-    assertNull("Found SensorData for unknown timestamp", manager.getSensorData(this.source1
-        .getName(), this.unknownTimestamp));
+    assertNull("Found SensorData for unknown timestamp",
+        manager.getSensorData(this.source1.getName(), this.unknownTimestamp));
 
     // case #8: retrieving SensorData for null timestamp
-    assertNull("Found SensorData for null timestamp", manager.getSensorData(this.source1.getName(),
-        null));
+    assertNull("Found SensorData for null timestamp",
+        manager.getSensorData(this.source1.getName(), null));
   }
 
   /**
@@ -374,12 +380,12 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     createTestData();
 
     // retrieve SensorData from empty DB
-    assertNull("Able to retrieve SensorData from empty DB", manager
-        .getLatestSensorData(this.source1.getName()));
+    assertNull("Able to retrieve SensorData from empty DB",
+        manager.getLatestSensorData(this.source1.getName()));
 
     // retrieving SensorData for bogus Source name
-    assertNull("Found SensorData for bogus Source name", manager
-        .getLatestSensorData("bogus-source-3"));
+    assertNull("Found SensorData for bogus Source name",
+        manager.getLatestSensorData("bogus-source-3"));
 
     // retrieving SensorData for empty Source name
     assertNull("Found SensorData for empty Source name", manager.getLatestSensorData(""));
@@ -482,39 +488,39 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     createTestData();
 
     // case #1: retrieve SensorData from empty DB
-    assertFalse("Able to retrieve SensorData from empty DB", manager.hasSensorData(this.source1
-        .getName(), this.data1.getTimestamp()));
+    assertFalse("Able to retrieve SensorData from empty DB",
+        manager.hasSensorData(this.source1.getName(), this.data1.getTimestamp()));
 
     // case #2: retrieve stored SensorData
     // Add data to source
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
-    assertTrue(DATA_DOES_NOT_MATCH, manager.hasSensorData(source1.getName(), this.data1
-        .getTimestamp()));
+    assertTrue(DATA_DOES_NOT_MATCH,
+        manager.hasSensorData(source1.getName(), this.data1.getTimestamp()));
 
     // case #3: store second SensorData, verify retrieval
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
-    assertTrue(DATA_DOES_NOT_MATCH, manager.hasSensorData(source1.getName(), this.data2
-        .getTimestamp()));
+    assertTrue(DATA_DOES_NOT_MATCH,
+        manager.hasSensorData(source1.getName(), this.data2.getTimestamp()));
 
     // case #4: retrieving SensorData for bogus Source name
-    assertFalse("Found SensorData for bogus Source name", manager.hasSensorData("bogus-source-4",
-        this.data1.getTimestamp()));
+    assertFalse("Found SensorData for bogus Source name",
+        manager.hasSensorData("bogus-source-4", this.data1.getTimestamp()));
 
     // case #5: retrieving SensorData for empty Source name
-    assertFalse("Found SensorData for empty Source name", manager.hasSensorData("", this.data1
-        .getTimestamp()));
+    assertFalse("Found SensorData for empty Source name",
+        manager.hasSensorData("", this.data1.getTimestamp()));
 
     // case #6: retrieving SensorData for null Source name
-    assertFalse("Found SensorData for null Source name", manager.hasSensorData(null, this.data1
-        .getTimestamp()));
+    assertFalse("Found SensorData for null Source name",
+        manager.hasSensorData(null, this.data1.getTimestamp()));
 
     // case #7: retrieving SensorData for timestamp that doesn't correspond to any stored data
-    assertFalse("Found SensorData for unknown timestamp", manager.hasSensorData(this.source1
-        .getName(), this.unknownTimestamp));
+    assertFalse("Found SensorData for unknown timestamp",
+        manager.hasSensorData(this.source1.getName(), this.unknownTimestamp));
 
     // case #8: retrieving SensorData for null timestamp
-    assertFalse("Found SensorData for null timestamp", manager.hasSensorData(
-        this.source1.getName(), null));
+    assertFalse("Found SensorData for null timestamp",
+        manager.hasSensorData(this.source1.getName(), null));
   }
 
   /**
@@ -529,22 +535,22 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
 
     // case #1: store and retrieve SensorData
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
-    assertEquals(DATA_DOES_NOT_MATCH, this.data1, manager.getSensorData(source1.getName(),
-        this.data1.getTimestamp()));
+    assertEquals(DATA_DOES_NOT_MATCH, this.data1,
+        manager.getSensorData(source1.getName(), this.data1.getTimestamp()));
     XMLGregorianCalendar source1Time2 = Tstamp.makeTimestamp("2009-07-28T09:12:00.000-10:00");
     String source1Uri = source1.toUri(server);
     SensorData dataFoo = new SensorData(source1Time2, JUNIT, source1Uri);
     assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(dataFoo));
-    assertEquals("Unable to retrieve stored data", dataFoo, this.manager.getSensorData(source1
-        .getName(), source1Time2));
+    assertEquals("Unable to retrieve stored data", dataFoo,
+        this.manager.getSensorData(source1.getName(), source1Time2));
 
     // case #2: attempt to overwrite existing SensorData
     assertFalse("Able to overwrite SensorData", manager.storeSensorData(this.data1));
 
     // case #3: store second SensorData and verify retrieval
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
-    assertEquals(DATA_DOES_NOT_MATCH, this.data2, manager.getSensorData(source1.getName(),
-        this.data2.getTimestamp()));
+    assertEquals(DATA_DOES_NOT_MATCH, this.data2,
+        manager.getSensorData(source1.getName(), this.data2.getTimestamp()));
 
     // case #4: store null SensorData
     assertFalse("Able to store null SensorData", manager.storeSensorData(null));
@@ -561,44 +567,44 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     createTestData();
 
     // case #1: delete SensorData from empty database
-    assertFalse("Able to delete SensorData from empty DB", manager.deleteSensorData(this.source1
-        .getName(), this.data1.getTimestamp()));
+    assertFalse("Able to delete SensorData from empty DB",
+        manager.deleteSensorData(this.source1.getName(), this.data1.getTimestamp()));
 
     // case #2: delete stored SensorData
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
-    assertEquals(DATA_DOES_NOT_MATCH, this.data1, manager.getSensorData(this.source1.getName(),
-        this.data1.getTimestamp()));
-    assertTrue("Unable to delete data1", manager.deleteSensorData(this.source1.getName(),
-        this.data1.getTimestamp()));
-    assertNull("Able to retrieve deleted SensorData", manager.getSensorData(this.source1.getName(),
-        this.data1.getTimestamp()));
+    assertEquals(DATA_DOES_NOT_MATCH, this.data1,
+        manager.getSensorData(this.source1.getName(), this.data1.getTimestamp()));
+    assertTrue("Unable to delete data1",
+        manager.deleteSensorData(this.source1.getName(), this.data1.getTimestamp()));
+    assertNull("Able to retrieve deleted SensorData",
+        manager.getSensorData(this.source1.getName(), this.data1.getTimestamp()));
 
     // case #3: delete deleted SensorData
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
-    assertTrue("Unable to delete data2", manager.deleteSensorData(this.source1.getName(),
-        this.data2.getTimestamp()));
-    assertFalse("Able to delete data2 a second time", manager.deleteSensorData(this.source1
-        .getName(), this.data2.getTimestamp()));
+    assertTrue("Unable to delete data2",
+        manager.deleteSensorData(this.source1.getName(), this.data2.getTimestamp()));
+    assertFalse("Able to delete data2 a second time",
+        manager.deleteSensorData(this.source1.getName(), this.data2.getTimestamp()));
 
     // case #4: delete SensorData with unknown Source name
-    assertFalse("Able to delete ficticiously-named Source", manager.deleteSensorData(
-        "bogus-source2", this.data1.getTimestamp()));
+    assertFalse("Able to delete ficticiously-named Source",
+        manager.deleteSensorData("bogus-source2", this.data1.getTimestamp()));
 
     // case #5: delete SensorData with empty Source name
-    assertFalse("Able to delete empty Source name", manager.deleteSensorData("", this.data1
-        .getTimestamp()));
+    assertFalse("Able to delete empty Source name",
+        manager.deleteSensorData("", this.data1.getTimestamp()));
 
     // case #6: delete SensorData with null Source name
-    assertFalse("Able to delete null Source name", manager.deleteSensorData(null, this.data1
-        .getTimestamp()));
+    assertFalse("Able to delete null Source name",
+        manager.deleteSensorData(null, this.data1.getTimestamp()));
 
     // case #7: deleting SensorData for timestamp that doesn't correspond to any stored data
-    assertFalse("Deleted SensorData for unknown timestamp", manager.deleteSensorData(this.source1
-        .getName(), this.unknownTimestamp));
+    assertFalse("Deleted SensorData for unknown timestamp",
+        manager.deleteSensorData(this.source1.getName(), this.unknownTimestamp));
 
     // case #8: deleting SensorData for null timestamp
-    assertFalse("Deleted SensorData for null timestamp", manager.deleteSensorData(this.source1
-        .getName(), null));
+    assertFalse("Deleted SensorData for null timestamp",
+        manager.deleteSensorData(this.source1.getName(), null));
 
     // case #9: no more SensorData after all SensorData has been deleted
     assertTrue("After deleting all known SensorData for Source, SensorData remains in DB", manager
@@ -614,26 +620,26 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     createTestData();
 
     // case #1: delete SensorData from empty database
-    assertFalse("Able to delete SensorData from empty DB", manager.deleteSensorData(this.source1
-        .getName()));
+    assertFalse("Able to delete SensorData from empty DB",
+        manager.deleteSensorData(this.source1.getName()));
 
     // case #2: delete stored SensorData
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
-    assertEquals(DATA_DOES_NOT_MATCH, this.data1, manager.getSensorData(this.source1.getName(),
-        this.data1.getTimestamp()));
+    assertEquals(DATA_DOES_NOT_MATCH, this.data1,
+        manager.getSensorData(this.source1.getName(), this.data1.getTimestamp()));
     assertTrue("Unable to delete data1", manager.deleteSensorData(this.source1.getName()));
-    assertNull("Able to retrieve deleted SensorData", manager.getSensorData(this.source1.getName(),
-        this.data1.getTimestamp()));
+    assertNull("Able to retrieve deleted SensorData",
+        manager.getSensorData(this.source1.getName(), this.data1.getTimestamp()));
 
     // case #3: delete deleted SensorData
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
     assertTrue("Unable to delete data2", manager.deleteSensorData(this.source1.getName()));
-    assertFalse("Able to delete data2 a second time", manager.deleteSensorData(this.source1
-        .getName()));
+    assertFalse("Able to delete data2 a second time",
+        manager.deleteSensorData(this.source1.getName()));
 
     // case #4: delete SensorData with unknown Source name
-    assertFalse("Able to delete ficticiously-named Source", manager
-        .deleteSensorData("bogus-source-5"));
+    assertFalse("Able to delete ficticiously-named Source",
+        manager.deleteSensorData("bogus-source-5"));
 
     // case #5: delete SensorData with empty Source name
     assertFalse("Able to delete empty Source name", manager.deleteSensorData(""));
@@ -672,8 +678,6 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
 
     String tool = JUNIT;
     String source1Uri = this.source1.toUri(server);
-    // String source2 = UriUtils.getUriSuffix(sourceToUri(makeTestSource2(), server));
-    String virtualSource = this.source3.getName();
 
     SensorData data1 = new SensorData(source1Time1, tool, source1Uri);
     SensorData data2 = new SensorData(source1Time2, tool, source1Uri);
@@ -689,38 +693,41 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data5));
 
     // unknown Source name
-    assertNull("Could getSensorDataStraddle with unknown source name", this.manager
-        .getSensorDataStraddle("bogus-source-5", beforeAll));
+    assertNull("Could getSensorDataStraddle with unknown source name",
+        this.manager.getSensorDataStraddle(this.manager.getSource("bogus-source-5"), beforeAll));
     // null source name
-    assertNull("Could getSensorDataStraddle with null source name", this.manager
-        .getSensorDataStraddle(null, beforeAll));
+    assertNull("Could getSensorDataStraddle with null source name",
+        this.manager.getSensorDataStraddle(this.manager.getSource(null), beforeAll));
+    // null source
+    assertNull("Could getSensorDataStraddle with null source",
+        this.manager.getSensorDataStraddle(null, beforeAll));
     // empty source name
-    assertNull("Could getSensorDataStraddle with empty source name", this.manager
-        .getSensorDataStraddle("", beforeAll));
+    assertNull("Could getSensorDataStraddle with empty source name",
+        this.manager.getSensorDataStraddle(this.manager.getSource(""), beforeAll));
     // virtual source
-    assertNull("Could getSensorDataStraddle on virtual source", this.manager.getSensorDataStraddle(
-        virtualSource, beforeAll));
+    assertNull("Could getSensorDataStraddle on virtual source",
+        this.manager.getSensorDataStraddle(this.source3, beforeAll));
     // timestamp before stored data
     assertNull("Could getSensorDataStraddle where timestamp is before all stored data",
-        this.manager.getSensorDataStraddle(this.source1.getName(), beforeAll));
+        this.manager.getSensorDataStraddle(this.source1, beforeAll));
     // timestamp after stored data
-    assertNull("Could getSensorDataStraddle where timestamp is after all stored data", this.manager
-        .getSensorDataStraddle(this.source1.getName(), afterAll));
+    assertNull("Could getSensorDataStraddle where timestamp is after all stored data",
+        this.manager.getSensorDataStraddle(this.source1, afterAll));
     // DEBUG
-    assertEquals("Unable to retrieve stored data", data2, this.manager.getSensorData(this.source1
-        .getName(), source1Time2));
+    assertEquals("Unable to retrieve stored data", data2,
+        this.manager.getSensorData(this.source1.getName(), source1Time2));
     // timestamp equal to stored data
-    straddle = this.manager.getSensorDataStraddle(this.source1.getName(), source1Time2);
-    assertEquals("timestamp equal to sensorData, but beforeData not set correctly", straddle
-        .getBeforeData(), data2);
-    assertEquals("timestamp equal to beforeData, but afterData not set correctly", straddle
-        .getBeforeData(), straddle.getAfterData());
+    straddle = this.manager.getSensorDataStraddle(this.source1, source1Time2);
+    assertEquals("timestamp equal to sensorData, but beforeData not set correctly",
+        straddle.getBeforeData(), data2);
+    assertEquals("timestamp equal to beforeData, but afterData not set correctly",
+        straddle.getBeforeData(), straddle.getAfterData());
     // timestamp between data1 & data2
-    straddle = this.manager.getSensorDataStraddle(this.source1.getName(), source1Time1_2);
+    straddle = this.manager.getSensorDataStraddle(this.source1, source1Time1_2);
     assertEquals("beforeData not set correctly", straddle.getBeforeData(), data1);
     assertEquals("afterData not set correctly", straddle.getAfterData(), data2);
     // timestamp between data4 & data5
-    straddle = this.manager.getSensorDataStraddle(this.source1.getName(), source1Time4_5);
+    straddle = this.manager.getSensorDataStraddle(this.source1, source1Time4_5);
     assertEquals("beforeData not set correctly", straddle.getBeforeData(), data4);
     assertEquals("afterData not set correctly", straddle.getAfterData(), data5);
   }
@@ -758,7 +765,6 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     String tool = JUNIT;
     String source1Uri = this.source1.toUri(server);
     String source2Uri = this.source2.toUri(server);
-    String virtualSource = this.source3.getName();
 
     SensorData source1Data1 = new SensorData(source1Time1, tool, source1Uri);
     SensorData source1Data2 = new SensorData(source1Time2, tool, source1Uri);
@@ -780,64 +786,68 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data3));
 
     // unknown Source name
-    assertNull("Could getSensorDataStraddleList with unknown source name", this.manager
-        .getSensorDataStraddleList("bogus-source-5", beforeAll));
+    assertNull(
+        "Could getSensorDataStraddleList with unknown source name",
+        this.manager.getSensorDataStraddleList(this.manager.getSource("bogus-source-5"), beforeAll));
     // null source name
-    assertNull("Could getSensorDataStraddleList with null source name", this.manager
-        .getSensorDataStraddleList(null, beforeAll));
+    assertNull("Could getSensorDataStraddleList with null source name",
+        this.manager.getSensorDataStraddleList(this.manager.getSource(null), beforeAll));
+    // null source
+    assertNull("Could getSensorDataStraddleList with null source",
+        this.manager.getSensorDataStraddleList(null, beforeAll));
     // empty source name
-    assertNull("Could getSensorDataStraddleList with empty source name", this.manager
-        .getSensorDataStraddleList("", beforeAll));
+    assertNull("Could getSensorDataStraddleList with empty source name",
+        this.manager.getSensorDataStraddleList(this.manager.getSource(""), beforeAll));
     // timestamp before stored data
     assertNull("Could getSensorDataStraddleList where timestamp is before all stored data",
-        this.manager.getSensorDataStraddle(virtualSource, beforeAll));
+        this.manager.getSensorDataStraddle(this.source3, beforeAll));
     // timestamp after stored data
     assertNull("Could getSensorDataStraddleLiat where timestamp is after all stored data",
-        this.manager.getSensorDataStraddle(virtualSource, afterAll));
+        this.manager.getSensorDataStraddle(this.source3, afterAll));
     // timestamp equal to data from source1
-    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source1Time2);
+    straddleList = this.manager.getSensorDataStraddleList(this.source3, source1Time2);
     assertEquals("timestamp equal to data from source1, but beforeData not set correctly",
-        straddleList.get(0).getBeforeData(), source1Data2);
+        straddleList.get(1).getBeforeData(), source1Data2);
     assertEquals("timestamp equal to data from source1, but afterData not set correctly",
-        straddleList.get(0).getAfterData(), source1Data2);
+        straddleList.get(1).getAfterData(), source1Data2);
     assertEquals(
         "timestamp equal to data from source1, but straddle from source2 beforeData not set correctly",
-        straddleList.get(1).getBeforeData(), source2Data1);
+        straddleList.get(0).getBeforeData(), source2Data1);
     assertEquals(
         "timestamp equal to data from source1, but straddle from source2 afterData not set correctly",
-        straddleList.get(1).getAfterData(), source2Data2);
+        straddleList.get(0).getAfterData(), source2Data2);
     // timestamp = source1Time1_2
-    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source1Time1_2);
-    assertEquals("source1 straddle beforeData not set correctly", straddleList.get(0)
+    straddleList = this.manager.getSensorDataStraddleList(this.source3, source1Time1_2);
+    assertEquals("source1 straddle beforeData not set correctly", straddleList.get(1)
         .getBeforeData(), source1Data1);
-    assertEquals("source1 straddle afterData not set correctly",
-        straddleList.get(0).getAfterData(), source1Data2);
-    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(1)
+    assertEquals("source1 straddle afterData not set correctly", straddleList.get(1)
+        .getAfterData(), source1Data2);
+    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(0)
         .getBeforeData(), source2Data1);
-    assertEquals("source2 straddle afterData not set correctly",
-        straddleList.get(1).getAfterData(), source2Data2);
+    assertEquals("source2 straddle afterData not set correctly", straddleList.get(0)
+        .getAfterData(), source2Data2);
     // timestamp = source1Time2_3
-    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source1Time2_3);
-    assertEquals("source1 straddle beforeData not set correctly", straddleList.get(0)
+    straddleList = this.manager.getSensorDataStraddleList(this.source3, source1Time2_3);
+    assertEquals("source1 straddle beforeData not set correctly", straddleList.get(1)
         .getBeforeData(), source1Data2);
-    assertEquals("source1 straddle afterData not set correctly",
-        straddleList.get(0).getAfterData(), source1Data3);
-    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(1)
+    assertEquals("source1 straddle afterData not set correctly", straddleList.get(1)
+        .getAfterData(), source1Data3);
+    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(0)
         .getBeforeData(), source2Data1);
-    assertEquals("source2 straddle afterData not set correctly",
-        straddleList.get(1).getAfterData(), source2Data2);
+    assertEquals("source2 straddle afterData not set correctly", straddleList.get(0)
+        .getAfterData(), source2Data2);
     // timestamp = source1Time3_4
-    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source1Time3_4);
-    assertEquals("source1 straddle beforeData not set correctly", straddleList.get(0)
+    straddleList = this.manager.getSensorDataStraddleList(this.source3, source1Time3_4);
+    assertEquals("source1 straddle beforeData not set correctly", straddleList.get(1)
         .getBeforeData(), source1Data3);
-    assertEquals("source1 straddle afterData not set correctly",
-        straddleList.get(0).getAfterData(), source1Data4);
-    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(1)
+    assertEquals("source1 straddle afterData not set correctly", straddleList.get(1)
+        .getAfterData(), source1Data4);
+    assertEquals("source2 straddle beforeData not set correctly", straddleList.get(0)
         .getBeforeData(), source2Data2);
-    assertEquals("source2 straddle afterData not set correctly",
-        straddleList.get(1).getAfterData(), source2Data3);
+    assertEquals("source2 straddle afterData not set correctly", straddleList.get(0)
+        .getAfterData(), source2Data3);
     // timestamp = source2Time2_3, outside source1's range so should only have one element in list
-    straddleList = this.manager.getSensorDataStraddleList(virtualSource, source2Time2_3);
+    straddleList = this.manager.getSensorDataStraddleList(this.source3, source2Time2_3);
     assertNull("straddle list was not null despite timestamp outside sensor data", straddleList);
   }
 }

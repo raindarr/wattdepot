@@ -5,7 +5,6 @@ import org.restlet.data.MediaType;
 import org.restlet.representation.Representation;
 import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
-import org.wattdepot.resource.source.jaxb.Source;
 
 /**
  * Represents a summary of a source.
@@ -15,7 +14,6 @@ import org.wattdepot.resource.source.jaxb.Source;
 
 public class SourceSummaryResource extends WattDepotResource {
 
-  
   /**
    * Returns a full representation for a given variant.
    * 
@@ -25,37 +23,23 @@ public class SourceSummaryResource extends WattDepotResource {
   @Override
   public Representation get(Variant variant) {
     String xmlString;
-    // If credentials are provided, they need to be valid
-    if (!isAnonymous() && !validateCredentials()) {
-      return null;
-    }
-    // First check if source in URI exists
-    if (validateKnownSource()) {
-      Source source = dbManager.getSource(uriSource);
-      // If source is private, check if current user is allowed to view
-      if ((!source.isPublic()) && (!validateSourceOwnerOrAdmin())) {
+
+    // If we make it here, we're all clear to send the XML: either source is public or source is
+    // private but user is authorized to GET.
+    if (variant.getMediaType().equals(MediaType.TEXT_XML)) {
+      try {
+        xmlString = getSourceSummary();
+      }
+      catch (JAXBException e) {
+        setStatusInternalError(e);
         return null;
       }
-      // If we make it here, we're all clear to send the XML: either source is public or source is
-      // private but user is authorized to GET.
-      if (variant.getMediaType().equals(MediaType.TEXT_XML)) {
-        try {
-          xmlString = getSourceSummary();
-        }
-        catch (JAXBException e) {
-          setStatusInternalError(e);
-          return null;
-        }
-        return getStringRepresentation(xmlString);
-      }
-      // Some MediaType other than text/xml requested
-      else {
-        return null;
-      }
+      return getStringRepresentation(xmlString);
     }
+    // Some MediaType other than text/xml requested
     else {
-      // unknown source
       return null;
     }
+
   }
 }

@@ -22,6 +22,7 @@ import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
+import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.db.DbException;
 import org.wattdepot.test.ServerTestHelper;
 import org.wattdepot.util.UriUtils;
@@ -85,7 +86,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
   @Override
   public void setupDB() {
   };
-  
+
   /**
    * Programmatically loads some Oscar data needed by the rest of the tests.
    * 
@@ -303,7 +304,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
                 + "<Name>SIM_KAHE</Name>"
                 + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
                 + "<Public>true</Public>" + "<Virtual>true</Virtual>"
-                + "<Coordinates>0,0,0</Coordinates>" + "<Location>To be looked up later</Location>"
+                + "<Coordinates>0,0,0</Coordinates>"
+                + "<Location>To be looked up later</Location>"
                 + "<Description>Virtual resource for all Kahe power plants.</Description>"
                 + "<SubSources>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_1</Href>"
@@ -312,20 +314,22 @@ public class TestOscarFunctionality extends ServerTestHelper {
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_4</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_5</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_6</Href>"
-                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_7</Href>"
+                // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE_7</Href>"
                 + "</SubSources>" + "</Source>",
             "<?xml version=\"1.0\"?>"
                 + "<Source>"
                 + "<Name>SIM_WAIAU</Name>"
                 + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
-                + "<Public>true</Public>" + "<Virtual>true</Virtual>"
-                + "<Coordinates>0,0,0</Coordinates>" + "<Location>To be looked up later</Location>"
+                + "<Public>true</Public>"
+                + "<Virtual>true</Virtual>"
+                + "<Coordinates>0,0,0</Coordinates>"
+                + "<Location>To be looked up later</Location>"
                 + "<Description>Virtual resource for all Waiau power plants.</Description>"
                 + "<SubSources>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_5</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_6</Href>"
-                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_7</Href>"
-                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_8</Href>"
+                // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_7</Href>"
+                // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_8</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_9</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_WAIAU_10</Href>"
                 + "</SubSources>" + "</Source>",
@@ -333,7 +337,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
                 + "<Source>"
                 + "<Name>SIM_HONOLULU</Name>"
                 + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
-                + "<Public>true</Public>" + "<Virtual>true</Virtual>"
+                + "<Public>true</Public>"
+                + "<Virtual>true</Virtual>"
                 + "<Coordinates>21.306278,-157.863997,0</Coordinates>"
                 + "<Location>To be looked up later</Location>"
                 + "<Description>Virtual resource for all Honolulu power plants.</Description>"
@@ -351,7 +356,7 @@ public class TestOscarFunctionality extends ServerTestHelper {
                 + "<Location>To be looked up later</Location>"
                 + "<Description>Virtual resource for all independent power producers (non-HECO).</Description>"
                 + "<SubSources>"
-                + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_AES</Href>"
+                // + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_AES</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_HPOWER</Href>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KALAELOA</Href>"
                 + "</SubSources>" + "</Source>",
@@ -360,7 +365,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
                 + "<Name>SIM_OAHU_GRID</Name>"
                 + "<Owner>http://server.wattdepot.org:1234/wattdepot/users/oscar@wattdepot.org</Owner>"
                 + "<Public>true</Public>" + "<Virtual>true</Virtual>"
-                + "<Coordinates>0,0,0</Coordinates>" + "<Location>To be looked up later</Location>"
+                + "<Coordinates>0,0,0</Coordinates>"
+                + "<Location>To be looked up later</Location>"
                 + "<Description>Virtual resource for all Oahu power plants.</Description>"
                 + "<SubSources>"
                 + " <Href>http://server.wattdepot.org:1234/wattdepot/sources/SIM_KAHE</Href>"
@@ -374,6 +380,11 @@ public class TestOscarFunctionality extends ServerTestHelper {
     sourceJAXB = JAXBContext.newInstance(org.wattdepot.resource.source.jaxb.ObjectFactory.class);
     unmarshaller = sourceJAXB.createUnmarshaller();
     Source source;
+
+    if (!manager.storeUser(new User("oscar@wattdepot.org", "password", false, null))) {
+      throw new DbException("Unable to store oscar user");
+    }
+
     // Go through each Source String in XML format, turn it into a Source, and store in DB
     for (String xmlInput : sourceXmlStrings) {
       source = (Source) unmarshaller.unmarshal(new StringReader(xmlInput));
@@ -635,8 +646,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
     String expectedOutput =
         String
             .format("Tool: OscarDataConverter%nSource: SIM_KAHE_2%nProperties: (powerGenerated : 6.4E7)%n");
-    assertEquals("Generated string doesn't match expected", expectedOutput, displayOneSensorData(
-        sourceName, timestamp));
+    assertEquals("Generated string doesn't match expected", expectedOutput,
+        displayOneSensorData(sourceName, timestamp));
   }
 
   /**
@@ -690,8 +701,8 @@ public class TestOscarFunctionality extends ServerTestHelper {
             + "2009-10-12T00:30:00.000-10:00 Tool: OscarDataConverter Properties: [Property [key=powerGenerated, value=5.0E7]]"
             + lineSep;
     Date startDate = this.dateFormat.parse(day);
-    assertEquals("Generated string doesn't match expected", expectedOutput, listOneDaySensorData(
-        sourceName, startDate));
+    assertEquals("Generated string doesn't match expected", expectedOutput,
+        listOneDaySensorData(sourceName, startDate));
   }
 
   /**
@@ -753,18 +764,29 @@ public class TestOscarFunctionality extends ServerTestHelper {
   @Ignore("Only works in the Hawaii timezone")
   public void listPowerForTimestampTest() throws WattDepotClientException, Exception {
     // Test with non-virtual source
-    assertEquals("Did not get expected power from SIM_KAHE_2", "6.28E7", listPowerForTimestamp(
-        Direction.GENERATED, "SIM_KAHE_2", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+    assertEquals(
+        "Did not get expected power from SIM_KAHE_2",
+        "6.28E7",
+        listPowerForTimestamp(Direction.GENERATED, "SIM_KAHE_2",
+            Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
     // Test with virtual source
-    assertEquals("Did not get expected power from SIM_KAHE", "4.618E8", listPowerForTimestamp(
-        Direction.GENERATED, "SIM_KAHE", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+    assertEquals(
+        "Did not get expected power from SIM_KAHE",
+        "4.618E8",
+        listPowerForTimestamp(Direction.GENERATED, "SIM_KAHE",
+            Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
     // Test with virtual source that includes other sources
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "5.078E8",
-        listPowerForTimestamp(Direction.GENERATED, "SIM_OAHU_GRID", Tstamp
-            .makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+    assertEquals(
+        "Did not get expected power from SIM_OAHU_GRID",
+        "5.078E8",
+        listPowerForTimestamp(Direction.GENERATED, "SIM_OAHU_GRID",
+            Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
     // Test that power consumed is 0 for timestamp
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "0.0", listPowerForTimestamp(
-        Direction.CONSUMED, "SIM_OAHU_GRID", Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
+    assertEquals(
+        "Did not get expected power from SIM_OAHU_GRID",
+        "0.0",
+        listPowerForTimestamp(Direction.CONSUMED, "SIM_OAHU_GRID",
+            Tstamp.makeTimestamp("2009-10-12T00:13:00.000-10:00")));
   }
 
   /**
@@ -853,21 +875,29 @@ public class TestOscarFunctionality extends ServerTestHelper {
   @Ignore("Needs full day of data to work properly")
   public void listPowerForDayTest() throws WattDepotClientException, Exception {
     // Test with non-virtual source
-    assertEquals("Did not get expected power from SIM_KAHE_2", "6.28E7", listPowerForDay(
-        Direction.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 1,
-        StatisticType.MIN));
+    assertEquals(
+        "Did not get expected power from SIM_KAHE_2",
+        "6.28E7",
+        listPowerForDay(Direction.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 1,
+            StatisticType.MIN));
     // Test with virtual source
-    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7",
+    assertEquals(
+        "Did not get expected power from SIM_KAHE",
+        "6.28E7",
         listPowerForDay(Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 30,
             StatisticType.MIN));
     // Test with virtual source that includes other sources
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listPowerForDay(
-        Direction.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
-        StatisticType.MIN));
+    assertEquals(
+        "Did not get expected power from SIM_OAHU_GRID",
+        "6.28E7",
+        listPowerForDay(Direction.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"),
+            1, StatisticType.MIN));
     // Test that power consumed is 0
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listPowerForDay(
-        Direction.CONSUMED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1,
-        StatisticType.MIN));
+    assertEquals(
+        "Did not get expected power from SIM_OAHU_GRID",
+        "6.28E7",
+        listPowerForDay(Direction.CONSUMED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"),
+            1, StatisticType.MIN));
   }
 
   /**
@@ -912,17 +942,23 @@ public class TestOscarFunctionality extends ServerTestHelper {
   @Ignore("Needs full day of data to work properly")
   public void listEnergyForDayTest() throws Exception {
     // Test with non-virtual source
-    assertEquals("Did not get expected energy from SIM_KAHE_2", "6.28E7", listEnergyForDay(
-        Direction.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 15));
+    assertEquals(
+        "Did not get expected energy from SIM_KAHE_2",
+        "6.28E7",
+        listEnergyForDay(Direction.GENERATED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"),
+            15));
     // Test with virtual source
-    assertEquals("Did not get expected energy from SIM_KAHE", "6.28E7", listEnergyForDay(
-        Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 1));
+    assertEquals("Did not get expected energy from SIM_KAHE", "6.28E7",
+        listEnergyForDay(Direction.GENERATED, "SIM_KAHE", this.dateFormat.parse("2009-10-12"), 1));
     // Test with virtual source that includes other sources
-    assertEquals("Did not get expected energy from SIM_OAHU_GRID", "6.28E7", listEnergyForDay(
-        Direction.GENERATED, "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
+    assertEquals(
+        "Did not get expected energy from SIM_OAHU_GRID",
+        "6.28E7",
+        listEnergyForDay(Direction.GENERATED, "SIM_OAHU_GRID",
+            this.dateFormat.parse("2009-10-12"), 1));
     // Test that power consumed is 0
-    assertEquals("Did not get expected energy from SIM_OAHU_GRID", "0.0", listEnergyForDay(
-        Direction.CONSUMED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 1));
+    assertEquals("Did not get expected energy from SIM_OAHU_GRID", "0.0",
+        listEnergyForDay(Direction.CONSUMED, "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 1));
   }
 
   /**
@@ -956,17 +992,17 @@ public class TestOscarFunctionality extends ServerTestHelper {
   @Ignore("Needs full day of data to work properly")
   public void listCarbonForDayTest() throws Exception {
     // Test with non-virtual source
-    assertEquals("Did not get expected energy from SIM_KAHE_2", "6.28E7", listCarbonForDay(
-        "SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 15));
+    assertEquals("Did not get expected energy from SIM_KAHE_2", "6.28E7",
+        listCarbonForDay("SIM_KAHE_2", this.dateFormat.parse("2009-10-12"), 15));
     // Test with virtual source
-    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", listCarbonForDay("SIM_KAHE",
-        this.dateFormat.parse("2009-10-12"), 1));
+    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7",
+        listCarbonForDay("SIM_KAHE", this.dateFormat.parse("2009-10-12"), 1));
     // Test with virtual source that includes other sources
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listCarbonForDay(
-        "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7",
+        listCarbonForDay("SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
     // Test that power consumed is 0
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", listCarbonForDay(
-        "SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7",
+        listCarbonForDay("SIM_OAHU_GRID", this.dateFormat.parse("2009-10-12"), 1));
   }
 
   /**
@@ -1023,16 +1059,16 @@ public class TestOscarFunctionality extends ServerTestHelper {
     Date startDay = this.dateFormat.parse("2009-10-30");
     Date endDay = this.dateFormat.parse("2009-11-04");
     // Test with non-virtual source
-    assertEquals("Did not get expected energy from SIM_KAHE_2", "6.28E7", chartPowerForDay(
-        Direction.GENERATED, "SIM_KAHE_2", startDay, endDay, 15));
+    assertEquals("Did not get expected energy from SIM_KAHE_2", "6.28E7",
+        chartPowerForDay(Direction.GENERATED, "SIM_KAHE_2", startDay, endDay, 15));
     // Test with virtual source
-    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7", chartPowerForDay(
-        Direction.GENERATED, "SIM_KAHE", startDay, endDay, 1));
+    assertEquals("Did not get expected power from SIM_KAHE", "6.28E7",
+        chartPowerForDay(Direction.GENERATED, "SIM_KAHE", startDay, endDay, 1));
     // Test with virtual source that includes other sources
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", chartPowerForDay(
-        Direction.GENERATED, "SIM_OAHU_GRID", startDay, endDay, 1));
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7",
+        chartPowerForDay(Direction.GENERATED, "SIM_OAHU_GRID", startDay, endDay, 1));
     // Test that power consumed is 0
-    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7", chartPowerForDay(
-        Direction.CONSUMED, "SIM_OAHU_GRID", startDay, endDay, 1));
+    assertEquals("Did not get expected power from SIM_OAHU_GRID", "6.28E7",
+        chartPowerForDay(Direction.CONSUMED, "SIM_OAHU_GRID", startDay, endDay, 1));
   }
 }

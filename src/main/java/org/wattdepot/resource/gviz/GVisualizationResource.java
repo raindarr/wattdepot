@@ -3,6 +3,7 @@ package org.wattdepot.resource.gviz;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.GregorianCalendar;
+import java.util.Hashtable;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.restlet.data.MediaType;
@@ -14,13 +15,13 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
 import org.wattdepot.resource.source.jaxb.Source;
+import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.util.tstamp.Tstamp;
 import com.google.common.collect.Lists;
 import com.google.visualization.datasource.DataSourceHelper;
 import com.google.visualization.datasource.base.DataSourceException;
-import com.google.visualization.datasource.base.InvalidQueryException;
 import com.google.visualization.datasource.base.ReasonType;
 import com.google.visualization.datasource.base.TypeMismatchException;
 import com.google.visualization.datasource.datatable.ColumnDescription;
@@ -161,43 +162,35 @@ public class GVisualizationResource extends WattDepotResource {
    */
   @Override
   public Representation get(Variant variant) {
-
-    XMLGregorianCalendar startTime = null;
-    XMLGregorianCalendar endTime = null;
-    if ((startTimeString != null) && (endTimeString != null)) {
-      try {
-        startTime = Tstamp.makeTimestamp(startTimeString);
-      }
-      catch (Exception e) { // NOPMD
-        return new StringRepresentation("Invalid Start Time " + e.getMessage());
-      }
-      try {
-        endTime = Tstamp.makeTimestamp(endTimeString);
-      }
-      catch (Exception e) {
-        return new StringRepresentation("Invalid End Time " + e.getMessage());
-
-      }
-    }
-
-    Query query = null;
-
     try {
+
+      XMLGregorianCalendar startTime = null;
+      XMLGregorianCalendar endTime = null;
+      if ((startTimeString != null) && (endTimeString != null)) {
+        try {
+          startTime = Tstamp.makeTimestamp(startTimeString);
+        }
+        catch (Exception e) {
+          throw new DataSourceException(ReasonType.INVALID_REQUEST, "Invalid Start Time");
+        }
+        try {
+          endTime = Tstamp.makeTimestamp(endTimeString);
+        }
+        catch (Exception e) {
+          throw new DataSourceException(ReasonType.INVALID_REQUEST, "Invalid End Time");
+        }
+      }
+
+      Query query = null;
+
       query = DataSourceHelper.parseQuery(queryString);
-    }
-    catch (InvalidQueryException e) {
-      return new StringRepresentation("Invalid Query String " + e.getMessageToUser());
 
-    }
+      DataTable table;
 
-    DataTable table;
+      if (this.queryType == null) {
+        throw new DataSourceException(ReasonType.INVALID_REQUEST, "Query Type Required");
+      }
 
-    if (this.queryType == null) {
-      setStatusMiscError("Request could not be understood.");
-      return null;
-    }
-
-    try {
       table = generateDataTable(uriSource, query, startTime, endTime);
       String tableString = JsonRenderer.renderDataTable(table, true, true).toString();
 
@@ -220,12 +213,10 @@ public class GVisualizationResource extends WattDepotResource {
       return new StringRepresentation(response);
     }
     catch (DataSourceException e) {
-      setStatusMiscError(e.getMessageToUser());
-      return null;
-    }
-    catch (Exception e) {
-      setStatusMiscError(e.getMessage());
-      return null;
+      String response =
+          "google.visualization.Query.setResponse({status:'error',errors:[{reason:'"
+              + e.getReasonType().toString() + "',message:'" + e.getMessageToUser() + "'}]});";
+      return new StringRepresentation(response);
     }
   }
 
@@ -238,7 +229,7 @@ public class GVisualizationResource extends WattDepotResource {
    * @param startTime The start time.
    * @param endTime The end time.
    * @return A DataTable with the requested information.
-   * @throws DataSourceException If something goes wrong.
+   * @throws DataSourceException If an invalid query type is requested.
    */
   public DataTable generateDataTable(String source, Query query, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DataSourceException {
@@ -275,7 +266,7 @@ public class GVisualizationResource extends WattDepotResource {
               displaySubsources);
     }
     else {
-      throw new DataSourceException(ReasonType.INVALID_REQUEST, "Invalid request");
+      throw new DataSourceException(ReasonType.INVALID_REQUEST, "Invalid query type");
     }
 
     DataSourceHelper.validateQueryAgainstColumnStructure(query, data);
@@ -474,9 +465,24 @@ public class GVisualizationResource extends WattDepotResource {
 
     Source source = this.dbManager.getSource(sourceName);
     List<Source> subSources = null;
+    Hashtable<String, Source> hash = null;
     if (displaySubsources && source.isVirtual()) {
       subSources = this.dbManager.getAllNonVirtualSubSources(source);
-      // System.out.println("subSources: " + subSources); // DEBUG
+
+      hash = new Hashtable<String, Source>();
+      for (int i = 0; i < subSources.size(); i++) {
+        Source s = subSources.get(i);
+        // remove any sources that we don't have permission to view
+        if (!s.isPublic() && !isAdminUser()
+            && !User.userToUri(authUsername, this.server).equals(source.getOwner())) {
+          subSources.remove(s);
+          i--;
+        }
+        else {
+          // store these in a hash so we don't have to get them from the database again.
+          hash.put(s.getName(), s);
+        }
+      }
     }
 
     // Sets up the columns requested by any SELECT in the datasource query
@@ -508,21 +514,21 @@ public class GVisualizationResource extends WattDepotResource {
         String columnName = selectionColumn.getId();
         // If this is a subsource, then the custom property sourceName will be set
         String propertySourceName = selectionColumn.getCustomProperty("sourceName");
-        String currentSourceName;
+        Source currentSource;
         if (propertySourceName == null) {
           // normal column, not subsource
-          currentSourceName = sourceName;
+          currentSource = source;
         }
         else {
           // subsource, so use source name from column's custom property
-          currentSourceName = propertySourceName;
+          currentSource = hash.get(propertySourceName);
         }
         try {
           if (columnName.equals(TIME_POINT_COLUMN)) {
             row.addCell(new DateTimeValue(convertTimestamp(currentTimestamp)));
           }
           else if (columnName.endsWith(POWER_CONSUMED_COLUMN)) {
-            powerData = this.dbManager.getPower(currentSourceName, currentTimestamp);
+            powerData = this.dbManager.getPower(currentSource, currentTimestamp);
             if (powerData == null) {
               row.addCell(0);
             }
@@ -531,7 +537,7 @@ public class GVisualizationResource extends WattDepotResource {
             }
           }
           else if (columnName.endsWith(POWER_GENERATED_COLUMN)) {
-            powerData = this.dbManager.getPower(currentSourceName, currentTimestamp);
+            powerData = this.dbManager.getPower(currentSource, currentTimestamp);
             if (powerData == null) {
               row.addCell(0);
             }
@@ -541,7 +547,7 @@ public class GVisualizationResource extends WattDepotResource {
           }
           else if (columnName.endsWith(ENERGY_CONSUMED_COLUMN)) {
             energyData =
-                this.dbManager.getEnergy(currentSourceName, previousTimestamp, currentTimestamp,
+                this.dbManager.getEnergy(currentSource, previousTimestamp, currentTimestamp,
                     currentInterval);
             if (energyData == null) {
               row.addCell(0);
@@ -552,7 +558,7 @@ public class GVisualizationResource extends WattDepotResource {
           }
           else if (columnName.endsWith(ENERGY_GENERATED_COLUMN)) {
             energyData =
-                this.dbManager.getEnergy(currentSourceName, previousTimestamp, currentTimestamp,
+                this.dbManager.getEnergy(currentSource, previousTimestamp, currentTimestamp,
                     currentInterval);
             if (energyData == null) {
               row.addCell(0);
@@ -563,7 +569,7 @@ public class GVisualizationResource extends WattDepotResource {
           }
           else if (columnName.endsWith(CARBON_EMITTED_COLUMN)) {
             carbonData =
-                this.dbManager.getCarbon(currentSourceName, previousTimestamp, currentTimestamp,
+                this.dbManager.getCarbon(currentSource, previousTimestamp, currentTimestamp,
                     currentInterval);
             if (carbonData == null) {
               row.addCell(0);

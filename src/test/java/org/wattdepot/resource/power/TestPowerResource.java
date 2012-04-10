@@ -23,219 +23,7 @@ import org.wattdepot.util.tstamp.Tstamp;
  */
 public class TestPowerResource extends ServerTestHelper {
 
-  // TODO Skipping authentication tests for now
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: public Source with no credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test
-  // public void testPowerPublicWithNoCredentials() throws WattDepotClientException {
-  // WattDepotClient client = new WattDepotClient(getHostName());
-  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(defaultPublicSource)
-  // .getSensorDataRef());
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: public Source with invalid
-  // credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test(expected = NotAuthorizedException.class)
-  // public void testFullIndexPublicBadAuth() throws WattDepotClientException {
-  // // Shouldn't authenticate with invalid credentials.
-  // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, "foo");
-  // client.getSensorDataIndex(defaultPublicSource);
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: public Source with valid admin
-  // * credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test
-  // public void testFullIndexPublicWithAdminCredentials() throws WattDepotClientException {
-  // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(defaultPublicSource)
-  // .getSensorDataRef());
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: public Source with valid owner
-  // * credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test
-  // public void testFullIndexPublicWithOwnerCredentials() throws WattDepotClientException {
-  // WattDepotClient client =
-  // new WattDepotClient(getHostName(), defaultOwnerUsername,
-  // defaultOwnerPassword);
-  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(defaultPublicSource)
-  // .getSensorDataRef());
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: public Source with valid non-owner
-  // * credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test
-  // public void testFullIndexPublicWithNonOwnerCredentials() throws WattDepotClientException {
-  // WattDepotClient client =
-  // new WattDepotClient(getHostName(), defaultNonOwnerUsername,
-  // defaultNonOwnerPassword);
-  // assertNotNull(MISSING_SENSORDATAREFS, client.getSensorDataIndex(defaultPublicSource)
-  // .getSensorDataRef());
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: private Source with no credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test(expected = NotAuthorizedException.class)
-  // public void testFullIndexPrivateWithNoCredentials() throws WattDepotClientException {
-  // WattDepotClient client = new WattDepotClient(getHostName());
-  // client.getSensorDataIndex(defaultPrivateSource);
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: private Source with invalid
-  // credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test(expected = NotAuthorizedException.class)
-  // public void testFullIndexPrivateBadAuth() throws WattDepotClientException {
-  // // Shouldn't authenticate with no username or password
-  // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, "wrong-password");
-  // client.getSensorDataIndex(defaultPrivateSource);
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: private Source with admin credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test
-  // public void testFullIndexPrivateAdminAuth() throws WattDepotClientException {
-  // // Shouldn't authenticate with no username or password
-  // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-  // assertNotNull(MISSING_SENSORDATAREFS,
-  // client.getSensorDataIndex(defaultPrivateSource));
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: private Source with owner credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test
-  // public void testFullIndexPrivateOwnerAuth() throws WattDepotClientException {
-  // // Shouldn't authenticate with no username or password
-  // WattDepotClient client =
-  // new WattDepotClient(getHostName(), defaultOwnerUsername,
-  // defaultOwnerPassword);
-  // assertNotNull(MISSING_SENSORDATAREFS,
-  // client.getSensorDataIndex(defaultPrivateSource));
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: private Source with non-owner
-  // * credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test(expected = NotAuthorizedException.class)
-  // public void testFullIndexPrivateNonOwnerAuth() throws WattDepotClientException {
-  // // Shouldn't authenticate with no username or password
-  // WattDepotClient client =
-  // new WattDepotClient(getHostName(), defaultNonOwnerUsername,
-  // defaultNonOwnerPassword);
-  // client.getSensorDataIndex(defaultPrivateSource);
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: unknown Source name with no
-  // credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test(expected = ResourceNotFoundException.class)
-  // public void testFullIndexBadSourceNameAnon() throws WattDepotClientException {
-  // // Shouldn't authenticate with no username or password
-  // WattDepotClient client = new WattDepotClient(getHostName());
-  // client.getSensorDataIndex("bogus-source-name");
-  // }
-  //
-  // /**
-  // * Tests retrieval of all SensorData from a Source. Type: unknown Source name with valid
-  // * credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test(expected = ResourceNotFoundException.class)
-  // public void testFullIndexBadSourceNameAuth() throws WattDepotClientException {
-  // // Shouldn't authenticate with no username or password
-  // WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
-  // client.getSensorDataIndex("bogus-source-name");
-  // }
-  //
-  // /**
-  // * Tests that a Source starts with no SensorData. Type: public Source with valid owner
-  // * credentials.
-  // *
-  // * @throws WattDepotClientException If problems are encountered
-  // */
-  // @Test
-  // public void testFullIndexStartsEmpty() throws WattDepotClientException {
-  // WattDepotClient client =
-  // new WattDepotClient(getHostName(), defaultOwnerUsername,
-  // defaultOwnerPassword);
-  // assertTrue("Fresh DB contains SensorData", client.getSensorDataIndex(
-  // defaultPublicSource).getSensorDataRef().isEmpty());
-  // }
-  //
-  // /**
-  // * Tests that after storing SensorData to a Source, the SensorDataIndex corresponds to the data
-  // * that has been stored. Type: public Source with valid owner credentials.
-  // *
-  // * @throws Exception If stuff goes wrong.
-  // */
-  // @Test
-  // public void testFullIndexAfterStores() throws Exception {
-  // WattDepotClient client =
-  // new WattDepotClient(getHostName(), defaultOwnerUsername,
-  // defaultOwnerPassword);
-  // SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
-  // makeTestSensorData3();
-  // assertTrue(DATA_STORE_FAILED, client.storeSensorData(data1));
-  // List<SensorDataRef> index =
-  // client.getSensorDataIndex(defaultPublicSource).getSensorDataRef();
-  // assertEquals("Wrong number of SensorDataRefs after store", 1, index.size());
-  // assertTrue("getSensorDataIndex didn't return expected SensorDataRef",
-  // sensorDataRefEqualsSensorData(index.get(0), data1));
-  // assertTrue(DATA_STORE_FAILED, client.storeSensorData(data2));
-  // index = client.getSensorDataIndex(defaultPublicSource).getSensorDataRef();
-  // assertEquals("Wrong number of SensorDataRefs after store", 2, index.size());
-  // List<SensorData> origData = new ArrayList<SensorData>();
-  // origData.add(data1);
-  // origData.add(data2);
-  // assertTrue("getSensorDataIndex didn't return expected SensorDataRefs",
-  // compareSensorDataRefsToSensorDatas(index, origData));
-  // assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
-  // index = client.getSensorDataIndex(defaultPublicSource).getSensorDataRef();
-  // assertEquals("Wrong number of SensorDataRefs after store", 3, index.size());
-  // origData.add(data3);
-  // assertTrue("getSensorDataIndex didn't return expected SensorDataRefs",
-  // compareSensorDataRefsToSensorDatas(index, origData));
-  // }
-
-  // Tests for GET {host}/sources/{source}/power/{timestamp}
+   // Tests for GET {host}/sources/{source}/power/{timestamp}
 
   /**
    * Tests the power resource on a non-virtual source.
@@ -258,7 +46,7 @@ public class TestPowerResource extends ServerTestHelper {
 
     // timestamp == beforeData == afterData, getPower should just return beforeData
     beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
-    beforeData = new SensorData(beforeTime, tool, source, new Property(POWER_GENERATED, "100"));
+    beforeData = new SensorData(beforeTime, tool, source, new Property(POWER_GENERATED, "100.0"));
     client.storeSensorData(beforeData);
     timestamp = beforeTime;
     assertEquals("getPower on degenerate straddle did not return beforeData", client.getPower(
@@ -268,9 +56,9 @@ public class TestPowerResource extends ServerTestHelper {
     // slope is 2 (100 W difference in 50 seconds)
     beforeTime = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
     afterTime = Tstamp.makeTimestamp("2009-07-28T08:00:50.000-10:00");
-    beforeData = new SensorData(beforeTime, tool, source, new Property(POWER_GENERATED, "100"));
+    beforeData = new SensorData(beforeTime, tool, source, new Property(POWER_GENERATED, "100.0"));
     client.storeSensorData(beforeData);
-    afterData = new SensorData(afterTime, tool, source, new Property(POWER_GENERATED, "200"));
+    afterData = new SensorData(afterTime, tool, source, new Property(POWER_GENERATED, "200.0"));
     client.storeSensorData(afterData);
     timestamp = Tstamp.makeTimestamp("2009-07-28T08:00:25.000-10:00");
     powerData = client.getPower(sourceName, timestamp);

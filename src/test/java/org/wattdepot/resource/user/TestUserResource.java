@@ -4,8 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import java.util.List;
+import javax.xml.bind.JAXBException;
 import org.junit.Test;
 import org.wattdepot.client.NotAuthorizedException;
+import org.wattdepot.client.OverwriteAttemptedException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
 import org.wattdepot.resource.user.jaxb.User;
@@ -83,8 +87,79 @@ public class TestUserResource extends ServerTestHelper {
     User adminUser = client.getUser(adminEmail);
     UserIndex index = client.getUserIndex();
     assertNotNull("Unable to retrieve user list with admin account", index.getUserRef());
-    assertEquals("Admin user ref didn't correspond to actual admin user", adminUser, client
-        .getUser(index.getUserRef().get(0)));
-    assertEquals("Expected just admin user from getUsers", adminUser, client.getUsers().get(0));
+    assertEquals("Admin user ref didn't correspond to actual admin user", adminUser,
+        client.getUser(index.getUserRef().get(0)));
+    List<User> users = client.getUsers();
+    assertEquals("Expected just admin user from getUsers", adminUser, users.get(0));
+  }
+
+  /**
+   * Test that when we are authenticated as one user, we cannot get the details for another user.
+   * 
+   * @throws WattDepotClientException If problems occur.
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testGetOtheruser() throws WattDepotClientException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    client.getUser(defaultNonOwnerUsername);
+    fail("Able to retrieve a different user");
+  }
+
+  /**
+   * Test that we can add a user through the client.
+   * 
+   * @throws WattDepotClientException If problems occur.
+   * @throws JAXBException If problems are encountered with XML.
+   */
+  @Test
+  public void testStoreUser() throws WattDepotClientException, JAXBException {
+    User newUser = new User("new-user", "new-password", false, null);
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    assertTrue("Could not store new user", client.storeUser(newUser));
+    assertEquals("Not able to retrieve new user", newUser, client.getUser(newUser.getEmail()));
+  }
+
+  /**
+   * Test that we cannot overwrite another user.
+   * 
+   * @throws WattDepotClientException If problems occur.
+   * @throws JAXBException If problems are encountered with XML.
+   */
+  @Test(expected = OverwriteAttemptedException.class)
+  public void testStoreUserOverwrite() throws WattDepotClientException, JAXBException {
+    User oldUser = new User(defaultOwnerUsername, "new-password", false, null);
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    client.storeUser(oldUser);
+    fail("Able to overwrite user");
+  }
+
+  /**
+   * Test that non-administrators cannot create new users.
+   * 
+   * @throws WattDepotClientException If problems occur.
+   * @throws JAXBException If problems are encountered with XML.
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testStoreUserFromNonAdmin() throws WattDepotClientException, JAXBException {
+    User newUser = new User("new-user", "new-password", false, null);
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    client.storeUser(newUser);
+    fail("Able to create user from non-admin account");
+  }
+
+  /**
+   * Test that adminstrators can create new administrators.
+   * 
+   * @throws WattDepotClientException If problems occur.
+   * @throws JAXBException If problems are encountered with XML.
+   */
+  @Test
+  public void testStoreAdminUser() throws WattDepotClientException, JAXBException {
+    User newUser = new User("new-admin", "new-password", true, null);
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    assertTrue("Could not store new admin", client.storeUser(newUser));
+    assertEquals("Not able to retrieve new admin", newUser, client.getUser(newUser.getEmail()));
   }
 }

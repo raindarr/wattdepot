@@ -293,14 +293,14 @@ public abstract class DbImplementation {
    * If the given timestamp corresponds to an actual SensorData, then return a degenerate
    * SensorDataStraddle with both ends of the straddle set to the actual SensorData.
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestamp The timestamp of interest in the straddle.
    * @return A SensorDataStraddle that straddles the given timestamp. Returns null if: parameters
    * are null, the source doesn't exist, source has no sensor data, or there is no sensor data that
    * straddles the timestamp.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddleList
    */
-  public abstract SensorDataStraddle getSensorDataStraddle(String sourceName,
+  public abstract SensorDataStraddle getSensorDataStraddle(Source source,
       XMLGregorianCalendar timestamp);
 
   /**
@@ -309,14 +309,14 @@ public abstract class DbImplementation {
    * result will be a list containing a single SensorDataStraddle, or null. In the case of a
    * non-virtual source, you might as well use getSensorDataStraddle.
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestamp The timestamp of interest in the straddle.
    * @return A list of SensorDataStraddles that straddle the given timestamp. Returns null if:
    * parameters are null, the source doesn't exist, or there is no sensor data that straddles the
    * timestamp.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle
    */
-  public abstract List<SensorDataStraddle> getSensorDataStraddleList(String sourceName,
+  public abstract List<SensorDataStraddle> getSensorDataStraddleList(Source source,
       XMLGregorianCalendar timestamp);
 
   /**
@@ -326,47 +326,47 @@ public abstract class DbImplementation {
    * virtual source, the result is a list of StraddleLists, one for each non-virtual subsource
    * (determined recursively).
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestampList The list of timestamps of interest in each straddle.
    * @return A list of StraddleLists. Returns null if: parameters are null, the source doesn't
    * exist, or there is no sensor data that straddles any of the timestamps.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle
    */
-  public abstract List<StraddleList> getStraddleLists(String sourceName,
+  public abstract List<StraddleList> getStraddleLists(Source source,
       List<XMLGregorianCalendar> timestampList);
 
   /**
-   * Given a virtual source name, and a List of timestamps, returns a List (one member for each
+   * Given a virtual source and a List of timestamps, returns a List (one member for each
    * non-virtual subsource) that contains Lists of SensorDataStraddles that straddle each of the
    * given timestamps. If the given source is non-virtual, then the result will be a list containing
    * a single List of SensorDataStraddles, or null.
    * 
-   * @param sourceName The name of the source to generate the straddle from.
+   * @param source The source object to generate the straddle from.
    * @param timestampList The list of timestamps of interest in each straddle.
    * @return A list of lists of SensorDataStraddles that straddle the given timestamp. Returns null
    * if: parameters are null, the source doesn't exist, or there is no sensor data that straddles
    * any of the timestamps.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle getSensorDataStraddle
    */
-  public abstract List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(
-      String sourceName, List<XMLGregorianCalendar> timestampList);
+  public abstract List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(Source source,
+      List<XMLGregorianCalendar> timestampList);
 
   /**
-   * Returns the power in SensorData format for the Source name given and the given timestamp, or
+   * Returns the power in SensorData format for the given Source and timestamp, or
    * null if no power data exists.
    * 
-   * @param sourceName The source name.
+   * @param source The source object.
    * @param timestamp The timestamp requested.
    * @return The requested power in SensorData format, or null if it cannot be found/calculated.
    */
-  public SensorData getPower(String sourceName, XMLGregorianCalendar timestamp) {
-    if (getSource(sourceName).isVirtual()) {
-      List<SensorDataStraddle> straddleList = getSensorDataStraddleList(sourceName, timestamp);
-      return SensorDataStraddle.getPowerFromList(straddleList, Source.sourceToUri(sourceName,
-          this.server));
+  public SensorData getPower(Source source, XMLGregorianCalendar timestamp) {
+    if (source.isVirtual()) {
+      List<SensorDataStraddle> straddleList = getSensorDataStraddleList(source, timestamp);
+      return SensorDataStraddle.getPowerFromList(straddleList,
+          Source.sourceToUri(source.getName(), this.server));
     }
     else {
-      SensorDataStraddle straddle = getSensorDataStraddle(sourceName, timestamp);
+      SensorDataStraddle straddle = getSensorDataStraddle(source, timestamp);
       if (straddle == null) {
         return null;
       }
@@ -377,25 +377,25 @@ public abstract class DbImplementation {
   }
 
   /**
-   * Returns the energy in SensorData format for the Source name given over the range of time
+   * Returns the energy in SensorData format for the given Source over the range of time
    * between startTime and endTime, or null if no energy data exists.
    * 
-   * @param sourceName The source name.
+   * @param source The source object.
    * @param startTime The start of the range requested.
    * @param endTime The end of the range requested.
    * @param interval The sampling interval requested (ignored if all sources support energy
    * counters).
    * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
    */
-  public SensorData getEnergy(String sourceName, XMLGregorianCalendar startTime,
+  public SensorData getEnergy(Source source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
-    List<Source> nonVirtualSources = getAllNonVirtualSubSources(getSource(sourceName));
+    List<Source> nonVirtualSources = getAllNonVirtualSubSources(source);
     // True only if all non-virtual subsources support energy counters
     boolean allSupportEnergyCounters = true;
 
-    for (Source source : nonVirtualSources) {
+    for (Source s : nonVirtualSources) {
       allSupportEnergyCounters =
-          allSupportEnergyCounters && source.isPropertyTrue(Source.SUPPORTS_ENERGY_COUNTERS);
+          allSupportEnergyCounters && s.isPropertyTrue(Source.SUPPORTS_ENERGY_COUNTERS);
     }
     if (allSupportEnergyCounters) {
       List<Energy> energyList = new ArrayList<Energy>();
@@ -403,7 +403,7 @@ public abstract class DbImplementation {
       List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>(2);
       timestampList.add(startTime);
       timestampList.add(endTime);
-      List<StraddleList> sourceList = getStraddleLists(sourceName, timestampList);
+      List<StraddleList> sourceList = getStraddleLists(source, timestampList);
       if ((sourceList == null) || (sourceList.isEmpty())) {
         return null;
       }
@@ -420,7 +420,8 @@ public abstract class DbImplementation {
         }
       }
       try {
-        return Energy.getEnergyFromList(energyList, Source.sourceToUri(sourceName, this.server));
+        return Energy.getEnergyFromList(energyList,
+            Source.sourceToUri(source.getName(), this.server));
       }
       catch (EnergyCounterException e) {
         // some sort of counter problem. For now, we just bail and return an error
@@ -430,14 +431,14 @@ public abstract class DbImplementation {
     }
     else {
       List<List<SensorDataStraddle>> masterList =
-          getSensorDataStraddleListOfLists(sourceName, Tstamp.getTimestampList(startTime, endTime,
-              interval));
+          getSensorDataStraddleListOfLists(source,
+              Tstamp.getTimestampList(startTime, endTime, interval));
       if ((masterList == null) || (masterList.isEmpty())) {
         return null;
       }
       else {
-        return Energy.getEnergyFromListOfLists(masterList, Source.sourceToUri(sourceName,
-            this.server));
+        return Energy.getEnergyFromListOfLists(masterList,
+            Source.sourceToUri(source.getName(), this.server));
       }
     }
   }
@@ -472,6 +473,8 @@ public abstract class DbImplementation {
    */
   public List<Source> getAllSubSources(Source source) {
     if (source.isSetSubSources()) {
+      // List<Source> sourceList = source.getSubSourceList();
+      // if (sourceList == null) {
       List<Source> sourceList = new ArrayList<Source>();
       for (String subSourceUri : source.getSubSources().getHref()) {
         Source subSource = getSource(UriUtils.getUriSuffix(subSourceUri));
@@ -479,6 +482,8 @@ public abstract class DbImplementation {
           sourceList.add(subSource);
         }
       }
+      // source.setSubSourceList(sourceList);
+      // }
       return sourceList;
     }
     else {
@@ -487,25 +492,26 @@ public abstract class DbImplementation {
   }
 
   /**
-   * Returns the carbon emitted in SensorData format for the Source name given over the range of
+   * Returns the carbon emitted in SensorData format for the Source given over the range of
    * time between startTime and endTime, or null if no carbon data exists.
    * 
-   * @param sourceName The source name.
+   * @param source The source object.
    * @param startTime The start of the range requested.
    * @param endTime The start of the range requested.
    * @param interval The sampling interval requested.
    * @return The requested carbon in SensorData format, or null if it cannot be found/calculated.
    */
-  public SensorData getCarbon(String sourceName, XMLGregorianCalendar startTime,
+  public SensorData getCarbon(Source source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
     List<StraddleList> masterList =
-        getStraddleLists(sourceName, Tstamp.getTimestampList(startTime, endTime, interval));
+        getStraddleLists(source, Tstamp.getTimestampList(startTime, endTime, interval));
     if ((masterList == null) || (masterList.isEmpty())) {
       return null;
     }
     else {
       // Make list of carbon intensities, one from each source
-      return Carbon.getCarbonFromStraddleList(masterList, Source.sourceToUri(sourceName, server));
+      return Carbon.getCarbonFromStraddleList(masterList,
+          Source.sourceToUri(source.getName(), server));
     }
   }
 
