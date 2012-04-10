@@ -14,3 +14,8 @@ wattdepot-server.admin.password = CHANGE-ME
 
 ## TCP port used for incoming connections, defaults to 8182
 #wattdepot-server.port = 8182
+
+## If using the Postgres backend, these properties must be set to match your
+## Postgres installation
+wattdepot-server.db.username=postgres
+wattdepot-server.db.password=YOUR-POSTGRES-PASSWORD

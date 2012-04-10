@@ -103,8 +103,8 @@ public class TestSourceResource extends ServerTestHelper {
     // We added in sorted order, but just for safety's sake we sort the list
     Collections.sort(index.getSourceRef());
     // Admin should see both sources
-    assertEquals("Expected sources not found", client.getSourceIndex().getSourceRef(), index
-        .getSourceRef());
+    assertEquals("Expected sources not found", client.getSourceIndex().getSourceRef(),
+        index.getSourceRef());
 
     List<Source> sourceList = new ArrayList<Source>();
     sourceList.add(this.publicSource);
@@ -263,6 +263,30 @@ public class TestSourceResource extends ServerTestHelper {
     fail("Able to get private Source with non-owner credentials");
   }
 
+  // Tests for PUT {host}/sources/{source}
+
+  /**
+   * Tests storing of a Source. Type: valid owner credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   * @throws JAXBException If problems are encountered with XML
+   */
+  @Test
+  public void testSourcePut() throws WattDepotClientException, JAXBException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    String newSourceName = "new-source";
+    Source newSource =
+        new Source(newSourceName, publicSource.getOwner(), true, false, "0,0,100", "Null Island",
+            "Just a test source", null, null);
+    newSource.addProperty(new Property(Source.SUPPORTS_ENERGY_COUNTERS, "true"));
+    assertTrue("Property not added to source",
+        newSource.isPropertyTrue(Source.SUPPORTS_ENERGY_COUNTERS));
+    assertTrue("Unable to create new Source", client.storeSource(newSource, false));
+    assertEquals("Retrieved new Source does not match input value", newSource,
+        client.getSource(newSourceName));
+  }
+
   // Tests for PUT {host}/sources/{source}?overwrite={overwrite}
 
   /**
@@ -273,16 +297,15 @@ public class TestSourceResource extends ServerTestHelper {
    * @throws JAXBException If problems are encountered with XML
    */
   @Test(expected = OverwriteAttemptedException.class)
-  public void testSourcePut() throws WattDepotClientException, JAXBException {
+  public void testSourcePutNoOverwrite() throws WattDepotClientException, JAXBException {
     WattDepotClient client =
         new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
-    assertFalse("Able to overwrite existing Source without overwrite flag", client.storeSource(
-        publicSource, false));
+    assertFalse("Able to overwrite existing Source without overwrite flag",
+        client.storeSource(publicSource, false));
   }
 
   /**
-   * Tests storing of Source that already exists without overwrite flag. Type: valid owner
-   * credentials.
+   * Tests storing of Source that already exists with overwrite flag. Type: valid owner credentials.
    * 
    * @throws WattDepotClientException If problems are encountered
    * @throws JAXBException If problems are encountered with XML
@@ -291,17 +314,17 @@ public class TestSourceResource extends ServerTestHelper {
   public void testSourcePutOverwrite() throws WattDepotClientException, JAXBException {
     WattDepotClient client =
         new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
-    assertTrue("Unable to overwrite existing Source even with overwrite flag", client.storeSource(
-        publicSource, true));
+    assertTrue("Unable to overwrite existing Source even with overwrite flag",
+        client.storeSource(publicSource, true));
     Source replacementSource =
         new Source(defaultPublicSource, publicSource.getOwner(), true, false,
             "21.30078,-157.819129,41", "Saunders Hall on the University of Hawaii at Manoa campus",
             "Obvius-brand power meter", null, null);
     replacementSource.addProperty(new Property(Source.SUPPORTS_ENERGY_COUNTERS, "true"));
-    assertTrue("Property not added to source", replacementSource
-        .isPropertyTrue(Source.SUPPORTS_ENERGY_COUNTERS));
-    assertTrue("Unable to overwrite existing Source even with overwrite flag", client.storeSource(
-        replacementSource, true));
+    assertTrue("Property not added to source",
+        replacementSource.isPropertyTrue(Source.SUPPORTS_ENERGY_COUNTERS));
+    assertTrue("Unable to overwrite existing Source even with overwrite flag",
+        client.storeSource(replacementSource, true));
     assertEquals("Retrieved overwritten Source does not match input value", replacementSource,
         client.getSource(defaultPublicSource));
   }
