@@ -69,6 +69,8 @@ public class DerbyStorageImplementation extends DbImplementation {
   private static final String derbyError = "Derby: Error ";
   /** The SQL state indicating that INSERT tried to add data to a table with a preexisting key. */
   private static final String DUPLICATE_KEY = "23505";
+  /** The SQL state indicatign that INSERT tried to violate a foreign key constraint. */
+  private static final String FOREIGN_KEY_VIOLATION = "23503";
 
   /**
    * Instantiates the Derby implementation. Throws a Runtime exception if the Derby jar file cannot
@@ -725,6 +727,11 @@ public class DerbyStorageImplementation extends DbImplementation {
       PreparedStatement s = null;
       try {
         conn = DriverManager.getConnection(connectionURL);
+        if (conn.getMetaData().supportsTransactionIsolationLevel(
+            Connection.TRANSACTION_READ_COMMITTED)) {
+          conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        }
+        conn.setAutoCommit(false);
         // If source exists already, then do update rather than insert IF overwrite is true
         if (sourceExists(source.getName())) {
           if (overwrite) {
@@ -815,6 +822,7 @@ public class DerbyStorageImplementation extends DbImplementation {
           }
         }
 
+        conn.commit();
         this.logger.fine("Derby: Inserted Source" + source.getName());
         return true;
       }
@@ -822,6 +830,11 @@ public class DerbyStorageImplementation extends DbImplementation {
         if (DUPLICATE_KEY.equals(e.getSQLState())) {
           // This should be extremely rare now that we check for existence before INSERTting
           this.logger.fine("Derby: Attempted to overwrite Source " + source.getName());
+          return false;
+        }
+        else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
+          this.logger
+              .info("Derby: Foreign key constraint violation on Source " + source.getName());
           return false;
         }
         else {
@@ -834,7 +847,10 @@ public class DerbyStorageImplementation extends DbImplementation {
           if (s != null) {
             s.close();
           }
-          conn.close();
+          if (conn != null) {
+            conn.setAutoCommit(true);
+            conn.close();
+          }
         }
         catch (SQLException e) {
           this.logger.warning(errorClosingMsg + StackTrace.toString(e));
@@ -1296,6 +1312,11 @@ public class DerbyStorageImplementation extends DbImplementation {
 
       try {
         conn = DriverManager.getConnection(connectionURL);
+        if (conn.getMetaData().supportsTransactionIsolationLevel(
+            Connection.TRANSACTION_READ_COMMITTED)) {
+          conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        }
+        conn.setAutoCommit(false);
         s = conn.prepareStatement("INSERT INTO SensorData VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         // Order: Tstamp Tool Source PowerConsumed EnergyConsumedToDate PowerGenerated
         // EnergyGeneratedToDate LastMod s.setTimestamp(1,
@@ -1346,12 +1367,18 @@ public class DerbyStorageImplementation extends DbImplementation {
           }
         }
 
+        conn.commit();
         this.logger.fine("Derby: Inserted SensorData" + data.getTimestamp());
         return true;
       }
       catch (SQLException e) {
         if (DUPLICATE_KEY.equals(e.getSQLState())) {
           this.logger.fine("Derby: Attempted to overwrite SensorData " + data.getTimestamp());
+          return false;
+        }
+        else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
+          this.logger.info("Derby: Foreign key constraint violation on SensorData "
+              + data.getTimestamp());
           return false;
         }
         else {
@@ -1362,6 +1389,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       finally {
         try {
           s.close();
+          conn.setAutoCommit(true);
           conn.close();
         }
         catch (SQLException e) {
@@ -1800,6 +1828,11 @@ public class DerbyStorageImplementation extends DbImplementation {
 
       try {
         conn = DriverManager.getConnection(connectionURL);
+        if (conn.getMetaData().supportsTransactionIsolationLevel(
+            Connection.TRANSACTION_READ_COMMITTED)) {
+          conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        }
+        conn.setAutoCommit(false);
         s = conn.prepareStatement("INSERT INTO WattDepotUser VALUES (?, ?, ?, ?)");
         // Order: Username Password Admin Properties LastMod
         s.setString(1, user.getEmail());
@@ -1820,12 +1853,17 @@ public class DerbyStorageImplementation extends DbImplementation {
           }
         }
 
+        conn.commit();
         this.logger.fine("Derby: Inserted User" + user.getEmail());
         return true;
       }
       catch (SQLException e) {
         if (DUPLICATE_KEY.equals(e.getSQLState())) {
           this.logger.fine("Derby: Attempted to overwrite User " + user.getEmail());
+          return false;
+        }
+        else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
+          this.logger.info("Derby: Foreign key constraint violation on User " + user.getEmail());
           return false;
         }
         else {
@@ -1836,6 +1874,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       finally {
         try {
           s.close();
+          conn.setAutoCommit(true);
           conn.close();
         }
         catch (SQLException e) {

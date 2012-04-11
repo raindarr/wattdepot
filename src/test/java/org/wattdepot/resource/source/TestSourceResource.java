@@ -2,6 +2,7 @@ package org.wattdepot.resource.source;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,6 +10,7 @@ import java.util.List;
 import javax.xml.bind.JAXBException;
 import org.junit.Before;
 import org.junit.Test;
+import org.wattdepot.client.MiscClientException;
 import org.wattdepot.client.OverwriteAttemptedException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
@@ -16,6 +18,7 @@ import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
+import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.test.ServerTestHelper;
 
 /**
@@ -182,6 +185,42 @@ public class TestSourceResource extends ServerTestHelper {
         client.getSource(newSourceName));
   }
 
+  /**
+   * Tests storing of Source with a non-existant SubSource. Type: valid owner credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   * @throws JAXBException If problems are encountered with XML
+   */
+  @Test(expected = MiscClientException.class)
+  public void testSourceHierarchy() throws WattDepotClientException, JAXBException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    SubSources subsources = new SubSources();
+    subsources.getHref().add("http://localhost:8182/wattdepot/sources/bogus-source");
+    Source newSource =
+        new Source("new-source", publicSource.getOwner(), true, true, "", "", "", null, subsources);
+    assertFalse("Able to store source with bogus subsource", client.storeSource(newSource, false));
+    assertNull("Able to retrieve source with bogus subsource",
+        client.getSource(newSource.getName()));
+  }
+
+  /**
+   * Tests storing of Source with a non-existant owner. Type: valid owner credentials.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   * @throws JAXBException If problems are encountered with XML
+   */
+  @Test(expected = MiscClientException.class)
+  public void testSourceUser() throws WattDepotClientException, JAXBException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    Source newSource =
+        new Source("new-source", "http://localhost:8182/wattdepot/users/bogus-user", true, false,
+            "", "", "", null, null);
+    assertFalse("Able to store source with bogus owner", client.storeSource(newSource, false));
+    assertNull("Able to retrieve source with bogus owner", client.getSource(newSource.getName()));
+  }
+
   // Tests for PUT {host}/sources/{source}?overwrite={overwrite}
 
   /**
@@ -224,4 +263,5 @@ public class TestSourceResource extends ServerTestHelper {
     assertEquals("Retrieved overwritten Source does not match input value", replacementSource,
         client.getSource(defaultPublicSource));
   }
+
 }

@@ -107,6 +107,7 @@ public class SourceResource extends WattDepotResource {
   public Representation put(Representation entity, Variant variant) {
     // Cannot be anonymous to put a source
     if (isAnonymous()) {
+     // setStatusBadCredentials();
       return null;
     }
     // Get the payload.

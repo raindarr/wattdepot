@@ -83,10 +83,10 @@ public class PostgresStorageImplementation extends DbImplementation {
    */
   private PGConnectionPoolDataSource connectionPool;
 
-  /**
-   * The SQL state indicating that INSERT tried to add data to a table with a preexisting key.
-   */
+  /** The SQL state indicating that INSERT tried to add data to a table with a preexisting key. */
   private static final String DUPLICATE_KEY = "23505";
+  /** The SQL state indicatign that INSERT tried to violate a foreign key constraint. */
+  private static final String FOREIGN_KEY_VIOLATION = "23503";
 
   /**
    * Instantiates the PostgreSQL implementation. Throws a Runtime exception if the PostgeSQL jar
@@ -242,8 +242,8 @@ public class PostgresStorageImplementation extends DbImplementation {
 
     try {
       String baseConnectionUrl =
-          "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "?user="
-              + props.get(DB_USERNAME_KEY) + "&password=" + props.get(DB_PASSWORD_KEY);
+          "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY)
+              + "?user=" + props.get(DB_USERNAME_KEY) + "&password=" + props.get(DB_PASSWORD_KEY);
 
       this.logger.info("Created database catalog " + props.get(DB_DATABASE_NAME_KEY));
 
@@ -923,13 +923,21 @@ public class PostgresStorageImplementation extends DbImplementation {
    * @return A string of length-number question marks separated by commas.
    */
   private String preparePlaceHolders(int length) {
+    // If there is only one source, use =
+    //if (length == 1) {
+   //   return " = ?";
+   // }
+
+    // If there are more than one, use IN
     StringBuilder builder = new StringBuilder();
+    //builder.append(" IN (");
     for (int i = 0; i < length;) {
       builder.append("?");
       if (++i < length) {
         builder.append(",");
       }
     }
+    //builder.append(")");
     return builder.toString();
   }
 
@@ -945,7 +953,11 @@ public class PostgresStorageImplementation extends DbImplementation {
 
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
+        if (conn.getMetaData().supportsTransactionIsolationLevel(
+            Connection.TRANSACTION_READ_COMMITTED)) {
+          conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        }
+        conn.setAutoCommit(false);
         // If source exists already, then do update rather than insert IF overwrite is true
         if (sourceExists(source.getName())) {
           if (overwrite) {
@@ -1033,6 +1045,7 @@ public class PostgresStorageImplementation extends DbImplementation {
             }
           }
         }
+        conn.commit();
 
         this.logger.fine("PostgreSQL: Inserted Source" + source.getName());
         return true;
@@ -1041,6 +1054,11 @@ public class PostgresStorageImplementation extends DbImplementation {
         if (DUPLICATE_KEY.equals(e.getSQLState())) {
           // This should be extremely rare now that we check for existence before INSERTting
           this.logger.fine("PostgreSQL: Attempted to overwrite Source " + source.getName());
+          return false;
+        }
+        else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
+          this.logger
+              .info("Derby: Foreign key constraint violation on Source " + source.getName());
           return false;
         }
         else {
@@ -1054,6 +1072,7 @@ public class PostgresStorageImplementation extends DbImplementation {
             s.close();
           }
           if (conn != null) {
+            conn.setAutoCommit(true);
             conn.close();
           }
         }
@@ -1552,7 +1571,11 @@ public class PostgresStorageImplementation extends DbImplementation {
       PreparedStatement s = null;
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
+        if (conn.getMetaData().supportsTransactionIsolationLevel(
+            Connection.TRANSACTION_READ_COMMITTED)) {
+          conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        }
+        conn.setAutoCommit(false);
         s = conn.prepareStatement("INSERT INTO SensorData VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         // Order: Tstamp Tool Source PowerConsumed EnergyConsumedToDate PowerGenerated
         // EnergyGeneratedToDate LastMod
@@ -1602,12 +1625,18 @@ public class PostgresStorageImplementation extends DbImplementation {
           }
         }
 
+        conn.commit();
         this.logger.fine("PostgreSQL: Inserted SensorData" + data.getTimestamp());
         return true;
       }
       catch (SQLException e) {
         if (DUPLICATE_KEY.equals(e.getSQLState())) {
           this.logger.fine("PostgreSQL: Attempted to overwrite SensorData " + data.getTimestamp());
+          return false;
+        }
+        else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
+          this.logger.info("Derby: Foreign key constraint violation on SensorData "
+              + data.getTimestamp());
           return false;
         }
         else {
@@ -1621,6 +1650,7 @@ public class PostgresStorageImplementation extends DbImplementation {
             s.close();
           }
           if (conn != null) {
+            conn.setAutoCommit(true);
             conn.close();
           }
         }
@@ -2084,7 +2114,11 @@ public class PostgresStorageImplementation extends DbImplementation {
 
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
+        if (conn.getMetaData().supportsTransactionIsolationLevel(
+            Connection.TRANSACTION_READ_COMMITTED)) {
+          conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        }
+        conn.setAutoCommit(false);
         s = conn.prepareStatement("INSERT INTO WattDepotUser VALUES (?, ?, ?, ?)");
         // Order: Username Password Admin LastMod
         s.setString(1, user.getEmail());
@@ -2104,6 +2138,7 @@ public class PostgresStorageImplementation extends DbImplementation {
             s.executeUpdate();
           }
         }
+        conn.commit();
 
         this.logger.fine("PostgreSQL: Inserted User" + user.getEmail());
         return true;
@@ -2111,6 +2146,10 @@ public class PostgresStorageImplementation extends DbImplementation {
       catch (SQLException e) {
         if (DUPLICATE_KEY.equals(e.getSQLState())) {
           this.logger.fine("PostgreSQL: Attempted to overwrite User " + user.getEmail());
+          return false;
+        }
+        else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
+          this.logger.info("Derby: Foreign key constraint violation on User " + user.getEmail());
           return false;
         }
         else {
@@ -2124,6 +2163,7 @@ public class PostgresStorageImplementation extends DbImplementation {
             s.close();
           }
           if (conn != null) {
+            conn.setAutoCommit(true);
             conn.close();
           }
         }
