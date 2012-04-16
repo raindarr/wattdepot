@@ -24,7 +24,7 @@ public class TestPostgresStorageImplementation extends DbManagerTestHelper {
   @Ignore("This doesn't work on all systems because of permissions")
   public void testMakeSnapshot() {
     File backupZip =
-        new File(server.getServerProperties().get(ServerProperties.DB_SNAPSHOT_KEY) + ".zip");
+        new File(server.getServerProperties().get(ServerProperties.POSTGRES_SNAPSHOT_KEY) + ".zip");
     Date before = null;
 
     if (backupZip.exists()) {

@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import javax.xml.datatype.DatatypeConstants;
@@ -82,7 +83,7 @@ public class DerbyStorageImplementation extends DbImplementation {
     super(server);
     // Set the directory where the DB will be created and/or accessed.
     // This must happen before loading the driver.
-    String dbDir = server.getServerProperties().get(ServerProperties.DB_DIR_KEY);
+    String dbDir = server.getServerProperties().get(ServerProperties.DERBY_DIR_KEY);
     System.getProperties().put(derbySystemKey, dbDir);
     // Try to load the derby driver.
     try {
@@ -123,10 +124,25 @@ public class DerbyStorageImplementation extends DbImplementation {
         }
       });
       // Initialize the database table structure if necessary.
-      this.isFreshlyCreated = !isPreExisting();
-      String dbStatusMsg =
-          (this.isFreshlyCreated) ? "Derby: uninitialized." : "Derby: previously initialized.";
-      this.logger.info(dbStatusMsg);
+      try {
+        this.isFreshlyCreated = !isPreExisting();
+        String dbStatusMsg =
+            (this.isFreshlyCreated) ? "Derby: uninitialized." : "Derby: previously initialized.";
+        this.logger.info(dbStatusMsg);
+      }
+      catch (SQLException e) {
+        if (wipe) {
+          // An exception is isPreExisting most likely means the table schemas are incorrect.
+          // If the user wants to wipe all data AND the current tables have the wrong schema, just
+          // delete all tables and start from scratch.
+          this.logger.warning("Recreating Derby schema");
+          dropTables();
+          this.isFreshlyCreated = true;
+        }
+        else {
+          throw e;
+        }
+      }
       if (this.isFreshlyCreated) {
         this.logger.info("Derby: creating DB in: " + System.getProperty(derbySystemKey));
         createTables();
@@ -162,30 +178,38 @@ public class DerbyStorageImplementation extends DbImplementation {
   private boolean isPreExisting() throws SQLException {
     Connection conn = null;
     Statement s = null;
+    boolean ret = true;
     try {
       conn = DriverManager.getConnection(connectionURL);
+
+      List<String> testStatements =
+          Arrays.asList(testUserTableStatement, testUserPropertyTableStatement,
+              testSourceTableStatement, testSourceHierarchyTableStatement,
+              testSourcePropertyTableStatement, testSensorDataTableStatement,
+              testSensorDataPropertyTableStatement);
+
       s = conn.createStatement();
-      s.execute(testUserTableStatement);
-      s.execute(testUserPropertyTableStatement);
-      s.execute(testSourceTableStatement);
-      s.execute(testSourceHierarchyTableStatement);
-      s.execute(testSourcePropertyTableStatement);
-      s.execute(testSensorDataTableStatement);
-      s.execute(testSensorDataPropertyTableStatement);
-    }
-    catch (SQLException e) {
-      String theError = (e).getSQLState();
-      if ("42X05".equals(theError)) {
-        // Database doesn't exist.
-        return false;
-      }
-      else if ("42X14".equals(theError) || "42821".equals(theError)) {
-        // Incorrect table definition.
-        throw e;
-      }
-      else {
-        // Unknown SQLException
-        throw e;
+      for (String test : testStatements) {
+        try {
+          s.execute(test);
+        }
+        catch (SQLException e) {
+          String theError = (e).getSQLState();
+
+          if ("42X05".equals(theError)) {
+            // Table doesn't exist. Remember this and continue to check the rest of the tables.
+            // We do this so that if an error occurs in another table, it still gets thrown.
+            ret = false;
+          }
+          else if ("42X14".equals(theError) || "42821".equals(theError)) {
+            // Incorrect table definition.
+            throw e;
+          }
+          else {
+            // Unknown SQLException
+            throw e;
+          }
+        }
       }
     }
     finally {
@@ -197,7 +221,7 @@ public class DerbyStorageImplementation extends DbImplementation {
       }
     }
     // If table exists will get - WARNING 02000: No row was found
-    return true;
+    return ret;
   }
 
   /**
@@ -210,20 +234,75 @@ public class DerbyStorageImplementation extends DbImplementation {
     Statement s = null;
     try {
       conn = DriverManager.getConnection(connectionURL);
+
+      List<String> createStatements =
+          Arrays.asList(createUserTableStatement, createUserPropertyTableStatement,
+              createSourceTableStatement, createSourceHierarchyTableStatement,
+              createSourcePropertyTableStatement, createSensorDataTableStatement,
+              createSensorDataPropertyTableStatement, indexSensorDataSourceTstampDescStatement);
+
       s = conn.createStatement();
-      s.execute(createUserTableStatement);
-      s.execute(createUserPropertyTableStatement);
-      s.execute(createSourceTableStatement);
-      s.execute(createSourceHierarchyTableStatement);
-      s.execute(createSourcePropertyTableStatement);
-      s.execute(createSensorDataTableStatement);
-      s.execute(createSensorDataPropertyTableStatement);
-      s.execute(indexSensorDataSourceTstampDescStatement);
-      s.close();
+      for (String create : createStatements) {
+        try {
+          s.execute(create);
+        }
+        catch (SQLException e) {
+          // If the error is that the table or index already exists, ignore it and move on.
+          if (!"X0Y32".equals(e.getSQLState())) {
+            this.logger.warning(e.getSQLState() + ": " + e.getMessage());
+          }
+        }
+      }
     }
     finally {
+      if (s != null) {
+        s.close();
+      }
+      if (conn != null) {
+        conn.close();
+      }
+    }
+  }
+
+  /**
+   * Drop all database tables.
+   * 
+   * @throws SQLException If an error occurs with the database connection.
+   * 
+   */
+  private void dropTables() throws SQLException {
+    Connection conn = null;
+    Statement s = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      List<String> dropStatements =
+          Arrays.asList(dropSensorDataSourceTstampDescStatement,
+              dropSensorDataPropertyTableStatement, dropSensorDataTableStatement,
+              dropSourcePropertyTableStatement, dropSourceHierarchyTableStatement,
+              dropSourceTableStatement, dropUserPropertyTableStatement, dropUserTableStatement);
+
+      s = conn.createStatement();
+      for (String drop : dropStatements) {
+        try {
+          s.execute(drop);
+        }
+        catch (SQLException e) {
+          // If the error is that the table or index doesn't exist, ignore it and move on.
+          if (!"42Y55".equals(e.getSQLState()) && !"42X65".equals(e.getSQLState())) {
+            this.logger.warning(e.getSQLState() + ": " + e.getMessage());
+          }
+        }
+      }
       s.close();
-      conn.close();
+
+    }
+    finally {
+      if (s != null) {
+        s.close();
+      }
+      if (conn != null) {
+        conn.close();
+      }
     }
   }
 
@@ -279,6 +358,9 @@ public class DerbyStorageImplementation extends DbImplementation {
       + " EnergyDirection = 'consumer+generator'," + " SupportsEnergyCounters = 1, "
       + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
+  /** An SQL string to drop the Source table. */
+  private static final String dropSourceTableStatement = "DROP TABLE Source";
+
   /** The SQL string for creating the SourceHierarchy table. */
   private static final String createSourceHierarchyTableStatement = "create table SourceHierarchy"
       + "(" + "ParentSourceName VARCHAR(128) NOT NULL, "
@@ -291,6 +373,9 @@ public class DerbyStorageImplementation extends DbImplementation {
   private static final String testSourceHierarchyTableStatement = " UPDATE SourceHierarchy SET "
       + " ParentSourceName = 'db-test-source', " + " SubSourceName = 'SIM_HONOLULU_8' WHERE 1=3";
 
+  /** An SQL string to drop the SourceHierarchy table. */
+  private static final String dropSourceHierarchyTableStatement = "DROP TABLE SourceHierarchy";
+
   /** The SQL string for creating SourceProperty table. */
   private static final String createSourcePropertyTableStatement = "create table SourceProperty"
       + "(" + "SourceName VARCHAR(128) NOT NULL, " + " PropertyKey VARCHAR(128) NOT NULL, "
@@ -301,6 +386,9 @@ public class DerbyStorageImplementation extends DbImplementation {
   private static final String testSourcePropertyTableStatement = " UPDATE SourceProperty SET "
       + " SourceName= 'db-test-source', " + " PropertyKey = 'carbonIntensity', "
       + " PropertyValue = '2120'" + " WHERE 1=3";
+
+  /** An SQL string to drop the SourceProperty table. */
+  private static final String dropSourcePropertyTableStatement = "DROP TABLE SourceProperty";
 
   /** {@inheritDoc} */
   @Override
@@ -834,7 +922,7 @@ public class DerbyStorageImplementation extends DbImplementation {
         }
         else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
           this.logger
-              .info("Derby: Foreign key constraint violation on Source " + source.getName());
+              .fine("Derby: Foreign key constraint violation on Source " + source.getName());
           return false;
         }
         else {
@@ -926,6 +1014,9 @@ public class DerbyStorageImplementation extends DbImplementation {
       + " EnergyGeneratedToDate=5778.0, " + " LastMod = '"
       + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
+  /** An SQL string to drop the SensorData table. */
+  private static final String dropSensorDataTableStatement = "DROP TABLE SensorData";
+
   /** The SQL string for creating the SensorDataProperty table. */
   private static final String createSensorDataPropertyTableStatement =
       "create table SensorDataProperty " + "(" + " Tstamp TIMESTAMP NOT NULL, "
@@ -940,6 +1031,10 @@ public class DerbyStorageImplementation extends DbImplementation {
           + new Timestamp(new Date().getTime()).toString() + "', "
           + " Source = 'test-db-source', " + " PropertyKey = 'powerGenerated', "
           + " PropertyValue = '4.6E7' " + " WHERE 1=3";
+
+  /** An SQL string to drop the SensorDataProperty table. */
+  private static final String dropSensorDataPropertyTableStatement =
+      "DROP TABLE SensorDataProperty";
 
   /**
    * Compound index used based on this mailing list reply.
@@ -1677,6 +1772,9 @@ public class DerbyStorageImplementation extends DbImplementation {
       + " Username = 'TestEmail@foo.com', " + " Password = 'changeme', " + " Admin = 0, "
       + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
+  /** An SQL string to drop the User table. */
+  private static final String dropUserTableStatement = "DROP TABLE WattDepotUser";
+
   /** The SQL string for creating the WattDepotUserProperty table. */
   private static final String createUserPropertyTableStatement =
       "create table WattDepotUserProperty " + "(" + " Username VARCHAR(128) NOT NULL, "
@@ -1688,6 +1786,9 @@ public class DerbyStorageImplementation extends DbImplementation {
   private static final String testUserPropertyTableStatement =
       " UPDATE WattDepotUserProperty SET " + " Username = 'TestEmail@foo.com', "
           + " PropertyKey = 'awesomeness', " + " PropertyValue = 'total'" + " WHERE 1=3";
+
+  /** An SQL string to drop the UserProperty table. */
+  private static final String dropUserPropertyTableStatement = "DROP TABLE WattDepotUserProperty";
 
   /** {@inheritDoc} */
   @Override
@@ -2062,7 +2163,7 @@ public class DerbyStorageImplementation extends DbImplementation {
   public boolean makeSnapshot() {
     this.logger.fine("Creating snapshot of database.");
     boolean success = false;
-    String snapshotDir = server.getServerProperties().get(ServerProperties.DB_SNAPSHOT_KEY);
+    String snapshotDir = server.getServerProperties().get(ServerProperties.DERBY_SNAPSHOT_KEY);
 
     Connection conn = null;
     CallableStatement cs = null;

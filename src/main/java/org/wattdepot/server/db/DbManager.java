@@ -393,8 +393,8 @@ public class DbManager {
   }
 
   /**
-   * Returns the power in SensorData format for the given Source name and timestamp, or null if no power
-   * data exists.
+   * Returns the power in SensorData format for the given Source name and timestamp, or null if no
+   * power data exists.
    * 
    * @param sourceName The name of the source.
    * @param timestamp The timestamp requested.
@@ -403,7 +403,7 @@ public class DbManager {
   public SensorData getPower(String sourceName, XMLGregorianCalendar timestamp) {
     return this.getPower(this.getSource(sourceName), timestamp);
   }
-  
+
   /**
    * Returns the power in SensorData format for the given Source and timestamp, or null if no power
    * data exists.
@@ -430,10 +430,10 @@ public class DbManager {
       XMLGregorianCalendar endTime, int interval) {
     return this.getEnergy(this.getSource(sourceName), startTime, endTime, interval);
   }
-  
+
   /**
-   * Returns the energy in SensorData format for the Source given over the range of time
-   * between startTime and endTime, or null if no energy data exists.
+   * Returns the energy in SensorData format for the Source given over the range of time between
+   * startTime and endTime, or null if no energy data exists.
    * 
    * @param source The source object.
    * @param startTime The start of the range requested.
@@ -460,10 +460,10 @@ public class DbManager {
       XMLGregorianCalendar endTime, int interval) {
     return this.getCarbon(this.getSource(sourceName), startTime, endTime, interval);
   }
-  
+
   /**
-   * Returns the carbon emitted in SensorData format for the Source given over the range of
-   * time between startTime and endTime, or null if no carbon data exists.
+   * Returns the carbon emitted in SensorData format for the Source given over the range of time
+   * between startTime and endTime, or null if no carbon data exists.
    * 
    * @param source The source object.
    * @param startTime The start of the range requested.
@@ -563,8 +563,7 @@ public class DbManager {
   }
 
   /**
-   * Creates a snapshot of the database in the directory specified by
-   * ServerProperties.DB_SNAPSHOT_KEY.
+   * Creates a snapshot of the database in the directory specified by the Server Properties.
    * 
    * @return True if the snapshot succeeded.
    */

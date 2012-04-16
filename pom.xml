@@ -13,6 +13,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	<targetJdk>1.6</targetJdk>
 	<maven.build.timestamp.format>MMdd</maven.build.timestamp.format>
+	<build.version>${project.version}.${maven.build.timestamp}</build.version>
 	
 	<!-- Dependency Versions -->
 	<berkeleydb.version>4.0.92</berkeleydb.version>
@@ -461,7 +462,7 @@
 				<phase>package</phase>
 				<goals><goal>single</goal></goals>
 				<configuration>
-					<finalName>${project.artifactId}-${project.version}.${maven.build.timestamp}</finalName>
+					<finalName>${project.artifactId}-${build.version}</finalName>
 					<outputDirectory>${project.build.directory}/dist</outputDirectory>
 					<formats><format>zip</format></formats>
 					<filters>

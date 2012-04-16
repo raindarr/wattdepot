@@ -19,9 +19,9 @@ public class TestDerbyStorageImplementation extends DbManagerTestHelper {
   @Test
   public void testMakeSnapshot() {
     // File snapshotDir =
-    // new File(server.getServerProperties().get(ServerProperties.DB_SNAPSHOT_KEY));
+    // new File(server.getServerProperties().get(ServerProperties.DERBY_SNAPSHOT_KEY));
     // File backupLog =
-    // new File(server.getServerProperties().get(ServerProperties.DB_DIR_KEY)
+    // new File(server.getServerProperties().get(ServerProperties.DERBY_DIR_KEY)
     // + "/wattdepot/BACKUP.HISTORY");
     // Date before = null;
     //

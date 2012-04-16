@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -290,28 +291,28 @@ public class PostgresStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public void initialize(boolean wipe) {
-    // Runtime.getRuntime().addShutdownHook(new Thread() {
-    // /** Run the shutdown hook for shutting down the connection pool. */
-    // @Override
-    // public void run() {
-    // try {
-    // if (Jdbc3PoolingDataSource.getDataSource("WattDepotSource") != null) {
-    // Jdbc3PoolingDataSource.getDataSource("WattDepotSource").close();
-    // }
-    // }
-    // catch (Exception e) { // NOPMD
-    // // we tried.
-    // }
-    // }
-    // });
-
     String errorPrefix = "Error during initialization: ";
     try {
-      this.isFreshlyCreated = !isPreExisting();
-      String dbStatusMsg =
-          (this.isFreshlyCreated) ? "Postgres: uninitialized."
-              : "Postgres: previously initialized.";
-      this.logger.info(dbStatusMsg);
+      try {
+        this.isFreshlyCreated = !isPreExisting();
+        String dbStatusMsg =
+            (this.isFreshlyCreated) ? "Postgres: uninitialized."
+                : "Postgres: previously initialized.";
+        this.logger.info(dbStatusMsg);
+      }
+      catch (SQLException e) {
+        if (wipe) {
+          // An exception is isPreExisting most likely means the table schemas are incorrect.
+          // If the user wants to wipe all data AND the current tables have the wrong schema, just
+          // delete all tables and start from scratch.
+          this.logger.warning("Recreating Postgres schema");
+          dropTables();
+          this.isFreshlyCreated = true;
+        }
+        else {
+          throw e;
+        }
+      }
       if (this.isFreshlyCreated) {
         this.logger.warning("Postgres schema doesn't exist.  Creating...");
         createTables();
@@ -322,7 +323,9 @@ public class PostgresStorageImplementation extends DbImplementation {
       }
     }
     catch (SQLException e) {
-      this.logger.warning(errorPrefix + StackTrace.toString(e));
+      String msg = errorPrefix + StackTrace.toString(e);
+      this.logger.warning(msg);
+      throw new RuntimeException(msg, e);
     }
   }
 
@@ -337,31 +340,38 @@ public class PostgresStorageImplementation extends DbImplementation {
   private boolean isPreExisting() throws SQLException {
     Connection conn = null;
     Statement s = null;
+    boolean ret = true;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
+
+      List<String> testStatements =
+          Arrays.asList(testUserTableStatement, testUserPropertyTableStatement,
+              testSourceTableStatement, testSourceHierarchyTableStatement,
+              testSourcePropertyTableStatement, testSensorDataTableStatement,
+              testSensorDataPropertyTableStatement);
+
       s = conn.createStatement();
-      s.execute(testUserTableStatement);
-      s.execute(testUserPropertyTableStatement);
-      s.execute(testSourceTableStatement);
-      s.execute(testSourceHierarchyTableStatement);
-      s.execute(testSourcePropertyTableStatement);
-      s.execute(testSensorDataTableStatement);
-      s.execute(testSensorDataPropertyTableStatement);
-    }
-    catch (SQLException e) {
-      String theError = (e).getSQLState();
-      if ("42P01".equals(theError)) {
-        // Table doesn't exist.
-        return false;
-      }
-      else if ("42703".equals(theError) || "42P10".equals(theError)) {
-        // Incorrect table definition.
-        throw e;
-      }
-      else {
-        // Unknown SQLException
-        throw e;
+      for (String test : testStatements) {
+        try {
+          s.execute(test);
+        }
+        catch (SQLException e) {
+          String theError = (e).getSQLState();
+
+          if ("42P01".equals(theError)) {
+            // Table doesn't exist. Remember this and continue to check the rest of the tables.
+            // We do this so that if an error occurs in another table, it still gets thrown.
+            ret = false;
+          }
+          else if ("42703".equals(theError) || "42P10".equals(theError)) {
+            // Incorrect table definition.
+            throw e;
+          }
+          else {
+            // Unknown SQLException
+            throw e;
+          }
+        }
       }
     }
     finally {
@@ -373,7 +383,7 @@ public class PostgresStorageImplementation extends DbImplementation {
       }
     }
     // If table exists will get - WARNING 02000: No row was found
-    return true;
+    return ret;
   }
 
   /**
@@ -386,17 +396,67 @@ public class PostgresStorageImplementation extends DbImplementation {
     Statement s = null;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
+
+      List<String> createStatements =
+          Arrays.asList(createUserTableStatement, createUserPropertyTableStatement,
+              createSourceTableStatement, createSourceHierarchyTableStatement,
+              createSourcePropertyTableStatement, createSensorDataTableStatement,
+              createSensorDataPropertyTableStatement, indexSensorDataSourceTstampDescStatement);
+
       s = conn.createStatement();
-      s.execute(createUserTableStatement);
-      s.execute(createUserPropertyTableStatement);
-      s.execute(createSourceTableStatement);
-      s.execute(createSourceHierarchyTableStatement);
-      s.execute(createSourcePropertyTableStatement);
-      s.execute(createSensorDataTableStatement);
-      s.execute(createSensorDataPropertyTableStatement);
-      s.execute(indexSensorDataSourceTstampDescStatement);
+      for (String create : createStatements) {
+        try {
+          s.execute(create);
+        }
+        catch (SQLException e) {
+          // If the error is that the table already exists, ignore it and move on.
+          if (!"42P07".equals(e.getSQLState())) {
+            this.logger.warning(e.getSQLState() + ": " + e.getMessage());
+          }
+        }
+      }
+    }
+    finally {
+      if (s != null) {
+        s.close();
+      }
+      if (conn != null) {
+        conn.close();
+      }
+    }
+  }
+
+  /**
+   * Drop all database tables.
+   * 
+   * @throws SQLException If an error occurs with the database connection.
+   * 
+   */
+  private void dropTables() throws SQLException {
+    Connection conn = null;
+    Statement s = null;
+    try {
+      conn = connectionPool.getConnection();
+      List<String> dropStatements =
+          Arrays.asList(dropSensorDataSourceTstampDescStatement,
+              dropSensorDataPropertyTableStatement, dropSensorDataTableStatement,
+              dropSourcePropertyTableStatement, dropSourceHierarchyTableStatement,
+              dropSourceTableStatement, dropUserPropertyTableStatement, dropUserTableStatement);
+
+      s = conn.createStatement();
+      for (String drop : dropStatements) {
+        try {
+          s.execute(drop);
+        }
+        catch (SQLException e) {
+          // If the error is that the table or index doesn't exist, ignore it and move on.
+          if (!"42704".equals(e.getSQLState()) && !"42P01".equals(e.getSQLState())) {
+            this.logger.warning(e.getSQLState() + ": " + e.getMessage());
+          }
+        }
+      }
       s.close();
+
     }
     finally {
       if (s != null) {
@@ -418,7 +478,6 @@ public class PostgresStorageImplementation extends DbImplementation {
     Statement s = null;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
       s = conn.createStatement();
       s.execute("DELETE from SensorDataProperty");
       s.execute("DELETE from SensorData");
@@ -466,6 +525,9 @@ public class PostgresStorageImplementation extends DbImplementation {
       + " EnergyDirection = 'consumer+generator'," + " SupportsEnergyCounters = TRUE, "
       + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
+  /** An SQL string to drop the Source table. */
+  private static final String dropSourceTableStatement = "DROP TABLE Source";
+
   /** The SQL string for creating the SourceHierarchy table. */
   private static final String createSourceHierarchyTableStatement = "create table SourceHierarchy"
       + "(" + "ParentSourceName VARCHAR(128) NOT NULL, "
@@ -480,6 +542,9 @@ public class PostgresStorageImplementation extends DbImplementation {
           + " ParentSourceName = 'db-test-source', "
           + " SubSourceName = 'http://server.wattdepot.org:1234/wattdepot/sources/SIM_HONOLULU_8' WHERE 1=3";
 
+  /** An SQL string to drop the SourceHierarchy table. */
+  private static final String dropSourceHierarchyTableStatement = "DROP TABLE SourceHierarchy";
+
   /** The SQL string for creating SourceProperty table. */
   private static final String createSourcePropertyTableStatement = "create table SourceProperty"
       + "(" + "SourceName VARCHAR(128) NOT NULL, " + " PropertyKey VARCHAR(128) NOT NULL, "
@@ -490,6 +555,9 @@ public class PostgresStorageImplementation extends DbImplementation {
   private static final String testSourcePropertyTableStatement = " UPDATE SourceProperty SET "
       + " SourceName= 'db-test-source', " + " PropertyKey = 'carbonIntensity', "
       + " PropertyValue = '2120'" + " WHERE 1=3";
+
+  /** An SQL string to drop the SourceProperty table. */
+  private static final String dropSourcePropertyTableStatement = "DROP TABLE SourceProperty";
 
   /** {@inheritDoc} */
   @Override
@@ -503,7 +571,6 @@ public class PostgresStorageImplementation extends DbImplementation {
     SourceRef ref;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine(executeQueryMsg + statement);
       s = conn.prepareStatement(statement);
       rs = s.executeQuery();
@@ -597,7 +664,6 @@ public class PostgresStorageImplementation extends DbImplementation {
     ResultSet rs = null;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine(executeQueryMsg + statement);
       s = conn.prepareStatement(statement);
       rs = s.executeQuery();
@@ -653,7 +719,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       ResultSet rs = null;
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
         server.getLogger().fine(executeQueryMsg + statement);
         s = conn.prepareStatement(statement);
         s.setString(1, sourceName);
@@ -699,7 +764,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       Source source = null;
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
         server.getLogger().fine(executeQueryMsg + statement);
         s = conn.prepareStatement(statement);
         s.setString(1, sourceName);
@@ -754,7 +818,6 @@ public class PostgresStorageImplementation extends DbImplementation {
     try {
       conn = connectionPool.getConnection();
       String statement = "SELECT * FROM SourceProperty WHERE SourceName = ? ORDER BY PropertyKey ";
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine(executeQueryMsg + statement);
       s = conn.prepareStatement(statement);
       s.setString(1, sourceName);
@@ -803,7 +866,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       conn = connectionPool.getConnection();
       String statement =
           "SELECT * FROM SourceHierarchy WHERE ParentSourceName = ? ORDER BY SubSourceName ";
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine(executeQueryMsg + statement);
       s = conn.prepareStatement(statement);
       s.setString(1, sourceName);
@@ -924,20 +986,20 @@ public class PostgresStorageImplementation extends DbImplementation {
    */
   private String preparePlaceHolders(int length) {
     // If there is only one source, use =
-    //if (length == 1) {
-   //   return " = ?";
-   // }
+    // if (length == 1) {
+    // return " = ?";
+    // }
 
     // If there are more than one, use IN
     StringBuilder builder = new StringBuilder();
-    //builder.append(" IN (");
+    // builder.append(" IN (");
     for (int i = 0; i < length;) {
       builder.append("?");
       if (++i < length) {
         builder.append(",");
       }
     }
-    //builder.append(")");
+    // builder.append(")");
     return builder.toString();
   }
 
@@ -1057,8 +1119,8 @@ public class PostgresStorageImplementation extends DbImplementation {
           return false;
         }
         else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
-          this.logger
-              .info("Derby: Foreign key constraint violation on Source " + source.getName());
+          this.logger.fine("Derby: Foreign key constraint violation on Source " + source.getName()
+              + ". " + e.getMessage());
           return false;
         }
         else {
@@ -1150,6 +1212,9 @@ public class PostgresStorageImplementation extends DbImplementation {
       + " EnergyGeneratedToDate='5778.0', " + " LastMod = '"
       + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
+  /** An SQL string to drop the SensorData table. */
+  private static final String dropSensorDataTableStatement = "DROP TABLE SensorData";
+
   /** The SQL string for creating the SensorDataProperty table. */
   private static final String createSensorDataPropertyTableStatement =
       "create table SensorDataProperty " + "(" + " Tstamp TIMESTAMP NOT NULL, "
@@ -1164,6 +1229,10 @@ public class PostgresStorageImplementation extends DbImplementation {
           + new Timestamp(new Date().getTime()).toString() + "', "
           + " Source = 'test-db-source', " + " PropertyKey = 'powerGenerated', "
           + " PropertyValue = '4.6E7' " + " WHERE 1=3";
+
+  /** An SQL string to drop the SensorDataProperty table. */
+  private static final String dropSensorDataPropertyTableStatement =
+      "DROP TABLE SensorDataProperty";
 
   /**
    * Compound index used based on this mailing list reply.
@@ -1233,7 +1302,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       SensorDataRef ref;
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
         server.getLogger().fine(executeQueryMsg + statement);
         s = conn.prepareStatement(statement);
         s.setString(1, sourceName);
@@ -1296,7 +1364,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       SensorDataRef ref;
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
         server.getLogger().fine(executeQueryMsg + statement);
         s = conn.prepareStatement(statement);
         s.setString(1, sourceName);
@@ -1360,7 +1427,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       ResultSet rs = null;
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
         server.getLogger().fine(executeQueryMsg + statement);
         s = conn.prepareStatement(statement);
         s.setString(1, sourceName);
@@ -1414,7 +1480,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       SensorData data = new SensorData();
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
         server.getLogger().fine(executeQueryMsg + statement);
         s = conn.prepareStatement(statement);
         s.setString(1, sourceName);
@@ -1466,7 +1531,6 @@ public class PostgresStorageImplementation extends DbImplementation {
     try {
       conn = connectionPool.getConnection();
       String statement = "SELECT * FROM SensorData WHERE Source = ? ORDER BY Tstamp DESC LIMIT 1";
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine(executeQueryMsg + statement);
       s = conn.prepareStatement(statement);
       s.setString(1, sourceName);
@@ -1519,7 +1583,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       conn = connectionPool.getConnection();
       String statement =
           "SELECT * FROM SensorDataProperty WHERE Source = ? AND Tstamp = ? ORDER BY PropertyKey ";
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine(executeQueryMsg + statement);
       s = conn.prepareStatement(statement);
       s.setString(1, sourceName);
@@ -1635,8 +1698,8 @@ public class PostgresStorageImplementation extends DbImplementation {
           return false;
         }
         else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
-          this.logger.info("Derby: Foreign key constraint violation on SensorData "
-              + data.getTimestamp());
+          this.logger.fine("Derby: Foreign key constraint violation on SensorData "
+              + data.getTimestamp() + ". " + e.getMessage());
           return false;
         }
         else {
@@ -1757,7 +1820,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       // Find data just before desired timestamp
       statement =
           "Select * FROM SensorData WHERE Source = ? AND Tstamp <= ? ORDER BY Tstamp DESC LIMIT 1";
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine(executeQueryMsg + statement);
       s = conn.prepareStatement(statement);
       s.setString(1, sourceName);
@@ -1948,6 +2010,9 @@ public class PostgresStorageImplementation extends DbImplementation {
       + " Username = 'TestEmail@foo.com', " + " Password = 'changeme', " + " Admin = FALSE, "
       + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
+  /** An SQL string to drop the User table. */
+  private static final String dropUserTableStatement = "DROP TABLE WattDepotUser";
+
   /** The SQL string for creating the WattDepotUserProperty table. */
   private static final String createUserPropertyTableStatement =
       "create table WattDepotUserProperty " + "(" + " Username VARCHAR(128) NOT NULL, "
@@ -1960,6 +2025,9 @@ public class PostgresStorageImplementation extends DbImplementation {
       " UPDATE WattDepotUserProperty SET " + " Username = 'TestEmail@foo.com', "
           + " PropertyKey = 'awesomeness', " + " PropertyValue = 'total'" + " WHERE 1=3";
 
+  /** An SQL string to drop the UserProperty table. */
+  private static final String dropUserPropertyTableStatement = "DROP TABLE WattDepotUserProperty";
+
   /** {@inheritDoc} */
   @Override
   public UserIndex getUsers() {
@@ -1970,7 +2038,6 @@ public class PostgresStorageImplementation extends DbImplementation {
     ResultSet rs = null;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine(executeQueryMsg + statement);
       s = conn.prepareStatement(statement);
       rs = s.executeQuery();
@@ -2015,7 +2082,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       User user = new User();
       try {
         conn = connectionPool.getConnection();
-        // conn = DriverManager.getConnection(connectionUrl);
         server.getLogger().fine(executeQueryMsg + statement);
         s = conn.prepareStatement(statement);
         s.setString(1, username);
@@ -2070,7 +2136,6 @@ public class PostgresStorageImplementation extends DbImplementation {
     ResultSet rs = null;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine(executeQueryMsg + statement);
       s = conn.prepareStatement(statement);
       s.setString(1, username);
@@ -2149,7 +2214,8 @@ public class PostgresStorageImplementation extends DbImplementation {
           return false;
         }
         else if (FOREIGN_KEY_VIOLATION.equals(e.getSQLState())) {
-          this.logger.info("Derby: Foreign key constraint violation on User " + user.getEmail());
+          this.logger.fine("Derby: Foreign key constraint violation on User " + user.getEmail()
+              + ". " + e.getMessage());
           return false;
         }
         else {
@@ -2213,7 +2279,6 @@ public class PostgresStorageImplementation extends DbImplementation {
 
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
       server.getLogger().fine("PostgreSQL: " + statement);
       s = conn.prepareStatement(statement);
       int rowCount = s.executeUpdate();
@@ -2261,7 +2326,6 @@ public class PostgresStorageImplementation extends DbImplementation {
     CallableStatement s = null;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
       s = conn.prepareCall("VACUUM");
       s.execute();
       s.close();
@@ -2299,7 +2363,6 @@ public class PostgresStorageImplementation extends DbImplementation {
     Statement s = null;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
       s = conn.createStatement();
 
       // Note: If the db is being set up for the first time, it is not an error for the drop index
@@ -2365,14 +2428,12 @@ public class PostgresStorageImplementation extends DbImplementation {
   public boolean makeSnapshot() {
     this.logger.fine("Creating snapshot of database.");
     boolean success = false;
-    // String snapshotDir = server.getServerProperties().get(ServerProperties.DB_SNAPSHOT_KEY);
 
     Connection conn = null;
     PreparedStatement s = null;
     ResultSet rs = null;
     try {
       conn = connectionPool.getConnection();
-      // conn = DriverManager.getConnection(connectionUrl);
       s = conn.prepareCall("select pg_start_backup('" + new Date().toString() + "');");
       s.execute();
       s.close();
@@ -2391,8 +2452,9 @@ public class PostgresStorageImplementation extends DbImplementation {
         this.logger.info("PostgreSQL: Creating zip backup from " + dataPath);
 
         FileOutputStream fout =
-            new FileOutputStream(server.getServerProperties()
-                .get(ServerProperties.DB_SNAPSHOT_KEY) + ".zip");
+            new FileOutputStream(server.getServerProperties().get(
+                ServerProperties.POSTGRES_SNAPSHOT_KEY)
+                + ".zip");
         ZipOutputStream zout = new ZipOutputStream(fout);
         File fileSource = new File(dataPath);
         addDirectory(zout, fileSource, "");

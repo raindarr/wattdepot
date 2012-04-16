@@ -25,10 +25,6 @@ public class ServerProperties {
   public static final String CONTEXT_ROOT_KEY = "wattdepot-server.context.root";
   /** The database URL. */
   public static final String DATABASE_URL_KEY = "wattdepot-server.db.url";
-  /** The database directory key. */
-  public static final String DB_DIR_KEY = "wattdepot-server.db.dir";
-  /** The database snapshot directory key. */
-  public static final String DB_SNAPSHOT_KEY = "wattdepot-server.db.snapshot";
   /** The database host name. */
   public static final String DB_HOSTNAME_KEY = "wattdepot-server.db.hostname";
   /** The database catalog name. */
@@ -39,6 +35,14 @@ public class ServerProperties {
   public static final String DB_USERNAME_KEY = "wattdepot-server.db.username";
   /** The database password. */
   public static final String DB_PASSWORD_KEY = "wattdepot-server.db.password";
+  /** The berkeleyDB database directory key. */
+  public static final String BERKELEYDB_DIR_KEY = "wattdepot-server.db.berkeleydb.dir";
+  /** The derby database directory key. */
+  public static final String DERBY_DIR_KEY = "wattdepot-server.db.derby.dir";
+  /** The derby database snapshot directory key. */
+  public static final String DERBY_SNAPSHOT_KEY = "wattdepot-server.db.derby.snapshot";
+  /** The postgres database snapshot file key. */
+  public static final String POSTGRES_SNAPSHOT_KEY = "wattdepot-server.db.postgres.snapshot";
   /** The database implementation class. */
   public static final String DB_IMPL_KEY = "wattdepot-server.db.impl";
   /** The hostname key. */
@@ -57,10 +61,15 @@ public class ServerProperties {
   public static final String TEST_DOMAIN_KEY = "wattdepot-server.test.domain";
   /** The wattdepot-server port key during testing. */
   public static final String TEST_PORT_KEY = "wattdepot-server.test.port";
-  /** The wattdepot-server db dir during testing. */
-  public static final String TEST_DB_DIR_KEY = "wattdepot-server.test.db.dir";
-  /** The database snapshot directory key during testing. */
-  public static final String TEST_DB_SNAPSHOT_KEY = "wattdepot-server.test.db.snapshot";
+  /** The berkeleyDB database dir during testing. */
+  public static final String TEST_BERKELEYDB_DIR_KEY = "wattdepot-server.test.db.berkeleydb.dir";
+  /** The derby database dir during testing. */
+  public static final String TEST_DERBY_DIR_KEY = "wattdepot-server.test.db.derby.dir";
+  /** The derby database snapshot directory key during testing. */
+  public static final String TEST_DERBY_SNAPSHOT_KEY = "wattdepot-server.test.db.derby.snapshot";
+  /** The postgres database snapshot file key during testing. */
+  public static final String TEST_POSTGRES_SNAPSHOT_KEY =
+      "wattdepot-server.test.db.postgres.snapshot";
   /** The database host name during testing. */
   public static final String TEST_DB_HOSTNAME_KEY = "wattdepot-server.test.db.hostname";
   /** The database catalog name during testing. */
@@ -138,10 +147,12 @@ public class ServerProperties {
     properties.setProperty(ADMIN_EMAIL_KEY, defaultAdmin);
     properties.setProperty(ADMIN_PASSWORD_KEY, defaultAdmin);
     properties.setProperty(CONTEXT_ROOT_KEY, "wattdepot");
-    properties.setProperty(DB_DIR_KEY, serverHome + "/db");
-    properties.setProperty(DB_SNAPSHOT_KEY, serverHome + "/db-snapshot");
-    properties.setProperty(DB_IMPL_KEY,
-        "org.wattdepot.server.db.derby.DerbyStorageImplementation");
+    properties.setProperty(DERBY_DIR_KEY, serverHome + "/Derby");
+    properties.setProperty(DERBY_SNAPSHOT_KEY, serverHome + "/Derby-snapshot");
+    properties.setProperty(BERKELEYDB_DIR_KEY, serverHome + "/BerkeleyDb");
+    properties.setProperty(POSTGRES_SNAPSHOT_KEY, serverHome + "/Postgres-snapshot");
+    properties
+        .setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
     properties.setProperty(DB_HOSTNAME_KEY, "localhost");
     properties.setProperty(DB_PORT_KEY, "5432");
     properties.setProperty(DB_DATABASE_NAME_KEY, "wattdepot");
@@ -155,8 +166,10 @@ public class ServerProperties {
     properties.setProperty(TEST_INSTALL_KEY, FALSE);
     properties.setProperty(TEST_ADMIN_EMAIL_KEY, defaultAdmin);
     properties.setProperty(TEST_ADMIN_PASSWORD_KEY, defaultAdmin);
-    properties.setProperty(TEST_DB_DIR_KEY, serverHome + "/testdb");
-    properties.setProperty(TEST_DB_SNAPSHOT_KEY, serverHome + "/testdb-snapshot");
+    properties.setProperty(TEST_DERBY_DIR_KEY, serverHome + "/testDerby");
+    properties.setProperty(TEST_DERBY_SNAPSHOT_KEY, serverHome + "/testDerby-snapshot");
+    properties.setProperty(TEST_BERKELEYDB_DIR_KEY, serverHome + "/testBerkeleyDb");
+    properties.setProperty(TEST_POSTGRES_SNAPSHOT_KEY, serverHome + "/testPostgres-snapshot");
     properties.setProperty(TEST_DB_HOSTNAME_KEY, "localhost");
     properties.setProperty(TEST_PORT_KEY, "8183");
     properties.setProperty(TEST_HOSTNAME_KEY, "localhost");
@@ -165,7 +178,6 @@ public class ServerProperties {
     properties.setProperty(USE_HEROKU_KEY, FALSE);
     properties.setProperty(TEST_HEROKU_KEY, FALSE);
 
-    
     // grab all of the properties in the environment
     Map<String, String> systemProps = System.getenv();
     for (Map.Entry<String, String> prop : systemProps.entrySet()) {
@@ -244,10 +256,13 @@ public class ServerProperties {
    * <li>ADMIN_EMAIL_KEY
    * <li>ADMIN_PASSWORD_KEY
    * <li>HOSTNAME_KEY
-   * <li>DB_DIR_KEY
-   * <li>DB_SNAPSHOT_KEY
+   * <li>DERBY_DIR_KEY
+   * <li>DERBY_SNAPSHOT_KEY
+   * <li>POSTGRES_SNAPSHOT_KEY
+   * <li>BERKELEYDB_DIR_KEY
    * <li>PORT_KEY
-   * <li>GVIZ_PORT_KEY
+   * <li>DB_HOSTNAME_KEY
+   * <li>DB_PORT_KEY
    * </ul>
    * Also sets TEST_INSTALL_KEY to true.
    */
@@ -255,8 +270,11 @@ public class ServerProperties {
     properties.setProperty(ADMIN_EMAIL_KEY, properties.getProperty(TEST_ADMIN_EMAIL_KEY));
     properties.setProperty(ADMIN_PASSWORD_KEY, properties.getProperty(TEST_ADMIN_PASSWORD_KEY));
     properties.setProperty(HOSTNAME_KEY, properties.getProperty(TEST_HOSTNAME_KEY));
-    properties.setProperty(DB_DIR_KEY, properties.getProperty(TEST_DB_DIR_KEY));
-    properties.setProperty(DB_SNAPSHOT_KEY, properties.getProperty(TEST_DB_SNAPSHOT_KEY));
+    properties.setProperty(DERBY_DIR_KEY, properties.getProperty(TEST_DERBY_DIR_KEY));
+    properties.setProperty(DERBY_SNAPSHOT_KEY, properties.getProperty(TEST_DERBY_SNAPSHOT_KEY));
+    properties.setProperty(POSTGRES_SNAPSHOT_KEY,
+        properties.getProperty(TEST_POSTGRES_SNAPSHOT_KEY));
+    properties.setProperty(BERKELEYDB_DIR_KEY, properties.getProperty(TEST_BERKELEYDB_DIR_KEY));
     properties.setProperty(PORT_KEY, properties.getProperty(TEST_PORT_KEY));
     properties.setProperty(DB_HOSTNAME_KEY, properties.getProperty(TEST_DB_HOSTNAME_KEY));
     properties

@@ -4,22 +4,27 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import java.io.File;
 import org.junit.Test;
+import org.wattdepot.server.ServerProperties;
 import org.wattdepot.server.db.DbManagerTestHelper;
 
 /**
  * Tests specifically for the BerkeleyDbImplementation.
  * 
  * @author George Lee
- *
+ * 
  */
 public class TestBerkeleyDbImplementation extends DbManagerTestHelper {
-  
+
   /**
-   * Tests the makeSnapshot method. We check to see if the files are moved over from the berkeleydb folder.
+   * Tests the makeSnapshot method. We check to see if the files are moved over from the berkeleydb
+   * folder.
    */
   @Test
   public void testMakeSnapshot() {
-    File backupDir = new File("berkeleydb", "backup");
+    File homeDir =
+        new File(DbManagerTestHelper.server.getServerProperties().get(
+            ServerProperties.BERKELEYDB_DIR_KEY));
+    File backupDir = new File(homeDir, "backup");
     assertNotNull("Backup folder is not available", backupDir);
     assertTrue("Unable to create snapshot", manager.makeSnapshot());
     File[] files = backupDir.listFiles();

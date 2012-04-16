@@ -26,6 +26,7 @@ import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserIndex;
 import org.wattdepot.resource.user.jaxb.UserRef;
 import org.wattdepot.server.Server;
+import org.wattdepot.server.ServerProperties;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbImplementation;
 import org.wattdepot.util.UriUtils;
@@ -63,6 +64,7 @@ public class BerkeleyDbImplementation extends DbImplementation {
   private SecondaryIndex<String, CompositeSourceHierarchyKey, BerkeleyDbSourceHierarchy> sourceHierarchySubSourceIndex;
   private Environment environment;
   private long lastBackupFileId;
+  private File topDir;
   private File backupDir;
 
   /**
@@ -77,8 +79,8 @@ public class BerkeleyDbImplementation extends DbImplementation {
   @Override
   public void initialize(boolean wipe) {
     // Construct directories.
-    String currDir = System.getProperty("user.dir");
-    File topDir = new File(currDir, "berkeleyDb");
+    ServerProperties props = server.getServerProperties();
+    topDir = new File(props.get(ServerProperties.BERKELEYDB_DIR_KEY));
     boolean success = topDir.mkdirs();
     if (success) {
       System.out.println("Created the berkeleyDb directory.");
@@ -839,6 +841,19 @@ public class BerkeleyDbImplementation extends DbImplementation {
     }
 
     String owner = UriUtils.getUriSuffix(source.getOwner());
+
+    // Before storing anything, check that owner and subsources are all valid
+    if (!userIndex.contains(owner)) {
+      return false;
+    }
+    if (source.isSetSubSources() && source.getSubSources().isSetHref()) {
+      for (String subSource : source.getSubSources().getHref()) {
+        if (!sourceIndex.contains(UriUtils.getUriSuffix(subSource))) {
+          return false;
+        }
+      }
+    }
+
     BerkeleyDbSource dbSource =
         new BerkeleyDbSource(source.getName(), owner, source.isPublic(), source.isVirtual(),
             source.getLocation(), source.getDescription(), source.getCoordinates(),
@@ -918,22 +933,21 @@ public class BerkeleyDbImplementation extends DbImplementation {
       sourcePropCursor.delete();
     }
     sourcePropCursor.close();
-    
+
     EntityCursor<BerkeleyDbSourceHierarchy> sourceHierarchyCursor =
         sourceHierarchyIndex.entities();
     while (sourceHierarchyCursor.next() != null) {
       sourceHierarchyCursor.delete();
     }
     sourceHierarchyCursor.close();
-    
+
     EntityCursor<BerkeleyDbSource> sourceCursor = sourceIndex.entities();
     while (sourceCursor.next() != null) {
       sourceCursor.delete();
     }
     sourceCursor.close();
-    
-    EntityCursor<BerkeleyDbUserProperty> userPropCursor =
-        userPropertyPrimaryIndex.entities();
+
+    EntityCursor<BerkeleyDbUserProperty> userPropCursor = userPropertyPrimaryIndex.entities();
     while (userPropCursor.next() != null) {
       userPropCursor.delete();
     }
@@ -967,7 +981,7 @@ public class BerkeleyDbImplementation extends DbImplementation {
 
     for (String filename : filenames) {
       // Filenames are rooted in berkeleyDb folder.
-      sourceFile = new File("berkeleyDb", filename);
+      sourceFile = new File(topDir, filename);
       destFile = new File(this.backupDir, sourceFile.getName());
 
       try {

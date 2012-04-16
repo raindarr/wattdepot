@@ -352,8 +352,8 @@ public abstract class DbImplementation {
       List<XMLGregorianCalendar> timestampList);
 
   /**
-   * Returns the power in SensorData format for the given Source and timestamp, or
-   * null if no power data exists.
+   * Returns the power in SensorData format for the given Source and timestamp, or null if no power
+   * data exists.
    * 
    * @param source The source object.
    * @param timestamp The timestamp requested.
@@ -377,8 +377,8 @@ public abstract class DbImplementation {
   }
 
   /**
-   * Returns the energy in SensorData format for the given Source over the range of time
-   * between startTime and endTime, or null if no energy data exists.
+   * Returns the energy in SensorData format for the given Source over the range of time between
+   * startTime and endTime, or null if no energy data exists.
    * 
    * @param source The source object.
    * @param startTime The start of the range requested.
@@ -492,8 +492,8 @@ public abstract class DbImplementation {
   }
 
   /**
-   * Returns the carbon emitted in SensorData format for the Source given over the range of
-   * time between startTime and endTime, or null if no carbon data exists.
+   * Returns the carbon emitted in SensorData format for the Source given over the range of time
+   * between startTime and endTime, or null if no carbon data exists.
    * 
    * @param source The source object.
    * @param startTime The start of the range requested.
@@ -600,8 +600,7 @@ public abstract class DbImplementation {
   public abstract boolean indexTables();
 
   /**
-   * Creates a snapshot of the database in the directory specified by
-   * ServerProperties.DB_SNAPSHOT_KEY.
+   * Creates a snapshot of the database in the directory specified by the Server Properties.
    * 
    * @return True if the snapshot succeeded.
    */
