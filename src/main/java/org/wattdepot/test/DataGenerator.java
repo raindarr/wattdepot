@@ -111,7 +111,7 @@ public class DataGenerator {
                     .toString(totalEnergyGenerated[i])));
         data = new SensorData(timestamp, toolName, sourceURIs[i], props);
 //        System.out.println(data); // DEBUG
-        this.dbManager.storeSensorData(data);
+        this.dbManager.storeSensorDataNoCache(data);
       }
       // System.out.format("timestamp=%s%n", timestamp); // DEBUG
       timestamp = Tstamp.incrementMilliseconds(timestamp, intervalMilliseconds);

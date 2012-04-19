@@ -32,6 +32,8 @@ public class BerkeleyDbSource {
   private Integer updateInterval;
   private String energyDirection;
   private Boolean supportsEnergyCounters;
+  private Integer cacheWindowLength;
+  private Integer cacheCheckpointInterval;
   private long lastMod;
 
   /**
@@ -81,6 +83,13 @@ public class BerkeleyDbSource {
         this.supportsEnergyCounters =
             Boolean.valueOf(properties.getProperty(Source.SUPPORTS_ENERGY_COUNTERS));
       }
+      if (properties.getProperty(Source.CACHE_WINDOW_LENGTH) != null) {
+        this.cacheWindowLength = (int) properties.getPropertyAsDouble(Source.CACHE_WINDOW_LENGTH);
+      }
+      if (properties.getProperty(Source.CACHE_CHECKPOINT_INTERVAL) != null) {
+        this.cacheCheckpointInterval =
+            (int) properties.getPropertyAsDouble(Source.CACHE_CHECKPOINT_INTERVAL);
+      }
     }
   }
 
@@ -104,7 +113,8 @@ public class BerkeleyDbSource {
 
   /**
    * Converts this BerkeleyDB source into a WattDepot source.
-   * @param server 
+   * 
+   * @param server The server that this source will be added to.
    * 
    * @return WattDepot representation of this source.
    */
@@ -134,7 +144,13 @@ public class BerkeleyDbSource {
       returnSource.addProperty(new Property(Source.SUPPORTS_ENERGY_COUNTERS, String
           .valueOf(this.supportsEnergyCounters)));
     }
-
+    if (this.cacheWindowLength != null) {
+      returnSource.addProperty(new Property(Source.CACHE_WINDOW_LENGTH, this.cacheWindowLength));
+    }
+    if (this.cacheCheckpointInterval != null) {
+      returnSource.addProperty(new Property(Source.CACHE_CHECKPOINT_INTERVAL,
+          this.cacheCheckpointInterval));
+    }
     return returnSource;
   }
 

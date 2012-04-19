@@ -796,7 +796,7 @@ public class TestGVisualizationResource extends ServerTestHelper {
     }
     OscarRowParser parser = new OscarRowParser("OscarDataConverter", getHostName());
     for (String row : oscarRows) {
-      manager.storeSensorData(parser.parseRow(row.split(",")));
+      manager.storeSensorDataNoCache(parser.parseRow(row.split(",")));
     }
     server.getContext().getAttributes().put("DbManager", manager);
   }

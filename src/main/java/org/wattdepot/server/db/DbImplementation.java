@@ -40,6 +40,9 @@ public abstract class DbImplementation {
   /** Keeps a pointer to this Server for use in accessing the managers. */
   protected Server server;
 
+  /** Keeps a pointer to the DbManager for this server. */
+  protected DbManager dbManager;
+
   /** Keep a pointer to the Logger. */
   protected Logger logger;
 
@@ -47,10 +50,13 @@ public abstract class DbImplementation {
    * Constructs a new DbImplementation.
    * 
    * @param server The server.
+   * @param dbManager The dbManager.
    */
-  public DbImplementation(Server server) {
+  public DbImplementation(Server server, DbManager dbManager) {
     this.server = server;
     this.logger = server.getLogger();
+
+    this.dbManager = dbManager;
   }
 
   /**
@@ -316,8 +322,32 @@ public abstract class DbImplementation {
    * timestamp.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle
    */
-  public abstract List<SensorDataStraddle> getSensorDataStraddleList(Source source,
-      XMLGregorianCalendar timestamp);
+  public List<SensorDataStraddle> getSensorDataStraddleList(Source source,
+      XMLGregorianCalendar timestamp) {
+    if ((source == null) || (timestamp == null)) {
+      return null;
+    }
+
+    // Want to go through sensordata for base source, and all subsources recursively
+    List<Source> sourceList = getAllNonVirtualSubSources(source);
+    List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>(sourceList.size());
+    for (Source subSource : sourceList) {
+      SensorDataStraddle straddle = this.dbManager.getSensorDataStraddle(subSource, timestamp);
+      if (straddle == null) {
+        // No straddle for this timestamp on this source, abort
+        return null;
+      }
+      else {
+        straddleList.add(straddle);
+      }
+    }
+    if (straddleList.isEmpty()) {
+      return null;
+    }
+    else {
+      return straddleList;
+    }
+  }
 
   /**
    * Returns a list of StraddleLists each of which corresponds to the straddles from source (or
@@ -332,8 +362,37 @@ public abstract class DbImplementation {
    * exist, or there is no sensor data that straddles any of the timestamps.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle
    */
-  public abstract List<StraddleList> getStraddleLists(Source source,
-      List<XMLGregorianCalendar> timestampList);
+  public List<StraddleList> getStraddleLists(Source source,
+      List<XMLGregorianCalendar> timestampList) {
+    if ((source == null) || (timestampList == null)) {
+      return null;
+    }
+
+    // Want to go through sensordata for base source, and all subsources recursively
+    List<Source> sourceList = getAllNonVirtualSubSources(source);
+    List<StraddleList> masterList = new ArrayList<StraddleList>(sourceList.size());
+    List<SensorDataStraddle> straddleList;
+    for (Source subSource : sourceList) {
+      straddleList = new ArrayList<SensorDataStraddle>(timestampList.size());
+      for (XMLGregorianCalendar timestamp : timestampList) {
+        SensorDataStraddle straddle = this.dbManager.getSensorDataStraddle(subSource, timestamp);
+        if (straddle == null) {
+          // No straddle for this timestamp on this source, abort
+          return null;
+        }
+        else {
+          straddleList.add(straddle);
+        }
+      }
+      if (straddleList.isEmpty()) {
+        return null;
+      }
+      else {
+        masterList.add(new StraddleList(subSource, straddleList));
+      }
+    }
+    return masterList;
+  }
 
   /**
    * Given a virtual source and a List of timestamps, returns a List (one member for each
@@ -348,8 +407,36 @@ public abstract class DbImplementation {
    * any of the timestamps.
    * @see org.wattdepot.server.db.memory#getSensorDataStraddle getSensorDataStraddle
    */
-  public abstract List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(Source source,
-      List<XMLGregorianCalendar> timestampList);
+  public List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(Source source,
+      List<XMLGregorianCalendar> timestampList) {
+    List<List<SensorDataStraddle>> masterList = new ArrayList<List<SensorDataStraddle>>();
+    if ((source == null) || (timestampList == null)) {
+      return null;
+    }
+
+    // Want to go through sensordata for base source, and all subsources recursively
+    List<Source> sourceList = getAllNonVirtualSubSources(source);
+    for (Source subSource : sourceList) {
+      List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>();
+      for (XMLGregorianCalendar timestamp : timestampList) {
+        SensorDataStraddle straddle = this.dbManager.getSensorDataStraddle(subSource, timestamp);
+        if (straddle == null) {
+          // No straddle for this timestamp on this source, abort
+          return null;
+        }
+        else {
+          straddleList.add(straddle);
+        }
+      }
+      masterList.add(straddleList);
+    }
+    if (masterList.isEmpty()) {
+      return null;
+    }
+    else {
+      return masterList;
+    }
+  }
 
   /**
    * Returns the power in SensorData format for the given Source and timestamp, or null if no power
@@ -366,7 +453,7 @@ public abstract class DbImplementation {
           Source.sourceToUri(source.getName(), this.server));
     }
     else {
-      SensorDataStraddle straddle = getSensorDataStraddle(source, timestamp);
+      SensorDataStraddle straddle = this.dbManager.getSensorDataStraddle(source, timestamp);
       if (straddle == null) {
         return null;
       }
@@ -383,8 +470,8 @@ public abstract class DbImplementation {
    * @param source The source object.
    * @param startTime The start of the range requested.
    * @param endTime The end of the range requested.
-   * @param interval The sampling interval requested (ignored if all sources support energy
-   * counters).
+   * @param interval The sampling interval requested in minutes (ignored if all sources support
+   * energy counters).
    * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
    */
   public SensorData getEnergy(Source source, XMLGregorianCalendar startTime,

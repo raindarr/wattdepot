@@ -337,7 +337,7 @@ public class Server extends Application {
             // SensorData read from the file might have an Owner field that points to a different
             // host URI. We want all defaults normalized to this server, so update it.
             data.setSource(Source.updateUri(data.getSource(), this));
-            if (dbManager.storeSensorData(data)) {
+            if (dbManager.storeSensorDataNoCache(data)) {
               // Too voluminous to print every sensor data loaded
               // logger.info("Loaded sensor data for source " + data.getSource() + ", time "
               // + data.getTimestamp() + " from defaults.");
@@ -354,7 +354,7 @@ public class Server extends Application {
               // SensorData read from the file might have an Owner field that points to a different
               // host URI. We want all defaults normalized to this server, so update it.
               theData.setSource(Source.updateUri(theData.getSource(), this));
-              if (dbManager.storeSensorData(theData)) {
+              if (dbManager.storeSensorDataNoCache(theData)) {
                 // Too voluminous to print every sensor data loaded
                 // logger.info("Loaded sensor data for source " + data.getSource() + ", time "
                 // + data.getTimestamp() + " from defaults.");

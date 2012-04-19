@@ -88,7 +88,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
 
     // case #2: after storing a single SensorData should have SensorDataIndex with one SensorDataRef
     // that matches original SensorData
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data1));
     assertSame("getSensorDataIndex returned wrong number of SensorDataRefs", manager
         .getSensorDataIndex(this.source1.getName()).getSensorDataRef().size(), 1);
     assertTrue("getSensorDataIndex didn't return expected SensorDataRef",
@@ -97,8 +97,8 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
 
     // case #3: after storing three SensorDatas should have SensorDataIndex with three
     // SensorDataRefs that match original SensorDatas
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data3));
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(data3));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(data2));
     assertSame("getSensorData returned wrong number of SensorDataRefs", manager
         .getSensorDataIndex(this.source1.getName()).getSensorDataRef().size(), 3);
     // Now compare the SensorDataRefs to the original SensorData
@@ -148,9 +148,9 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         Tstamp.makeTimestamp("2009-07-28T11:00:00.000-10:00");
 
     // Add data to source
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data3));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data3));
 
     // case #1: start time after end time
     assertNull("SensorDataIndex generated for bogus start and end times",
@@ -184,9 +184,9 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     moreAfter3 = Tstamp.makeTimestamp("2009-07-29T10:00:00.000-10:00");
 
     // Add data to source
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data3));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data3));
 
     // valid range covering no data
     assertTrue("SensorDataIndex generated for period containing no SensorData", manager
@@ -338,12 +338,12 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
 
     // case #2: retrieve stored SensorData
     // Add data to source
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data1));
     assertEquals(DATA_DOES_NOT_MATCH, this.data1,
         manager.getSensorData(source1.getName(), this.data1.getTimestamp()));
 
     // case #3: store second SensorData, verify retrieval
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data2));
     assertEquals(DATA_DOES_NOT_MATCH, this.data2,
         manager.getSensorData(source1.getName(), this.data2.getTimestamp()));
 
@@ -429,7 +429,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     Properties virtualProps;
 
     // retrieve latest SensorData for non-virtual source with one SensorData
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data1));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source1Data1));
     assertEquals(DATA_DOES_NOT_MATCH, source1Data1, manager.getLatestSensorData(source1.getName()));
     // Virtual source result should be mostly the same as source 1
     virtualData =
@@ -437,7 +437,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertEquals(DATA_DOES_NOT_MATCH, virtualData, manager.getLatestSensorData(virtualSource));
 
     // Add later sensor data and retrieve latest SensorData
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(source1Data3));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(source1Data3));
     assertEquals(DATA_DOES_NOT_MATCH, source1Data3, manager.getLatestSensorData(source1.getName()));
     // Virtual source result should be mostly the same as source 1
     virtualData =
@@ -445,13 +445,13 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertEquals(DATA_DOES_NOT_MATCH, virtualData, manager.getLatestSensorData(virtualSource));
 
     // Add sensor data in between, confirm that most recent data is still retrieved
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(source1Data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(source1Data2));
     assertEquals(DATA_DOES_NOT_MATCH, source1Data3, manager.getLatestSensorData(source1.getName()));
     // Virtual source result should be unchanged as well
     assertEquals(DATA_DOES_NOT_MATCH, virtualData, manager.getLatestSensorData(virtualSource));
 
     // Add sensor data for second source
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data1));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source2Data1));
     assertEquals(DATA_DOES_NOT_MATCH, source2Data1, manager.getLatestSensorData(source2.getName()));
     // Virtual source should now have summed data with the most recent timestamp
     virtualProps = new Properties();
@@ -464,7 +464,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertEquals(DATA_DOES_NOT_MATCH, virtualData, manager.getLatestSensorData(virtualSource));
 
     // Add later sensor data for second source
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data2));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source2Data2));
     assertEquals(DATA_DOES_NOT_MATCH, source2Data2, manager.getLatestSensorData(source2.getName()));
     // Virtual source should now have summed data with the most recent timestamp
     virtualProps = new Properties();
@@ -493,12 +493,12 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
 
     // case #2: retrieve stored SensorData
     // Add data to source
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data1));
     assertTrue(DATA_DOES_NOT_MATCH,
         manager.hasSensorData(source1.getName(), this.data1.getTimestamp()));
 
     // case #3: store second SensorData, verify retrieval
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data2));
     assertTrue(DATA_DOES_NOT_MATCH,
         manager.hasSensorData(source1.getName(), this.data2.getTimestamp()));
 
@@ -534,26 +534,26 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     createTestData();
 
     // case #1: store and retrieve SensorData
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data1));
     assertEquals(DATA_DOES_NOT_MATCH, this.data1,
         manager.getSensorData(source1.getName(), this.data1.getTimestamp()));
     XMLGregorianCalendar source1Time2 = Tstamp.makeTimestamp("2009-07-28T09:12:00.000-10:00");
     String source1Uri = source1.toUri(server);
     SensorData dataFoo = new SensorData(source1Time2, JUNIT, source1Uri);
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(dataFoo));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(dataFoo));
     assertEquals("Unable to retrieve stored data", dataFoo,
         this.manager.getSensorData(source1.getName(), source1Time2));
 
     // case #2: attempt to overwrite existing SensorData
-    assertFalse("Able to overwrite SensorData", manager.storeSensorData(this.data1));
+    assertFalse("Able to overwrite SensorData", manager.storeSensorDataNoCache(this.data1));
 
     // case #3: store second SensorData and verify retrieval
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data2));
     assertEquals(DATA_DOES_NOT_MATCH, this.data2,
         manager.getSensorData(source1.getName(), this.data2.getTimestamp()));
 
     // case #4: store null SensorData
-    assertFalse("Able to store null SensorData", manager.storeSensorData(null));
+    assertFalse("Able to store null SensorData", manager.storeSensorDataNoCache(null));
   }
 
   /**
@@ -571,7 +571,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         manager.deleteSensorData(this.source1.getName(), this.data1.getTimestamp()));
 
     // case #2: delete stored SensorData
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data1));
     assertEquals(DATA_DOES_NOT_MATCH, this.data1,
         manager.getSensorData(this.source1.getName(), this.data1.getTimestamp()));
     assertTrue("Unable to delete data1",
@@ -580,7 +580,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         manager.getSensorData(this.source1.getName(), this.data1.getTimestamp()));
 
     // case #3: delete deleted SensorData
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data2));
     assertTrue("Unable to delete data2",
         manager.deleteSensorData(this.source1.getName(), this.data2.getTimestamp()));
     assertFalse("Able to delete data2 a second time",
@@ -624,7 +624,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         manager.deleteSensorData(this.source1.getName()));
 
     // case #2: delete stored SensorData
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data1));
     assertEquals(DATA_DOES_NOT_MATCH, this.data1,
         manager.getSensorData(this.source1.getName(), this.data1.getTimestamp()));
     assertTrue("Unable to delete data1", manager.deleteSensorData(this.source1.getName()));
@@ -632,7 +632,7 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         manager.getSensorData(this.source1.getName(), this.data1.getTimestamp()));
 
     // case #3: delete deleted SensorData
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(this.data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(this.data2));
     assertTrue("Unable to delete data2", manager.deleteSensorData(this.source1.getName()));
     assertFalse("Able to delete data2 a second time",
         manager.deleteSensorData(this.source1.getName()));
@@ -686,11 +686,11 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     SensorData data5 = new SensorData(source1Time5, tool, source1Uri);
     SensorDataStraddle straddle;
 
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data1));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data2));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data3));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data4));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(data5));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(data1));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(data2));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(data3));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(data4));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(data5));
 
     // unknown Source name
     assertNull("Could getSensorDataStraddle with unknown source name",
@@ -776,14 +776,14 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     SensorData source2Data3 = new SensorData(source2Time3, tool, source2Uri);
     List<SensorDataStraddle> straddleList;
 
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data1));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data2));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data3));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data4));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source1Data5));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data1));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data2));
-    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorData(source2Data3));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source1Data1));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source1Data2));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source1Data3));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source1Data4));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source1Data5));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source2Data1));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source2Data2));
+    assertTrue(UNABLE_TO_STORE_DATA, this.manager.storeSensorDataNoCache(source2Data3));
 
     // unknown Source name
     assertNull(

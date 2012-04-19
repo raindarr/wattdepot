@@ -23,7 +23,6 @@ import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
-import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -41,6 +40,7 @@ import org.wattdepot.server.Server;
 import org.wattdepot.server.ServerProperties;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbImplementation;
+import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.StackTrace;
 import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
@@ -94,9 +94,10 @@ public class PostgresStorageImplementation extends DbImplementation {
    * file cannot be found on the classpath.
    * 
    * @param server The server this DbImplementation is associated with.
+   * @param dbManager The dbManager this DbImplementation is associated with.
    */
-  public PostgresStorageImplementation(Server server) {
-    super(server);
+  public PostgresStorageImplementation(Server server, DbManager dbManager) {
+    super(server, dbManager);
 
     // Try to load the driver.
     try {
@@ -512,7 +513,8 @@ public class PostgresStorageImplementation extends DbImplementation {
       + " Coordinates VARCHAR(80), " + " Location VARCHAR(256), " + " Description VARCHAR(1024), "
       + " CarbonIntensity DOUBLE PRECISION, " + " FuelType VARCHAR(50), "
       + " UpdateInterval INTEGER, " + " EnergyDirection VARCHAR(50), "
-      + " SupportsEnergyCounters BOOLEAN, " + " LastMod TIMESTAMP NOT NULL, "
+      + " SupportsEnergyCounters BOOLEAN, " + " CacheWindowLength INTEGER, "
+      + " CacheCheckpointInterval INTEGER, " + " LastMod TIMESTAMP NOT NULL, "
       + " PRIMARY KEY (Name), " + " FOREIGN KEY (Owner) REFERENCES WattDepotUser(Username)" + ")";
 
   /** An SQL string to test whether the Source table exists and has the correct schema. */
@@ -523,7 +525,8 @@ public class PostgresStorageImplementation extends DbImplementation {
       + " Location = 'Some place', " + " Description = 'A test source.', "
       + " CarbonIntensity = 2120, " + " FuelType = 'LSFO', " + " UpdateInterval = 60, "
       + " EnergyDirection = 'consumer+generator'," + " SupportsEnergyCounters = TRUE, "
-      + " LastMod = '" + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
+      + " CacheWindowLength = 60, " + " CacheCheckpointInterval = 5, " + " LastMod = '"
+      + new Timestamp(new Date().getTime()).toString() + "' " + " WHERE 1=3";
 
   /** An SQL string to drop the Source table. */
   private static final String dropSourceTableStatement = "DROP TABLE Source";
@@ -645,6 +648,14 @@ public class PostgresStorageImplementation extends DbImplementation {
       if (rs.getObject("SupportsEnergyCounters") != null) {
         source.addProperty(new Property(Source.SUPPORTS_ENERGY_COUNTERS, String.valueOf(rs
             .getBoolean("SupportsEnergyCounters"))));
+      }
+      if (rs.getObject("CacheWindowLength") != null) {
+        source
+            .addProperty(new Property(Source.CACHE_WINDOW_LENGTH, rs.getInt("CacheWindowLength")));
+      }
+      if (rs.getObject("CacheCheckpointInterval") != null) {
+        source.addProperty(new Property(Source.CACHE_CHECKPOINT_INTERVAL, rs
+            .getInt("CacheCheckpointInterval")));
       }
     }
     catch (SQLException e) {
@@ -985,21 +996,13 @@ public class PostgresStorageImplementation extends DbImplementation {
    * @return A string of length-number question marks separated by commas.
    */
   private String preparePlaceHolders(int length) {
-    // If there is only one source, use =
-    // if (length == 1) {
-    // return " = ?";
-    // }
-
-    // If there are more than one, use IN
     StringBuilder builder = new StringBuilder();
-    // builder.append(" IN (");
     for (int i = 0; i < length;) {
       builder.append("?");
       if (++i < length) {
         builder.append(",");
       }
     }
-    // builder.append(")");
     return builder.toString();
   }
 
@@ -1027,9 +1030,9 @@ public class PostgresStorageImplementation extends DbImplementation {
                 conn.prepareStatement("UPDATE Source SET Name = ?, Owner = ?, PublicP = ?, "
                     + " Virtual = ?, Coordinates = ?, Location = ?, Description = ?, "
                     + " CarbonIntensity = ?, FuelType = ?, UpdateInterval = ?, "
-                    + " EnergyDirection = ?, SupportsEnergyCounters = ?, LastMod = ? "
-                    + " WHERE Name = ?");
-            s.setString(14, source.getName());
+                    + " EnergyDirection = ?, SupportsEnergyCounters = ?, CacheWindowLength = ?, "
+                    + " CacheCheckpointInterval = ?, LastMod = ? " + " WHERE Name = ?");
+            s.setString(16, source.getName());
           }
           else {
             this.logger.fine("PostgreSQL: Attempted to overwrite without overwrite=true Source "
@@ -1039,7 +1042,7 @@ public class PostgresStorageImplementation extends DbImplementation {
         }
         else {
           s =
-              conn.prepareStatement("INSERT INTO Source VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+              conn.prepareStatement("INSERT INTO Source VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         }
         // Order: Name Owner PublicP Virtual Coordinates Location Description SubSources
         // CarbonIntensity FuelType UpdateInterval EnergyDirection SupportsEnergyCounters LastMod
@@ -1057,6 +1060,8 @@ public class PostgresStorageImplementation extends DbImplementation {
         s.setNull(10, java.sql.Types.INTEGER);
         s.setNull(11, java.sql.Types.VARCHAR);
         s.setNull(12, java.sql.Types.BOOLEAN);
+        s.setNull(13, java.sql.Types.INTEGER);
+        s.setNull(14, java.sql.Types.INTEGER);
 
         if (source.isSetProperties()) {
           if (source.getProperties().getProperty(Source.CARBON_INTENSITY) != null) {
@@ -1075,9 +1080,16 @@ public class PostgresStorageImplementation extends DbImplementation {
             s.setBoolean(12, Boolean.valueOf(source.getProperties().getProperty(
                 Source.SUPPORTS_ENERGY_COUNTERS)));
           }
+          if (source.getProperties().getProperty(Source.CACHE_WINDOW_LENGTH) != null) {
+            s.setDouble(13, source.getProperties().getPropertyAsDouble(Source.CACHE_WINDOW_LENGTH));
+          }
+          if (source.getProperties().getProperty(Source.CACHE_CHECKPOINT_INTERVAL) != null) {
+            s.setDouble(14,
+                source.getProperties().getPropertyAsDouble(Source.CACHE_CHECKPOINT_INTERVAL));
+          }
         }
 
-        s.setTimestamp(13, new Timestamp(new Date().getTime()));
+        s.setTimestamp(15, new Timestamp(new Date().getTime()));
         s.executeUpdate();
 
         if (overwrite) {
@@ -1098,7 +1110,9 @@ public class PostgresStorageImplementation extends DbImplementation {
                 && !p.getKey().equals(Source.FUEL_TYPE)
                 && !p.getKey().equals(Source.UPDATE_INTERVAL)
                 && !p.getKey().equals(Source.ENERGY_DIRECTION)
-                && !p.getKey().equals(Source.SUPPORTS_ENERGY_COUNTERS)) {
+                && !p.getKey().equals(Source.SUPPORTS_ENERGY_COUNTERS)
+                && !p.getKey().equals(Source.CACHE_WINDOW_LENGTH)
+                && !p.getKey().equals(Source.CACHE_CHECKPOINT_INTERVAL)) {
               s = conn.prepareStatement("INSERT INTO SourceProperty VALUES (?, ?, ?) ");
               s.setString(1, source.getName());
               s.setString(2, p.getKey());
@@ -1888,114 +1902,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       catch (SQLException e) {
         this.logger.warning(errorClosingMsg + StackTrace.toString(e));
       }
-    }
-  }
-
-  /**
-   * Returns a list of SensorDataStraddles that straddle the given timestamp, using SensorData from
-   * all non-virtual subsources of the given source. If the given source is non-virtual, then the
-   * result will be a list containing at a single SensorDataStraddle, or null. In the case of a
-   * non-virtual source, you might as well use getSensorDataStraddle.
-   * 
-   * @param source The source object to generate the straddle from.
-   * @param timestamp The timestamp of interest in the straddle.
-   * @return A list of SensorDataStraddles that straddle the given timestamp. Returns null if:
-   * parameters are null, the source doesn't exist, or there is no sensor data that straddles the
-   * timestamp.
-   * @see org.wattdepot.server.db.memory#getSensorDataStraddle
-   */
-  @Override
-  public List<SensorDataStraddle> getSensorDataStraddleList(Source source,
-      XMLGregorianCalendar timestamp) {
-    if ((source == null) || (timestamp == null)) {
-      return null;
-    }
-
-    // Want to go through sensordata for base source, and all subsources recursively
-    List<Source> sourceList = getAllNonVirtualSubSources(source);
-    List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>(sourceList.size());
-    for (Source subSource : sourceList) {
-      SensorDataStraddle straddle = getSensorDataStraddle(subSource, timestamp);
-      if (straddle == null) {
-        // No straddle for this timestamp on this source, abort
-        return null;
-      }
-      else {
-        straddleList.add(straddle);
-      }
-    }
-    if (straddleList.isEmpty()) {
-      return null;
-    }
-    else {
-      return straddleList;
-    }
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public List<StraddleList> getStraddleLists(Source source,
-      List<XMLGregorianCalendar> timestampList) {
-    if ((source == null) || (timestampList == null)) {
-      return null;
-    }
-
-    // Want to go through sensordata for base source, and all subsources recursively
-    List<Source> sourceList = getAllNonVirtualSubSources(source);
-    List<StraddleList> masterList = new ArrayList<StraddleList>(sourceList.size());
-    List<SensorDataStraddle> straddleList;
-    for (Source subSource : sourceList) {
-      straddleList = new ArrayList<SensorDataStraddle>(timestampList.size());
-      for (XMLGregorianCalendar timestamp : timestampList) {
-        SensorDataStraddle straddle = getSensorDataStraddle(subSource, timestamp);
-        if (straddle == null) {
-          // No straddle for this timestamp on this source, abort
-          return null;
-        }
-        else {
-          straddleList.add(straddle);
-        }
-      }
-      if (straddleList.isEmpty()) {
-        return null;
-      }
-      else {
-        masterList.add(new StraddleList(subSource, straddleList));
-      }
-    }
-    return masterList;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(Source source,
-      List<XMLGregorianCalendar> timestampList) {
-    List<List<SensorDataStraddle>> masterList = new ArrayList<List<SensorDataStraddle>>();
-    if ((source == null) || (timestampList == null)) {
-      return null;
-    }
-
-    // Want to go through sensordata for base source, and all subsources recursively
-    List<Source> sourceList = getAllNonVirtualSubSources(source);
-    for (Source subSource : sourceList) {
-      List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>();
-      for (XMLGregorianCalendar timestamp : timestampList) {
-        SensorDataStraddle straddle = getSensorDataStraddle(subSource, timestamp);
-        if (straddle == null) {
-          // No straddle for this timestamp on this source, abort
-          return null;
-        }
-        else {
-          straddleList.add(straddle);
-        }
-      }
-      masterList.add(straddleList);
-    }
-    if (masterList.isEmpty()) {
-      return null;
-    }
-    else {
-      return masterList;
     }
   }
 

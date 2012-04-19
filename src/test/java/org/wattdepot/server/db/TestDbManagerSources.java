@@ -180,9 +180,9 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
         makeTestSensorData3();
 
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data1));
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data2));
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data3));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(data1));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(data2));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(data3));
 
     // retrieve summary for stored Source
     SourceSummary expectedSummary = new SourceSummary();
@@ -201,8 +201,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source3));
     SensorData data4 = new SensorData(earlyTimestamp, "JUnit", this.source2.toUri(server));
     SensorData data5 = new SensorData(lateTimestamp, "JUnit", this.source2.toUri(server));
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data4));
-    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorData(data5));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(data4));
+    assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(data5));
     retreivedSummary = manager.getSourceSummary(this.source3.getName());
     assertEquals("Number of sensordata in summary for virtual source is wrong", 5, retreivedSummary
         .getTotalSensorDatas());

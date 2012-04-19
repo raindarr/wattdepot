@@ -293,7 +293,7 @@ public class SensorDataResource extends WattDepotResource {
         setStatusResourceOverwrite(this.timestamp);
         return null;
       }
-      if (dbManager.storeSensorData(data)) {
+      if (dbManager.storeSensorData(data, source)) {
         getResponse().setStatus(Status.SUCCESS_CREATED);
       }
       else {

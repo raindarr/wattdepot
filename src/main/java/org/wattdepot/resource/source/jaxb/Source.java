@@ -48,8 +48,8 @@ import org.wattdepot.server.Server;
  * 
  */
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "", propOrder = { "name", "owner", "_public", "virtual", "coordinates", "location",
-    "description", "subSources", "properties" })
+@XmlType(name = "", propOrder = { "name", "owner", "_public", "virtual", "coordinates",
+    "location", "description", "subSources", "properties" })
 @XmlRootElement(name = "Source")
 public class Source implements Serializable, Comparable<Source> {
 
@@ -80,10 +80,20 @@ public class Source implements Serializable, Comparable<Source> {
   public static final String FUEL_TYPE = "fuelType";
   /** Property key for update interval. */
   public static final String UPDATE_INTERVAL = "updateInterval";
-  /** Property key for update interval. */
+  /** Property key for energy direction. */
   public static final String ENERGY_DIRECTION = "energyDirection";
-  /** Property key for update interval. */
+  /** Property key for energy counters. */
   public static final String SUPPORTS_ENERGY_COUNTERS = "supportsEnergyCounters";
+  /**
+   * Property key for cache window length in minutes. This specifies how long to keep sensor data
+   * items in memory before expiring them.
+   */
+  public static final String CACHE_WINDOW_LENGTH = "cacheWindowLength";
+  /**
+   * Property key for ephemeral data checkpoint interval in minutes. This specifies how often to
+   * store sensor data to persistant disk storage (as opposed to cache).
+   */
+  public static final String CACHE_CHECKPOINT_INTERVAL = "cacheCheckpointInterval";
 
   /**
    * Default no-argument constructor, apparently needed by JAXB. Don't use this, use the one with

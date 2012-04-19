@@ -12,7 +12,6 @@ import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
-import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -29,6 +28,7 @@ import org.wattdepot.server.Server;
 import org.wattdepot.server.ServerProperties;
 import org.wattdepot.server.db.DbBadIntervalException;
 import org.wattdepot.server.db.DbImplementation;
+import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
 import com.sleepycat.je.Environment;
@@ -39,6 +39,7 @@ import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
 import com.sleepycat.persist.SecondaryIndex;
 import com.sleepycat.persist.StoreConfig;
+import com.sleepycat.persist.evolve.IncompatibleClassException;
 
 /**
  * WattDepot DbImplementation using BerkeleyDB as the data store. This is an alternative
@@ -49,6 +50,7 @@ import com.sleepycat.persist.StoreConfig;
  */
 public class BerkeleyDbImplementation extends DbImplementation {
 
+  private List<EntityStore> stores;
   private boolean isFreshlyCreated;
   private PrimaryIndex<CompositeSensorDataKey, BerkeleyDbSensorData> sensorDataIndex;
   private PrimaryIndex<CompositeSensorDataPropertyKey, BerkeleyDbSensorDataProperty> sensorDataPropertyPrimaryIndex;
@@ -71,9 +73,10 @@ public class BerkeleyDbImplementation extends DbImplementation {
    * Instantiates the BerkeleyDB installation.
    * 
    * @param server The server this implementation is associated with.
+   * @param dbManager The dbManager this DbImplementation is associated with.
    */
-  public BerkeleyDbImplementation(Server server) {
-    super(server);
+  public BerkeleyDbImplementation(Server server, DbManager dbManager) {
+    super(server, dbManager);
   }
 
   @Override
@@ -81,6 +84,58 @@ public class BerkeleyDbImplementation extends DbImplementation {
     // Construct directories.
     ServerProperties props = server.getServerProperties();
     topDir = new File(props.get(ServerProperties.BERKELEYDB_DIR_KEY));
+
+    boolean success = makeDirectories();
+
+    // If any directory was created, then this was previously uninitialized.
+    this.isFreshlyCreated = success;
+    String dbStatusMsg =
+        (this.isFreshlyCreated) ? "BerkeleyDB: uninitialized."
+            : "BerkeleyDB: previously initialized.";
+    this.logger.info(dbStatusMsg);
+
+    // Check if we have any pre-existing backups.
+    if (this.isFreshlyCreated) {
+      // No backups, so start from zero.
+      this.lastBackupFileId = 0;
+    }
+    else {
+      this.lastBackupFileId = this.getLastBackedUpFile();
+    }
+
+    // Configure BerkeleyDB.
+    try {
+      configure();
+
+      if (wipe) {
+        this.wipeData();
+      }
+    }
+    catch (IncompatibleClassException e) {
+      if (wipe) {
+        try {
+          this.logger.info("BerkeleyDB: recreating");
+          this.dropSchema();
+          this.makeDirectories();
+          this.configure();
+          this.isFreshlyCreated = true;
+        }
+        catch (IOException e1) {
+          throw new RuntimeException(e1.getMessage());
+        }
+      }
+      else {
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Create the directories for each entity.
+   * 
+   * @return True if the directories already existed.
+   */
+  private boolean makeDirectories() {
     boolean success = topDir.mkdirs();
     if (success) {
       System.out.println("Created the berkeleyDb directory.");
@@ -128,47 +183,45 @@ public class BerkeleyDbImplementation extends DbImplementation {
       System.out.println("Created the backup directory.");
     }
 
-    // If any directory was created, then this was previously uninitialized.
-    this.isFreshlyCreated = success;
-    String dbStatusMsg =
-        (this.isFreshlyCreated) ? "BerkeleyDB: uninitialized."
-            : "BerkeleyDB: previously initialized.";
-    this.logger.info(dbStatusMsg);
+    return success;
+  }
 
-    // Check if we have any pre-existing backups.
-    if (this.isFreshlyCreated) {
-      // No backups, so start from zero.
-      this.lastBackupFileId = 0;
-    }
-    else {
-      this.lastBackupFileId = this.getLastBackedUpFile();
-    }
-
-    // Configure BerkeleyDB.
+  /**
+   * Configure the environment and stores.
+   */
+  private void configure() {
     EnvironmentConfig envConfig = new EnvironmentConfig();
     StoreConfig storeConfig = new StoreConfig();
     envConfig.setAllowCreate(true);
     storeConfig.setAllowCreate(true);
     this.environment = new Environment(topDir, envConfig);
 
+    // Guarantee that the environment is closed upon system exit.
+    stores = new ArrayList<EntityStore>();
+
     // Initialize data stores for sensor data
     EntityStore sensorDataStore = new EntityStore(this.environment, "EntityStore", storeConfig);
+    stores.add(sensorDataStore);
     this.sensorDataIndex =
         sensorDataStore.getPrimaryIndex(CompositeSensorDataKey.class, BerkeleyDbSensorData.class);
     EntityStore sensorDataPropertyStore =
         new EntityStore(this.environment, "EntityStore", storeConfig);
+    stores.add(sensorDataPropertyStore);
     this.sensorDataPropertyPrimaryIndex =
         sensorDataPropertyStore.getPrimaryIndex(CompositeSensorDataPropertyKey.class,
             BerkeleyDbSensorDataProperty.class);
-    // Add secondary index so we can search by source name and timestamp only, without property key.
+    // Add secondary index so we can search by source name and timestamp only, without property
+    // key.
     this.sensorDataPropertyIndex =
         sensorDataPropertyStore.getSecondaryIndex(sensorDataPropertyPrimaryIndex,
             CompositeSensorDataKey.class, "sensorDataKey");
 
     // Initialize data stores for users
     EntityStore userStore = new EntityStore(this.environment, "EntityStore", storeConfig);
+    stores.add(userStore);
     this.userIndex = userStore.getPrimaryIndex(String.class, BerkeleyDbUser.class);
     EntityStore userPropertyStore = new EntityStore(this.environment, "EntityStore", storeConfig);
+    stores.add(userPropertyStore);
     this.userPropertyPrimaryIndex =
         userPropertyStore.getPrimaryIndex(CompositeUserPropertyKey.class,
             BerkeleyDbUserProperty.class);
@@ -178,9 +231,11 @@ public class BerkeleyDbImplementation extends DbImplementation {
 
     // Initialize data stores for sources
     EntityStore sourceStore = new EntityStore(this.environment, "EntityStore", storeConfig);
+    stores.add(sourceStore);
     this.sourceIndex = sourceStore.getPrimaryIndex(String.class, BerkeleyDbSource.class);
     EntityStore sourcePropertyStore =
         new EntityStore(this.environment, "EntityStore", storeConfig);
+    stores.add(sourcePropertyStore);
     this.sourcePropertyPrimaryIndex =
         sourcePropertyStore.getPrimaryIndex(CompositeSourcePropertyKey.class,
             BerkeleyDbSourceProperty.class);
@@ -190,6 +245,7 @@ public class BerkeleyDbImplementation extends DbImplementation {
             "sourceName");
     EntityStore sourceHierarchyStore =
         new EntityStore(this.environment, "EntityStore", storeConfig);
+    stores.add(sourceHierarchyStore);
     this.sourceHierarchyIndex =
         sourceHierarchyStore.getPrimaryIndex(CompositeSourceHierarchyKey.class,
             BerkeleyDbSourceHierarchy.class);
@@ -201,20 +257,39 @@ public class BerkeleyDbImplementation extends DbImplementation {
         sourceHierarchyStore
             .getSecondaryIndex(sourceHierarchyIndex, String.class, "subSourceName");
 
-    // Guarantee that the environment is closed upon system exit.
-    List<EntityStore> stores = new ArrayList<EntityStore>();
-    stores.add(sensorDataStore);
-    stores.add(sensorDataPropertyStore);
-    stores.add(sourceStore);
-    stores.add(sourcePropertyStore);
-    stores.add(sourceHierarchyStore);
-    stores.add(userStore);
-    stores.add(userPropertyStore);
     DbShutdownHook shutdownHook = new DbShutdownHook(this.environment, stores);
     Runtime.getRuntime().addShutdownHook(shutdownHook);
+  }
 
-    if (wipe) {
-      this.wipeData();
+  /**
+   * Close stores and environment, delete BerkeleyDb directory.
+   * 
+   * @throws IOException If something cannot be deleted.
+   */
+  private void dropSchema() throws IOException {
+    for (EntityStore store : this.stores) {
+      store.close();
+    }
+    this.environment.cleanLog();
+    this.environment.close();
+    this.environment = null;
+    delete(topDir);
+  }
+
+  /**
+   * Recursively delete a file or directory.
+   * 
+   * @param f The file to delete.
+   * @throws IOException If something cannot be deleted.
+   */
+  private void delete(File f) throws IOException {
+    if (f.isDirectory()) {
+      for (File c : f.listFiles()) {
+        delete(c);
+      }
+    }
+    if (!f.delete()) {
+      throw new FileNotFoundException("Failed to delete file: " + f);
     }
   }
 
@@ -460,66 +535,6 @@ public class BerkeleyDbImplementation extends DbImplementation {
   }
 
   @Override
-  public List<SensorDataStraddle> getSensorDataStraddleList(Source source,
-      XMLGregorianCalendar timestamp) {
-    if ((source == null) || (timestamp == null)) {
-      return null;
-    }
-
-    // Want to go through sensordata for base source, and all subsources recursively
-    List<Source> sourceList = getAllNonVirtualSubSources(source);
-    List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>(sourceList.size());
-    for (Source subSource : sourceList) {
-      SensorDataStraddle straddle = getSensorDataStraddle(subSource, timestamp);
-      if (straddle == null) {
-        // No straddle for this timestamp on this source, abort
-        return null;
-      }
-      else {
-        straddleList.add(straddle);
-      }
-    }
-    if (straddleList.isEmpty()) {
-      return null;
-    }
-    else {
-      return straddleList;
-    }
-  }
-
-  @Override
-  public List<List<SensorDataStraddle>> getSensorDataStraddleListOfLists(Source source,
-      List<XMLGregorianCalendar> timestampList) {
-    List<List<SensorDataStraddle>> masterList = new ArrayList<List<SensorDataStraddle>>();
-    if ((source == null) || (timestampList == null)) {
-      return null;
-    }
-
-    // Want to go through sensordata for base source, and all subsources recursively
-    List<Source> sourceList = getAllNonVirtualSubSources(source);
-    for (Source subSource : sourceList) {
-      List<SensorDataStraddle> straddleList = new ArrayList<SensorDataStraddle>();
-      for (XMLGregorianCalendar timestamp : timestampList) {
-        SensorDataStraddle straddle = getSensorDataStraddle(subSource, timestamp);
-        if (straddle == null) {
-          // No straddle for this timestamp on this source, abort
-          return null;
-        }
-        else {
-          straddleList.add(straddle);
-        }
-      }
-      masterList.add(straddleList);
-    }
-    if (masterList.isEmpty()) {
-      return null;
-    }
-    else {
-      return masterList;
-    }
-  }
-
-  @Override
   public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
     if ((sourceName == null) || (startTime == null) || (endTime == null)) {
@@ -664,7 +679,9 @@ public class BerkeleyDbImplementation extends DbImplementation {
           && !dbProp.getCompositeKey().getPropertyKey().equals(Source.FUEL_TYPE)
           && !dbProp.getCompositeKey().getPropertyKey().equals(Source.UPDATE_INTERVAL)
           && !dbProp.getCompositeKey().getPropertyKey().equals(Source.ENERGY_DIRECTION)
-          && !dbProp.getCompositeKey().getPropertyKey().equals(Source.SUPPORTS_ENERGY_COUNTERS)) {
+          && !dbProp.getCompositeKey().getPropertyKey().equals(Source.SUPPORTS_ENERGY_COUNTERS)
+          && !dbProp.getCompositeKey().getPropertyKey().equals(Source.CACHE_WINDOW_LENGTH)
+          && !dbProp.getCompositeKey().getPropertyKey().equals(Source.CACHE_CHECKPOINT_INTERVAL)) {
         wdSource.addProperty(dbProp.asSourceProperty());
       }
     }
@@ -696,38 +713,6 @@ public class BerkeleyDbImplementation extends DbImplementation {
     else {
       return null;
     }
-  }
-
-  @Override
-  public List<StraddleList> getStraddleLists(Source source,
-      List<XMLGregorianCalendar> timestampList) {
-    if ((source == null) || (timestampList == null)) {
-      return null;
-    }
-    // Want to go through sensordata for base source, and all subsources recursively
-    List<Source> sourceList = getAllNonVirtualSubSources(source);
-    List<StraddleList> masterList = new ArrayList<StraddleList>(sourceList.size());
-    List<SensorDataStraddle> straddleList;
-    for (Source subSource : sourceList) {
-      straddleList = new ArrayList<SensorDataStraddle>(timestampList.size());
-      for (XMLGregorianCalendar timestamp : timestampList) {
-        SensorDataStraddle straddle = getSensorDataStraddle(subSource, timestamp);
-        if (straddle == null) {
-          // No straddle for this timestamp on this source, abort
-          return null;
-        }
-        else {
-          straddleList.add(straddle);
-        }
-      }
-      if (straddleList.isEmpty()) {
-        return null;
-      }
-      else {
-        masterList.add(new StraddleList(subSource, straddleList));
-      }
-    }
-    return masterList;
   }
 
   @Override
@@ -864,7 +849,9 @@ public class BerkeleyDbImplementation extends DbImplementation {
         if (!p.getKey().equals(Source.CARBON_INTENSITY) && !p.getKey().equals(Source.FUEL_TYPE)
             && !p.getKey().equals(Source.UPDATE_INTERVAL)
             && !p.getKey().equals(Source.ENERGY_DIRECTION)
-            && !p.getKey().equals(Source.SUPPORTS_ENERGY_COUNTERS)) {
+            && !p.getKey().equals(Source.SUPPORTS_ENERGY_COUNTERS)
+            && !p.getKey().equals(Source.CACHE_WINDOW_LENGTH)
+            && !p.getKey().equals(Source.CACHE_CHECKPOINT_INTERVAL)) {
           BerkeleyDbSourceProperty dbProp =
               new BerkeleyDbSourceProperty(dbSource.getName(), p.getKey(), p.getValue());
           sourcePropertyPrimaryIndex.put(dbProp);
