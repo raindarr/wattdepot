@@ -107,7 +107,7 @@ public class SourceResource extends WattDepotResource {
   public Representation put(Representation entity, Variant variant) {
     // Cannot be anonymous to put a source
     if (isAnonymous()) {
-     // setStatusBadCredentials();
+      // setStatusBadCredentials();
       return null;
     }
     // Get the payload.
@@ -142,7 +142,7 @@ public class SourceResource extends WattDepotResource {
     if (overwrite) {
       Source existingSource = dbManager.getSource(sourceName);
       // If source already exists, must be owner to overwrite
-      if ((existingSource != null) && (!validateSourceOwnerOrAdmin())) {
+      if ((existingSource != null) && (!validateSourceOwnerOrAdmin(existingSource))) {
         return null;
       }
       if (dbManager.storeSource(source, overwrite)) {

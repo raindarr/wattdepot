@@ -44,7 +44,7 @@ import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.StackTrace;
 import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
-import org.postgresql.ds.PGConnectionPoolDataSource;
+import org.postgresql.jdbc3.Jdbc3PoolingDataSource;
 import static org.wattdepot.server.ServerProperties.DATABASE_URL_KEY;
 import static org.wattdepot.server.ServerProperties.DB_DATABASE_NAME_KEY;
 import static org.wattdepot.server.ServerProperties.DB_PORT_KEY;
@@ -79,10 +79,10 @@ public class PostgresStorageImplementation extends DbImplementation {
    * each time. This avoids any overhead of repeatedly opening and closing connections, and allows a
    * large number of clients to share a small number of database connections.
    * 
-   * The pooling data-source implementation provided here is not the most feature-rich in the world.
-   * For one, there is no way to shrink the connection pool.
+   * The pooling data-source implementation provided here is not the most feature-rich, but it will
+   * work on any system.
    */
-  private PGConnectionPoolDataSource connectionPool;
+  private Jdbc3PoolingDataSource connectionPool;
 
   /** The SQL state indicating that INSERT tried to add data to a table with a preexisting key. */
   private static final String DUPLICATE_KEY = "23505";
@@ -183,7 +183,7 @@ public class PostgresStorageImplementation extends DbImplementation {
     Connection conn = null;
     try {
 
-      connectionPool = new PGConnectionPoolDataSource();
+      connectionPool = new Jdbc3PoolingDataSource();
       connectionPool.setServerName(hostName);
       connectionPool.setDatabaseName(dbName);
       connectionPool.setUser(user);
@@ -820,7 +820,7 @@ public class PostgresStorageImplementation extends DbImplementation {
    * @param sourceName The source to get properties for.
    * @return The list of properties for the source.
    */
-  public List<Property> getSourceProperties(String sourceName) {
+  private List<Property> getSourceProperties(String sourceName) {
     List<Property> props = new ArrayList<Property>();
 
     Connection conn = null;

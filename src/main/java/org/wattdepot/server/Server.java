@@ -449,20 +449,15 @@ public class Server extends Application {
     // Router userRouter = new Router(getContext());
     router.attach("/" + USERS_URI, UserResource.class);
     router.attach("/" + USERS_URI + "/{user}", UserResource.class);
-    // Guard userGuard = new AdminAuthenticator(getContext());
-    // userGuard.setNext(userRouter);
 
-    // Health resource is public, so no Guard
     router.attach("/" + HEALTH_URI, HealthResource.class);
 
-    // Source does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI, SourceResource.class);
     router.attach("/" + SOURCES_URI + "/", SourceResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM, SourceResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SUMMARY_URI,
         SourceSummaryResource.class);
 
-    // SensorData does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI,
         SensorDataResource.class);
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/",
@@ -470,16 +465,13 @@ public class Server extends Application {
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/"
         + TIMESTAMP_PARAM, SensorDataResource.class);
 
-    // Power does its own authentication processing, so don't use Guard
     router.attach(
         "/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + POWER_URI + "/" + TIMESTAMP_PARAM,
         PowerResource.class);
 
-    // Energy does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI + "/",
         EnergyResource.class);
 
-    // Carbon does its own authentication processing, so don't use Guard
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + CARBON_URI + "/",
         CarbonResource.class);
 
@@ -488,7 +480,6 @@ public class Server extends Application {
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + GVIZ_URI + "/{type}/"
         + TIMESTAMP_PARAM, GVisualizationResource.class);
 
-    // Database does its own authentication processing, so don't use Guard
     router.attach("/" + DATABASE_URI + "/" + "{method}", DatabaseResource.class);
 
     // Authenticate

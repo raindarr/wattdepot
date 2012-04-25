@@ -295,7 +295,7 @@ public class WattDepotResource extends ServerResource {
       // Use ListIterator to loop over all Sources, removing those that aren't public
       while (iterator.hasNext()) {
         Source source = iterator.next();
-        if (!source.isPublic() && !isSourceOwner(source.getName())) {
+        if (!source.isPublic() && !isSourceOwner(source)) {
           iterator.remove();
         }
       }
@@ -309,7 +309,7 @@ public class WattDepotResource extends ServerResource {
       // current user
       while (iterator.hasNext()) {
         SourceRef ref = iterator.next();
-        if (!ref.isPublic() && !isSourceOwner(ref.getName())) {
+        if (!ref.isPublic() && !isSourceOwner(ref)) {
           iterator.remove();
         }
       }
@@ -590,21 +590,20 @@ public class WattDepotResource extends ServerResource {
   }
 
   /**
-   * Returns true if the source name present in the URI is valid, i.e. it exists in the database.
-   * Otherwise sets the Response status and returns false.
+   * Returns the source with the name in the URI if it is valid, i.e. it exists in the database.
+   * Otherwise sets the Response status and returns null.
    * 
-   * @return True if the named Source exists in the database, false otherwise.
+   * @return The source with the name in the URI if it exists, or null if it doesn't.
    */
-  public boolean validateKnownSource() {
+  public Source validateKnownSource() {
     // a Source is valid if we can retrieve it from the database
-    if (dbManager.getSource(uriSource) == null) {
+    Source source = dbManager.getSource(uriSource);
+    if (source == null) {
       // Might want to use a generic response message so as to not leak information.
       setStatusUnknownSource();
-      return false;
     }
-    else {
-      return true;
-    }
+
+    return source;
   }
 
   /**
@@ -643,50 +642,58 @@ public class WattDepotResource extends ServerResource {
   }
 
   /**
-   * Returns true if the username provided in the HTTP request is the owner of the Source in the
-   * URI. Note, does not check whether the credentials are valid (i.e. the password matches)!
-   * 
-   * @return True if the username in the credentials is the owner of the Source in the URI, false
-   * otherwise.
-   */
-  public boolean isSourceOwner() {
-    return isSourceOwner(uriSource);
-  }
-
-  /**
-   * Returns true if the username provided in the HTTP request is the owner of the given source name
+   * Returns true if the username provided in the HTTP request is the owner of the given source
    * Note, does not check whether the credentials are valid (i.e. the password matches)!
    * 
-   * @param sourceName The name of the source to check the username against.
-   * @return True if the username in the credentials is the owner of the source name provided, false
+   * @param source The source object to check the username against.
+   * @return True if the username in the credentials is the owner of the source provided, false
    * otherwise.
    */
-  public boolean isSourceOwner(String sourceName) {
+  public boolean isSourceOwner(Source source) {
     if (isAnonymous()) {
       return false;
     }
-    Source source = dbManager.getSource(sourceName);
     if (source == null) {
       return false;
     }
-
     else {
       // Check if the URI of the authenticated user matches the URI of the owner for the source
-      // parameter in the URI
       return User.userToUri(authUsername, this.server).equals(source.getOwner());
     }
   }
 
   /**
-   * Returns true if the the authenticated user is the owner of the source name present in the URI,
-   * or if the authenticated user is an administrator (the SourceOwner access control level
-   * discussed in the REST API). Otherwise sets the Response status and returns false.
+   * Returns true if the username provided in the HTTP request is the owner of the given source ref
+   * Note, does not check whether the credentials are valid (i.e. the password matches)!
    * 
+   * @param ref The source ref object to check the username against.
+   * @return True if the username in the credentials is the owner of the source ref provided, false
+   * otherwise.
+   */
+  public boolean isSourceOwner(SourceRef ref) {
+    if (isAnonymous()) {
+      return false;
+    }
+    if (ref == null) {
+      return false;
+    }
+    else {
+      // Check if the URI of the authenticated user matches the URI of the owner for the source ref
+      return User.userToUri(authUsername, this.server).equals(ref.getOwner());
+    }
+  }
+
+  /**
+   * Returns true if the the authenticated user is the owner of the given source object, or if the
+   * authenticated user is an administrator (the SourceOwner access control level discussed in the
+   * REST API). Otherwise sets the Response status and returns false.
+   * 
+   * @param source The source to validate authentication for.
    * @return True if the current user owns the source in the URI or if the current user is an
    * administrator, false otherwise.
    */
-  public boolean validateSourceOwnerOrAdmin() {
-    if (isSourceOwner() || isAdminUser()) {
+  public boolean validateSourceOwnerOrAdmin(Source source) {
+    if (isAdminUser() || isSourceOwner(source)) {
       return true;
     }
     else {
@@ -705,15 +712,10 @@ public class WattDepotResource extends ServerResource {
    * @return True if the source in the URI is valid and accessible to the current user.
    */
   public boolean validateUriSource() {
-    if (validateKnownSource()) {
-      Source source = dbManager.getSource(uriSource);
+    Source source = validateKnownSource();
+    if (source != null) {
       // If source is private, check if current user is allowed to view
-      if (!source.isPublic()) {
-        return validateSourceOwnerOrAdmin();
-      }
-      else {
-        return true;
-      }
+      return (source.isPublic() || validateSourceOwnerOrAdmin(source));
     }
     else {
       return false;

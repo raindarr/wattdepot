@@ -181,11 +181,12 @@ public class SensorDataResource extends WattDepotResource {
   @Override
   public Representation delete(Variant variant) {
 
+    Source source = validateKnownSource();
     // First check if source in URI exists
-    if (!validateKnownSource()) {
+    if (source == null) {
       return null;
     }
-    if (validateSourceOwnerOrAdmin()) {
+    if (validateSourceOwnerOrAdmin(source)) {
       // Is it a request to delete all sensor data?
       if (timestamp.equals(Server.ALL)) {
         if (super.dbManager.deleteSensorData(uriSource)) {
@@ -240,12 +241,13 @@ public class SensorDataResource extends WattDepotResource {
   @Override
   public Representation put(Representation entity, Variant variant) {
 
+    Source source = validateKnownSource();
     // First check if source in URI exists
-    if (!validateKnownSource()) {
+    if (source == null) {
       return null;
     }
 
-    if (validateSourceOwnerOrAdmin()) {
+    if (validateSourceOwnerOrAdmin(source)) {
       XMLGregorianCalendar timestampObj = null;
       // check if timestamp is OK
       try {
@@ -283,7 +285,6 @@ public class SensorDataResource extends WattDepotResource {
         return null;
       }
       // Return failure if the SensorData Source doesn't match the uriSource
-      Source source = dbManager.getSource(uriSource);
       if (!source.toUri(server).equals(data.getSource())) {
         setStatusMiscError("SensorData payload Source field does not match source field in URI");
         return null;
