@@ -693,6 +693,13 @@ public abstract class DbImplementation {
    */
   public abstract boolean makeSnapshot();
 
+  /**
+   * Provides ability to stop or close database connection if necessary. By default, does nothing.
+   */
+  public void stop() {
+
+  }
+
   // /**
   // * Returns the current number of rows in the specified table.
   // *

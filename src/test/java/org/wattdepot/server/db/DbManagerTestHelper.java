@@ -21,7 +21,7 @@ import org.wattdepot.util.tstamp.Tstamp;
 public class DbManagerTestHelper {
 
   /** The DbManager under test. */
-  protected DbManager manager;
+  protected static DbManager manager;
 
   /** The server being used for these tests. */
   protected static Server server;
@@ -55,6 +55,7 @@ public class DbManagerTestHelper {
   @BeforeClass
   public static void startServer() throws Exception {
     DbManagerTestHelper.server = Server.newTestInstance();
+    manager = DbManagerTestHelper.server.dbManager;
   }
 
   /**
@@ -73,10 +74,9 @@ public class DbManagerTestHelper {
    */
   @Before
   public void makeDb() {
-    // Will test whatever DbImplementation has been specified in ServerProperties. Note that this
-    // can be changed using system Properties, which is useful for running JUnit tests with a
-    // particular implementation specified.
-    this.manager = new DbManager(server, server.getServerProperties().get(DB_IMPL_KEY), true);
+    DbManagerTestHelper.manager.stop();
+    DbManagerTestHelper.manager =
+        new DbManager(server, server.getServerProperties().get(DB_IMPL_KEY), true);
     // Need to create default data for each fresh DbManager
     // assertTrue("Unable to create default data", createDefaultData());
   }

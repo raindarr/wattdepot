@@ -179,21 +179,21 @@ public class TestDbManagerCache extends DbManagerTestHelper {
     createTestData();
 
     assertEquals("DbManager retrieved incorrect latest sensor data", this.data5,
-        this.manager.getLatestSensorData(source1name));
+        manager.getLatestSensorData(source1name));
     assertEquals("Cache retrieved incorrect latest sensor data", this.data5,
-        this.manager.cache.getLatestSensorData(source1name));
+        manager.cache.getLatestSensorData(source1name));
     assertEquals("DbImpl retrieved incorrect latest sensor data", this.data5,
-        this.manager.dbImpl.getLatestSensorData(source1name));
+        manager.dbImpl.getLatestSensorData(source1name));
 
     assertTrue("Could not delete sensor data",
-        this.manager.deleteSensorData(source1name, this.data5.getTimestamp()));
+        manager.deleteSensorData(source1name, this.data5.getTimestamp()));
 
     assertEquals("DbManager retrieved incorrect latest sensor data", this.data4,
-        this.manager.getLatestSensorData(source1name));
+        manager.getLatestSensorData(source1name));
     assertEquals("Cache retrieved incorrect latest sensor data", this.data4,
-        this.manager.cache.getLatestSensorData(source1name));
+        manager.cache.getLatestSensorData(source1name));
     assertEquals("DbImpl retrieved incorrect latest sensor data", this.data3,
-        this.manager.dbImpl.getLatestSensorData(source1name));
+        manager.dbImpl.getLatestSensorData(source1name));
   }
 
   /**

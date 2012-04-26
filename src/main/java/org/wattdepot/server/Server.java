@@ -110,6 +110,9 @@ public class Server extends Application {
   /** The authenticator to use for all resources. */
   public WattDepotAuthenticator guard;
 
+  /** The DbManager for this server. */
+  public DbManager dbManager;
+
   /** Users JAXBContext. */
   private static final JAXBContext userJAXB;
   /** SensorData JAXBContext. */
@@ -225,31 +228,30 @@ public class Server extends Application {
     // Put server and serverProperties in first, because dbManager() will look at serverProperties
     attributes.put("WattDepotServer", server);
     attributes.put("ServerProperties", server.serverProperties);
-    DbManager dbManager;
     // If we are in test mode
     if (server.serverProperties.get(TEST_INSTALL_KEY).equalsIgnoreCase("true")) {
       // Make sure database starts off wiped
-      dbManager = new DbManager(server, true);
+      server.dbManager = new DbManager(server, true);
     }
     else {
-      dbManager = new DbManager(server);
+      server.dbManager = new DbManager(server);
       try {
-        server.loadDefaultResources(dbManager, server.serverProperties.get(SERVER_HOME_DIR));
+        server.loadDefaultResources(server.dbManager, server.serverProperties.get(SERVER_HOME_DIR));
       }
       catch (Exception e) {
         server.logger.severe("Unable to load default resources: " + e.toString());
       }
     }
-    attributes.put("DbManager", dbManager);
+    attributes.put("DbManager", server.dbManager);
 
     if (compress) {
       server.logger.warning("Compressing database tables.");
-      dbManager.performMaintenance();
+      server.dbManager.performMaintenance();
       server.logger.warning("Compressing database tables complete.");
     }
     if (reindex) {
       server.logger.warning("Reindexing database tables.");
-      dbManager.indexTables();
+      server.dbManager.indexTables();
       server.logger.warning("Reindexing database tables complete.");
     }
     if (compress || reindex) {
@@ -544,6 +546,7 @@ public class Server extends Application {
    */
   public void shutdown() throws Exception {
     this.component.stop();
+    this.dbManager.stop();
   }
 
   /**

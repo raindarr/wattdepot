@@ -737,4 +737,11 @@ public class DbManager {
     this.cache.wipeData();
     return this.dbImpl.wipeData();
   }
+
+  /**
+   * Provides ability to stop or close database connection if necessary.
+   */
+  public void stop() {
+    this.dbImpl.stop();
+  }
 }

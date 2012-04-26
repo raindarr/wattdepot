@@ -44,7 +44,11 @@ import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.StackTrace;
 import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
-import org.postgresql.jdbc3.Jdbc3PoolingDataSource;
+import org.apache.commons.dbcp.DriverManagerConnectionFactory;
+import org.apache.commons.dbcp.PoolableConnectionFactory;
+import org.apache.commons.dbcp.PoolingDataSource;
+import org.apache.commons.pool.ObjectPool;
+import org.apache.commons.pool.impl.GenericObjectPool;
 import static org.wattdepot.server.ServerProperties.DATABASE_URL_KEY;
 import static org.wattdepot.server.ServerProperties.DB_DATABASE_NAME_KEY;
 import static org.wattdepot.server.ServerProperties.DB_PORT_KEY;
@@ -82,7 +86,8 @@ public class PostgresStorageImplementation extends DbImplementation {
    * The pooling data-source implementation provided here is not the most feature-rich, but it will
    * work on any system.
    */
-  private Jdbc3PoolingDataSource connectionPool;
+  private PoolingDataSource connectionPool;
+  private ObjectPool objectPool;
 
   /** The SQL state indicating that INSERT tried to add data to a table with a preexisting key. */
   private static final String DUPLICATE_KEY = "23505";
@@ -112,18 +117,7 @@ public class PostgresStorageImplementation extends DbImplementation {
 
     ServerProperties props = server.getServerProperties();
 
-    String hostName;
-    String port;
-    String dbName;
-    String user;
-    String password;
-
     if (props.get(DATABASE_URL_KEY) == null || props.get(DATABASE_URL_KEY).length() == 0) {
-      hostName = props.get(DB_HOSTNAME_KEY);
-      port = props.get(DB_PORT_KEY);
-      dbName = props.get(DB_DATABASE_NAME_KEY);
-      user = props.get(DB_USERNAME_KEY);
-      password = props.get(DB_PASSWORD_KEY);
 
       connectionUrl =
           "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "/"
@@ -136,15 +130,14 @@ public class PostgresStorageImplementation extends DbImplementation {
       // assume connectionUrl is in the form postgres://username:password@host/dbName
       String userInfo =
           connectionUrl.substring(connectionUrl.indexOf("//") + 2, connectionUrl.indexOf("@"));
-      user = userInfo.split(":")[0];
-      password = userInfo.split(":")[1];
-      hostName =
+      String user = userInfo.split(":")[0];
+      String password = userInfo.split(":")[1];
+      String hostName =
           connectionUrl.substring(connectionUrl.indexOf("@") + 1, connectionUrl.lastIndexOf("/"));
-      dbName = connectionUrl.substring(connectionUrl.lastIndexOf("/") + 1);
+      String dbName = connectionUrl.substring(connectionUrl.lastIndexOf("/") + 1);
       if (dbName.contains("?")) {
         dbName = dbName.substring(0, dbName.indexOf("?"));
       }
-      port = null;
 
       String params = "";
       if (connectionUrl.contains("?")) {
@@ -159,53 +152,17 @@ public class PostgresStorageImplementation extends DbImplementation {
       // assume we have a valid jdbc connectionUrl in the form
       // postgresql://hostName/dbName?user=user&password=password
       connectionUrl = "jdbc:" + props.get(DATABASE_URL_KEY);
-      hostName =
-          connectionUrl.substring(connectionUrl.indexOf("//") + 2, connectionUrl.lastIndexOf("/"));
-      if (hostName.contains(":")) {
-        port = hostName.substring(hostName.indexOf(":") + 1);
-        hostName = hostName.substring(0, hostName.indexOf(":"));
-      }
-      else {
-        port = null;
-      }
-      dbName =
-          connectionUrl.substring(connectionUrl.lastIndexOf("/") + 1, connectionUrl.indexOf("?"));
-      user = connectionUrl.substring(connectionUrl.indexOf("user=") + 5);
-      if (user.contains("&")) {
-        user = user.substring(0, user.indexOf("&"));
-      }
-      password = connectionUrl.substring(connectionUrl.indexOf("password=") + 9);
-      if (password.contains("&")) {
-        password = password.substring(0, password.indexOf("&"));
-      }
     }
 
     Connection conn = null;
     try {
-
-      connectionPool = new Jdbc3PoolingDataSource();
-      connectionPool.setServerName(hostName);
-      connectionPool.setDatabaseName(dbName);
-      connectionPool.setUser(user);
-      connectionPool.setPassword(password);
-      if (port != null) {
-        connectionPool.setPortNumber(Integer.valueOf(port));
-      }
-
-      // take care of extra properties that might be used.
-      if (this.connectionUrl.contains("ssl=true")) {
-        connectionPool.setSsl(true);
-      }
-      if (this.connectionUrl.contains("sslfactory=")) {
-        String factoryString = connectionUrl.substring(connectionUrl.indexOf("sslfactory=") + 11);
-        if (factoryString.indexOf("&") < 0) {
-          this.connectionPool.setSslfactory(factoryString);
-        }
-        else {
-          this.connectionPool
-              .setSslfactory(factoryString.substring(0, factoryString.indexOf("&")));
-        }
-      }
+      DriverManagerConnectionFactory connectionFactory =
+          new DriverManagerConnectionFactory(connectionUrl, null);
+      objectPool = new GenericObjectPool();
+      PoolableConnectionFactory poolableConnectionFactory =
+          new PoolableConnectionFactory(connectionFactory, objectPool, null, null, false, true);
+      objectPool.setFactory(poolableConnectionFactory);
+      connectionPool = new PoolingDataSource(objectPool);
       conn = this.connectionPool.getConnection();
     }
     catch (SQLException e) {
@@ -292,6 +249,18 @@ public class PostgresStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public void initialize(boolean wipe) {
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      /** Run the shutdown hook for shutting down Postgres connection pool. */
+      @Override
+      public void run() {
+        try {
+          objectPool.close();
+        }
+        catch (Exception e) {
+          System.out.println("Postgres shutdown hook results: " + e.getMessage());
+        }
+      }
+    });
     String errorPrefix = "Error during initialization: ";
     try {
       try {
@@ -2473,5 +2442,19 @@ public class PostgresStorageImplementation extends DbImplementation {
           .info("PostgreSQL: makeSnapshot() tried to zip null file " + fileSource.getName());
     }
 
+  }
+
+  /**
+   * Close the connection object pool.
+   */
+  @Override
+  public void stop() {
+    try {
+      this.objectPool.close();
+    }
+    catch (Exception e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 }
