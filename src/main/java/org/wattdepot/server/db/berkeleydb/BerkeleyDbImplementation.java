@@ -607,6 +607,10 @@ public class BerkeleyDbImplementation extends DbImplementation {
 
     // Want to go through sensordata for base source, and all subsources recursively
     List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    if (sourceList.size() == 0) {
+      summary.setTotalSensorDatas(0);
+      return summary;
+    }
     XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null;
     int dataCount = 0;
     BerkeleyDbSensorData temp;

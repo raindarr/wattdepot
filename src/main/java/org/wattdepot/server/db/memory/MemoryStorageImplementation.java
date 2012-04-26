@@ -142,6 +142,10 @@ public class MemoryStorageImplementation extends DbImplementation {
     summary.setTotalSensorDatas(0);
     // Want to go through sensordata for base source, and all subsources recursively
     List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    if (sourceList.size() == 0) {
+      summary.setTotalSensorDatas(0);
+      return summary;
+    }
     XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null, dataTimestamp;
     long dataCount = 0;
     for (Source subSource : sourceList) {

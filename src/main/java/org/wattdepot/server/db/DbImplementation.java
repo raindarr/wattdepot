@@ -556,13 +556,14 @@ public abstract class DbImplementation {
    * Given a Source, returns a List of Sources corresponding to any subsources of the given Source.
    * 
    * @param source The parent Source.
-   * @return A List of Sources that are subsources of the given Source, or null if there are none.
+   * @return A List of Sources that are subsources of the given Source.
    */
   public List<Source> getAllSubSources(Source source) {
+    List<Source> sourceList = new ArrayList<Source>();
+
     if (source.isSetSubSources()) {
       // List<Source> sourceList = source.getSubSourceList();
       // if (sourceList == null) {
-      List<Source> sourceList = new ArrayList<Source>();
       for (String subSourceUri : source.getSubSources().getHref()) {
         Source subSource = getSource(UriUtils.getUriSuffix(subSourceUri));
         if (subSource != null) {
@@ -571,11 +572,9 @@ public abstract class DbImplementation {
       }
       // source.setSubSourceList(sourceList);
       // }
-      return sourceList;
     }
-    else {
-      return null;
-    }
+    return sourceList;
+
   }
 
   /**

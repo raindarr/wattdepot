@@ -14,6 +14,7 @@ import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.jaxb.SourceIndex;
 import org.wattdepot.resource.source.jaxb.SourceRef;
 import org.wattdepot.resource.source.jaxb.Sources;
+import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.util.tstamp.Tstamp;
@@ -68,8 +69,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     storeTestUsers();
 
     // case #1: empty database should have no Sources
-    assertTrue("Freshly created database contains Sources", manager.getSourceIndex().getSourceRef()
-        .isEmpty());
+    assertTrue("Freshly created database contains Sources", manager.getSourceIndex()
+        .getSourceRef().isEmpty());
     assertTrue("Freshly created database contains Sources", manager.getSources().getSource()
         .isEmpty());
 
@@ -78,7 +79,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source1));
     index = manager.getSourceIndex();
     sources = manager.getSources();
-    assertSame("getSourceIndex returned wrong number of SourceRefs", index.getSourceRef().size(), 1);
+    assertSame("getSourceIndex returned wrong number of SourceRefs", index.getSourceRef().size(),
+        1);
     assertSame("getSources returned wrong number of SourceRefs", sources.getSource().size(), 1);
     SourceRef aRef = index.getSourceRef().get(0);
     Source source = sources.getSource().get(0);
@@ -91,7 +93,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(this.source3));
     index = manager.getSourceIndex();
     sources = manager.getSources();
-    assertSame("getSourceIndex returned wrong number of SourceRefs", index.getSourceRef().size(), 3);
+    assertSame("getSourceIndex returned wrong number of SourceRefs", index.getSourceRef().size(),
+        3);
     assertSame("getSources returned wrong number of Sources", sources.getSource().size(), 3);
     // Now compare the SourceRefs to the original Sources
     List<SourceRef> retrievedRefs = manager.getSourceIndex().getSourceRef();
@@ -116,8 +119,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     origSources.add(this.source1);
     origSources.add(this.source3);
     for (int i = 0; i < origSources.size(); i++) {
-      assertTrue("getSources index not sorted", retrievedRefs.get(i).equalsSource(
-          origSources.get(i)));
+      assertTrue("getSources index not sorted",
+          retrievedRefs.get(i).equalsSource(origSources.get(i)));
     }
     assertEquals("getSources returned incorrect list", origSources, manager.getSources()
         .getSource());
@@ -204,22 +207,53 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(data4));
     assertTrue(UNABLE_TO_STORE_DATA, manager.storeSensorDataNoCache(data5));
     retreivedSummary = manager.getSourceSummary(this.source3.getName());
-    assertEquals("Number of sensordata in summary for virtual source is wrong", 5, retreivedSummary
-        .getTotalSensorDatas());
+    assertEquals("Number of sensordata in summary for virtual source is wrong", 5,
+        retreivedSummary.getTotalSensorDatas());
     assertEquals("First sensordata in summary for virtual source is wrong", earlyTimestamp,
         retreivedSummary.getFirstSensorData());
     assertEquals("Last sensordata in summary for virtual source is wrong", lateTimestamp,
         retreivedSummary.getLastSensorData());
 
     // retrieve summary for unknown Source name
-    assertNull("Able to retrieve ficticiously-named Source", manager
-        .getSourceSummary("bogus-source"));
+    assertNull("Able to retrieve ficticiously-named Source",
+        manager.getSourceSummary("bogus-source"));
 
     // retrieve summary for empty Source name
     assertNull("Able to retrieve empty-named Source", manager.getSourceSummary(""));
 
     // retrieve summary for null Source name
     assertNull("Able to retrieve from null Source", manager.getSourceSummary(null));
+  }
+
+  /**
+   * Tests that a virtual source with no subsources produces the correct source summary. Note that
+   * the client doesn't allow this situation to happen, but if the sources are created in another
+   * way there could be an issue.
+   * 
+   * In order to test this, create a virtual source with a subsource and then delete the subsource.
+   */
+  @Test
+  public void getEmptySourceSummary() {
+    User owner = this.makeTestUser1();
+    assertTrue("Could not store user", manager.storeUser(owner));
+    Source subsource = this.makeTestSource1();
+    assertTrue("Could not store source", manager.storeSource(subsource));
+
+    SubSources s = new SubSources();
+    s.getHref().add(Source.sourceToUri(subsource.getName(), server));
+    Source vSource =
+        new Source("empty-virtual-source", User.userToUri(owner.getEmail(), server), true, true,
+            null, null, null, null, s);
+
+    assertTrue("Could not store virtual source", manager.storeSource(vSource));
+    assertTrue("Could not delete source", manager.deleteSource(subsource.getName()));
+
+    SourceSummary expectedSummary = new SourceSummary();
+    expectedSummary.setHref(Source.sourceToUri("empty-virtual-source", server));
+    expectedSummary.setTotalSensorDatas(0);
+
+    assertEquals("Source summary for empty virtual source is incorrect", expectedSummary,
+        manager.getSourceSummary("empty-virtual-source"));
   }
 
   /**
@@ -247,8 +281,8 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     Source source1New = makeTestSource3();
     source1New.setName(source1.getName());
     assertFalse("Overwriting Source succeeded, but should fail", manager.storeSource(source1New));
-    assertTrue("Unable to overwrite Source, but should succeed", manager.storeSource(source1New,
-        true));
+    assertTrue("Unable to overwrite Source, but should succeed",
+        manager.storeSource(source1New, true));
     Source retrievedSource = manager.getSource(source1New.getName());
     // All fields of this updated source were the same as source3, so we tweak the name back to
     // source3's name so we can use the Source.equals() method to ensure all fields were updated

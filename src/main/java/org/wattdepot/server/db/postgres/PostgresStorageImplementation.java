@@ -893,6 +893,10 @@ public class PostgresStorageImplementation extends DbImplementation {
     summary.setHref(Source.sourceToUri(sourceName, this.server));
     // Want to go through sensordata for base source, and all subsources recursively
     List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+    if (sourceList.size() == 0) {
+      summary.setTotalSensorDatas(0);
+      return summary;
+    }
     XMLGregorianCalendar firstTimestamp = null, lastTimestamp = null;
     Timestamp sqlDataTimestamp = null;
     long dataCount = 0;
