@@ -1,6 +1,7 @@
 package org.wattdepot.server.db;
 
 import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -21,7 +22,7 @@ import org.wattdepot.util.tstamp.Tstamp;
 public class DbManagerTestHelper {
 
   /** The DbManager under test. */
-  protected static DbManager manager;
+  protected DbManager manager;
 
   /** The server being used for these tests. */
   protected static Server server;
@@ -55,7 +56,6 @@ public class DbManagerTestHelper {
   @BeforeClass
   public static void startServer() throws Exception {
     DbManagerTestHelper.server = Server.newTestInstance();
-    manager = DbManagerTestHelper.server.dbManager;
   }
 
   /**
@@ -74,11 +74,18 @@ public class DbManagerTestHelper {
    */
   @Before
   public void makeDb() {
-    DbManagerTestHelper.manager.stop();
-    DbManagerTestHelper.manager =
+    manager =
         new DbManager(server, server.getServerProperties().get(DB_IMPL_KEY), true);
     // Need to create default data for each fresh DbManager
     // assertTrue("Unable to create default data", createDefaultData());
+  }
+  
+  /**
+   * Shuts down the DbManager for each test.
+   */
+  @After
+  public void stopDb() {
+    manager.stop();
   }
 
   // /**
