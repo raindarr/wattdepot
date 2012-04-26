@@ -845,7 +845,7 @@ public class TestSensorDataResource extends ServerTestHelper {
     assertTrue("Unable to delete SensorData",
         client.deleteSensorData(defaultPublicSource, data2.getTimestamp()));
     assertNull("Able to retrieve deleted SensorData",
-        client.getSensorData(data2.getSource(), data2.getTimestamp()));
+        client.getSensorData(defaultPublicSource, data2.getTimestamp()));
   }
 
   /**
@@ -853,7 +853,7 @@ public class TestSensorDataResource extends ServerTestHelper {
    * 
    * @throws Exception If problems are encountered.
    */
-  @Test(expected = ResourceNotFoundException.class)
+  @Test
   public void testDeleteAllSensorData() throws Exception {
     WattDepotClient client =
         new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
@@ -865,10 +865,11 @@ public class TestSensorDataResource extends ServerTestHelper {
     assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
 
     assertEquals("Some expected SensorData not stored", 3,
-        client.getSensorDataIndex(data2.getSource()).getSensorDataRef().size());
+        client.getSensorDataIndex(UriUtils.getUriSuffix(data2.getSource())).getSensorDataRef()
+            .size());
     assertTrue("Unable to delete all SensorData for Source",
         client.deleteAllSensorData(defaultPublicSource));
     assertEquals("Able to retrieve deleted SensorData", 0,
-        client.getSensorDataIndex(data2.getSource()).getSensorDataRef().size());
+        client.getSensorDataIndex(defaultPublicSource).getSensorDataRef().size());
   }
 }

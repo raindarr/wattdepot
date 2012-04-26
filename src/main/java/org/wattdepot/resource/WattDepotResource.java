@@ -15,6 +15,7 @@ import org.restlet.data.Language;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.data.Status;
+import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
@@ -93,6 +94,11 @@ public class WattDepotResource extends ServerResource {
     }
   }
 
+  protected static final String MESSAGE_TEXT =
+      "<img src=\"http://code.google.com/p/wattdepot/logo?cct=1332883388\"/><br/>"
+          + "Welcome to WattDepot!<br/><br/>"
+          + "See <a href=\"http://code.google.com/p/wattdepot/wiki/RestApi\">the RestApi</a> for help.";
+
   /**
    * Initialize with attributes from the Request and only TEXT_XML variant.
    */
@@ -129,6 +135,17 @@ public class WattDepotResource extends ServerResource {
     if (uriSource != null && this.getMethod() == Method.GET) {
       validateUriSource();
     }
+  }
+
+  /**
+   * Returns a full representation for a given variant.
+   * 
+   * @param variant the requested variant of this representation
+   * @return the representation of this resource
+   */
+  @Override
+  public Representation get(Variant variant) {
+    return new StringRepresentation(MESSAGE_TEXT, MediaType.TEXT_HTML);
   }
 
   /**

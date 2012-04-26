@@ -24,7 +24,10 @@ import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
+import org.restlet.routing.Template;
 import org.restlet.data.Protocol;
+import org.wattdepot.resource.NoResource;
+import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.carbon.CarbonResource;
 import org.wattdepot.resource.db.DatabaseResource;
 import org.wattdepot.resource.energy.EnergyResource;
@@ -483,6 +486,9 @@ public class Server extends Application {
         + TIMESTAMP_PARAM, GVisualizationResource.class);
 
     router.attach("/" + DATABASE_URI + "/" + "{method}", DatabaseResource.class);
+    router.attachDefault(WattDepotResource.class);
+    router.attach("/", WattDepotResource.class);
+    router.attach("/", NoResource.class, Template.MODE_STARTS_WITH);
 
     // Authenticate
     guard = new WattDepotAuthenticator(getContext());

@@ -136,7 +136,8 @@ public class SourceResource extends WattDepotResource {
     }
     // Return failure if the name of Source doesn't match the name given in URI
     if (!uriSource.equals(sourceName)) {
-      setStatusMiscError("Soure Name field does not match source field in URI");
+      setStatusMiscError("The source given in the URI (" + uriSource
+          + ") does not match the source given in the payload (" + sourceName + ")");
       return null;
     }
     if (overwrite) {

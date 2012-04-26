@@ -286,7 +286,8 @@ public class SensorDataResource extends WattDepotResource {
       }
       // Return failure if the SensorData Source doesn't match the uriSource
       if (!source.toUri(server).equals(data.getSource())) {
-        setStatusMiscError("SensorData payload Source field does not match source field in URI");
+        setStatusMiscError("The source given in the URI (" + source.toUri(server)
+            + ") does not match the source given in the payload (" + data.getSource() + ")");
         return null;
       }
       // if there is any already existing sensor data for given timestamp, then PUT fails
