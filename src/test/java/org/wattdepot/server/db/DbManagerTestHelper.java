@@ -74,18 +74,20 @@ public class DbManagerTestHelper {
    */
   @Before
   public void makeDb() {
-    manager =
-        new DbManager(server, server.getServerProperties().get(DB_IMPL_KEY), true);
+    // Will test whatever DbImplementation has been specified in ServerProperties. Note that this
+    // can be changed using system Properties, which is useful for running JUnit tests with a
+    // particular implementation specified.
+    this.manager = new DbManager(server, server.getServerProperties().get(DB_IMPL_KEY), true);
     // Need to create default data for each fresh DbManager
     // assertTrue("Unable to create default data", createDefaultData());
   }
-  
+
   /**
-   * Shuts down the DbManager for each test.
+   * Stops the DbManager created for each test.
    */
   @After
   public void stopDb() {
-    manager.stop();
+    this.manager.stop();
   }
 
   // /**
