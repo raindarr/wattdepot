@@ -1297,6 +1297,38 @@ public class WattDepotClient {
   }
 
   /**
+   * Deletes a User resource from the server.
+   * 
+   * @param username The username of the User resource to be deleted
+   * @return True if the User could be deleted, false otherwise.
+   * @throws NotAuthorizedException If the client is not authorized to delete the User.
+   * @throws ResourceNotFoundException If the username doesn't exist on the server
+   * @throws MiscClientException If the server indicates an unexpected problem has occurred.
+   */
+  public boolean deleteUser(String username) throws NotAuthorizedException,
+      ResourceNotFoundException, MiscClientException {
+    Response response =
+        makeRequest(Method.DELETE, Server.USERS_URI + "/" + username, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified, or timestamp could not be found
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      return true;
+    }
+    else {
+      // Some unexpected type of error received, so punt
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
    * Returns the SourceIndex containing all Sources accessible to the authenticated user on the
    * server. When looking to retrieve all the Source objects from the index, getSources is
    * preferable to this method.
@@ -1554,6 +1586,38 @@ public class WattDepotClient {
     }
     else {
       // Some totally unexpected non-success status code, just throw generic client exception
+      throw new MiscClientException(status);
+    }
+  }
+
+  /**
+   * Deletes a Source resource from the server.
+   * 
+   * @param sourceName The name of the Source resource to be deleted
+   * @return True if the Source could be deleted, false otherwise.
+   * @throws NotAuthorizedException If the client is not authorized to delete the Source.
+   * @throws ResourceNotFoundException If the sourceName doesn't exist on the server
+   * @throws MiscClientException If the server indicates an unexpected problem has occurred.
+   */
+  public boolean deleteSource(String sourceName) throws NotAuthorizedException,
+      ResourceNotFoundException, MiscClientException {
+    Response response =
+        makeRequest(Method.DELETE, Server.SOURCES_URI + "/" + sourceName, XML_MEDIA, null);
+    Status status = response.getStatus();
+
+    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      // credentials were unacceptable to server
+      throw new NotAuthorizedException(status);
+    }
+    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      // an unknown source name was specified, or timestamp could not be found
+      throw new ResourceNotFoundException(status);
+    }
+    if (status.isSuccess()) {
+      return true;
+    }
+    else {
+      // Some unexpected type of error received, so punt
       throw new MiscClientException(status);
     }
   }

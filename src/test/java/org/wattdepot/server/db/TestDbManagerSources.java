@@ -2,6 +2,7 @@ package org.wattdepot.server.db;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -17,6 +18,7 @@ import org.wattdepot.resource.source.jaxb.Sources;
 import org.wattdepot.resource.source.jaxb.SubSources;
 import org.wattdepot.resource.source.summary.jaxb.SourceSummary;
 import org.wattdepot.resource.user.jaxb.User;
+import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
 
 /**
@@ -298,11 +300,14 @@ public class TestDbManagerSources extends DbManagerTestHelper {
 
   /**
    * Tests the deleteSource method.
+   * 
+   * @throws Exception
    */
   @Test
-  public void testDeleteSource() {
+  public void testDeleteSource() throws Exception {
     // Test cases: delete Source from empty database, delete stored Source, delete deleted Source,
-    // delete unknown Source name, delete empty Source name, delete null Source name.
+    // delete unknown Source name, delete empty Source name, delete null Source name, delete Source
+    // with sensor data.
 
     // Add Users that own test Sources.
     storeTestUsers();
@@ -334,6 +339,14 @@ public class TestDbManagerSources extends DbManagerTestHelper {
     assertTrue("After deleting all known Sources, Sources remain in DB", manager.getSourceIndex()
         .getSourceRef().isEmpty());
 
-    // TODO add case to check that sensor data for source is deleted when source is deleted
+    // case #8: delete source with sensor data
+    assertTrue(UNABLE_TO_STORE_SOURCE, manager.storeSource(source1));
+    SensorData s = this.makeTestSensorData1();
+    assertTrue("Unable to store sensor data", manager.storeSensorDataNoCache(s));
+    assertNotNull("Not able to retrieve sensor data",
+        manager.getSensorData(UriUtils.getUriSuffix(s.getSource()), s.getTimestamp()));
+    assertTrue("Unable to delete source1", manager.deleteSource(source1.getName()));
+    assertNull("Able to retrieve sensor data after deleting source",
+        manager.getSensorData(UriUtils.getUriSuffix(s.getSource()), s.getTimestamp()));
   }
 }

@@ -52,6 +52,8 @@ public class BerkeleyDbImplementation extends DbImplementation {
 
   private List<EntityStore> stores;
   private boolean isFreshlyCreated;
+  // PrimaryIndex <Key, Value>
+  // SecondaryIndex <Key, PrimaryKey, Value>
   private PrimaryIndex<CompositeSensorDataKey, BerkeleyDbSensorData> sensorDataIndex;
   private PrimaryIndex<CompositeSensorDataPropertyKey, BerkeleyDbSensorDataProperty> sensorDataPropertyPrimaryIndex;
   private SecondaryIndex<CompositeSensorDataKey, CompositeSensorDataPropertyKey, BerkeleyDbSensorDataProperty> sensorDataPropertyIndex;
@@ -59,6 +61,7 @@ public class BerkeleyDbImplementation extends DbImplementation {
   private PrimaryIndex<CompositeUserPropertyKey, BerkeleyDbUserProperty> userPropertyPrimaryIndex;
   private SecondaryIndex<String, CompositeUserPropertyKey, BerkeleyDbUserProperty> userPropertyIndex;
   private PrimaryIndex<String, BerkeleyDbSource> sourceIndex;
+  private SecondaryIndex<String, String, BerkeleyDbSource> sourceOwnerIndex;
   private PrimaryIndex<CompositeSourcePropertyKey, BerkeleyDbSourceProperty> sourcePropertyPrimaryIndex;
   private SecondaryIndex<String, CompositeSourcePropertyKey, BerkeleyDbSourceProperty> sourcePropertyIndex;
   private PrimaryIndex<CompositeSourceHierarchyKey, BerkeleyDbSourceHierarchy> sourceHierarchyIndex;
@@ -210,8 +213,7 @@ public class BerkeleyDbImplementation extends DbImplementation {
     this.sensorDataPropertyPrimaryIndex =
         sensorDataPropertyStore.getPrimaryIndex(CompositeSensorDataPropertyKey.class,
             BerkeleyDbSensorDataProperty.class);
-    // Add secondary index so we can search by source name and timestamp only, without property
-    // key.
+    // Add secondary index so we can search by source name and timestamp without property key.
     this.sensorDataPropertyIndex =
         sensorDataPropertyStore.getSecondaryIndex(sensorDataPropertyPrimaryIndex,
             CompositeSensorDataKey.class, "sensorDataKey");
@@ -233,6 +235,8 @@ public class BerkeleyDbImplementation extends DbImplementation {
     EntityStore sourceStore = new EntityStore(this.environment, "EntityStore", storeConfig);
     stores.add(sourceStore);
     this.sourceIndex = sourceStore.getPrimaryIndex(String.class, BerkeleyDbSource.class);
+    // Add secondary index so we can search by owner (to delete sources when we delete users)
+    this.sourceOwnerIndex = sourceStore.getSecondaryIndex(sourceIndex, String.class, "owner");
     EntityStore sourcePropertyStore =
         new EntityStore(this.environment, "EntityStore", storeConfig);
     stores.add(sourcePropertyStore);
@@ -367,6 +371,7 @@ public class BerkeleyDbImplementation extends DbImplementation {
     if (sourceName == null) {
       return false;
     }
+    deleteSensorData(sourceName);
     sourceHierarchyParentIndex.delete(sourceName);
     sourceHierarchySubSourceIndex.delete(sourceName);
     sourcePropertyIndex.delete(sourceName);
@@ -378,6 +383,15 @@ public class BerkeleyDbImplementation extends DbImplementation {
     if (username == null) {
       return false;
     }
+
+    // Delete all sources owned by this user
+    EntityCursor<BerkeleyDbSource> cursor =
+        sourceOwnerIndex.entities(username, true, username, true);
+    for (BerkeleyDbSource dbSource : cursor) {
+      deleteSource(dbSource.getName());
+    }
+    cursor.close();
+
     userPropertyIndex.delete(username);
     return userIndex.delete(username);
   }

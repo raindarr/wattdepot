@@ -11,7 +11,9 @@ import javax.xml.bind.JAXBException;
 import org.junit.Before;
 import org.junit.Test;
 import org.wattdepot.client.MiscClientException;
+import org.wattdepot.client.NotAuthorizedException;
 import org.wattdepot.client.OverwriteAttemptedException;
+import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
 import org.wattdepot.resource.property.jaxb.Property;
@@ -262,6 +264,47 @@ public class TestSourceResource extends ServerTestHelper {
         client.storeSource(replacementSource, true));
     assertEquals("Retrieved overwritten Source does not match input value", replacementSource,
         client.getSource(defaultPublicSource));
+  }
+
+  /**
+   * Tests deleting a souce.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = ResourceNotFoundException.class)
+  public void testSourceDelete() throws WattDepotClientException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    assertTrue("Unable to delete source", client.deleteSource(defaultPublicSource));
+    assertNull("Able to retrieve deleted source", client.getSource(defaultPublicSource));
+  }
+
+  /**
+   * Tests deleting a souce that has already been deleted.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = ResourceNotFoundException.class)
+  public void testSourceDoubleDelete() throws WattDepotClientException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+    assertTrue("Unable to delete source", client.deleteSource(defaultPublicSource));
+    assertFalse("Able to delete already deleted source", client.deleteSource(defaultPublicSource));
+  }
+
+  
+  /**
+   * Tests attempting to delete a source from a non-owner.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testSourceDeleteNonOwner() throws WattDepotClientException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+
+    client = new WattDepotClient(getHostName(), defaultNonOwnerUsername, defaultNonOwnerPassword);
+    assertFalse("Able to delete source from non-owner", client.deleteSource(defaultPublicSource));
   }
 
 }

@@ -2,6 +2,7 @@ package org.wattdepot.server.db;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -9,6 +10,7 @@ import static org.wattdepot.server.ServerProperties.ADMIN_EMAIL_KEY;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
+import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.user.jaxb.User;
 import org.wattdepot.resource.user.jaxb.UserRef;
 
@@ -34,7 +36,7 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     String adminUsername = server.getServerProperties().get(ADMIN_EMAIL_KEY);
     User adminUser = manager.getUser(adminUsername);
     UserRef adminUserRef = new UserRef(adminUser, server);
-    
+
     // case #1: Database starts fresh with just admin user.
     assertEquals("Freshly created database contains unexpected users", manager.getUsers()
         .getUserRef().get(0), adminUserRef);
@@ -43,8 +45,8 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     // User
     assertTrue("Unable to store user1 in DB", manager.storeUser(this.user1));
     // Confirm that getUsers returns a single UserRef now
-    assertSame("getUsers returned wrong number of UserRefs",
-        manager.getUsers().getUserRef().size(), 2);
+    assertSame("getUsers returned wrong number of UserRefs", manager.getUsers().getUserRef()
+        .size(), 2);
     // Confirm that the second UserRef is from user1
     assertTrue("getUsers didn't return expected UserRef", manager.getUsers().getUserRef().get(1)
         .equalsUser(this.user1));
@@ -52,8 +54,8 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     // case #3: after storing two Users, should have UserIndex with two UserRefs that match Users
     assertTrue("Unable to store user2 in DB", manager.storeUser(this.user2));
     // Confirm that getUsers returns two UserRefs now
-    assertSame("getUsers returned wrong number of UserRefs",
-        manager.getUsers().getUserRef().size(), 3);
+    assertSame("getUsers returned wrong number of UserRefs", manager.getUsers().getUserRef()
+        .size(), 3);
     // Confirm that the two UserRefs are equivalent to user1 and user2
     List<UserRef> refs = manager.getUsers().getUserRef();
     List<User> origUsers = new ArrayList<User>();
@@ -82,8 +84,8 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
 
     // case #4: after deleting a User should have single UserRef in UserIndex.
     assertTrue("Unable to delete user1", manager.deleteUser(this.user1.getEmail()));
-    assertSame("getUsers returned wrong number of UserRefs",
-        manager.getUsers().getUserRef().size(), 2);
+    assertSame("getUsers returned wrong number of UserRefs", manager.getUsers().getUserRef()
+        .size(), 2);
     // Confirm that the single UserRef is from user2
     assertTrue("getUsers didn't return expected UserRef", manager.getUsers().getUserRef().get(1)
         .equalsUser(this.user2));
@@ -105,8 +107,8 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     assertEquals(USER_DOES_NOT_MATCH, this.user1, manager.getUser(this.user1.getEmail()));
 
     // case #3: retrieve unknown username
-    assertNull("Able to retrieve User with ficticious username", manager
-        .getUser("boguslongusername@example.com"));
+    assertNull("Able to retrieve User with ficticious username",
+        manager.getUser("boguslongusername@example.com"));
 
     // case #4: store second User and verify retrieval of both Users
     assertTrue("Unable to store user2 in DB", manager.storeUser(this.user2));
@@ -150,11 +152,12 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
   @Test
   public void testDeleteUser() {
     // Test cases: delete user from empty database, delete stored user, delete deleted user,
-    // delete unknown username, delete empty username, delete null username.
+    // delete unknown username, delete empty username, delete null username, delete user with
+    // sources.
 
     // case #1: delete user from empty database
-    assertFalse("Able to delete user1 from empty database", manager.deleteUser(this.user1
-        .getEmail()));
+    assertFalse("Able to delete user1 from empty database",
+        manager.deleteUser(this.user1.getEmail()));
 
     // case #2: store user, then delete user and confirm deletion
     assertTrue("Unable to store a User in DB", manager.storeUser(this.user1));
@@ -166,8 +169,8 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     assertFalse("Able to delete user1 a second time", manager.deleteUser(this.user1.getEmail()));
 
     // case #4: delete unknown username
-    assertFalse("Able to delete non-existent user", manager
-        .deleteUser("boguslongusername@example.com"));
+    assertFalse("Able to delete non-existent user",
+        manager.deleteUser("boguslongusername@example.com"));
 
     // case #5: delete empty username
     assertFalse("Able to delete empty username", manager.deleteUser(""));
@@ -175,7 +178,12 @@ public class TestDbManagerUsers extends DbManagerTestHelper {
     // case #6: delete null username
     assertFalse("Able to delete empty username", manager.deleteUser(null));
 
-    // TODO add case to check that Sources (& sensor data) owned by User are deleted when User is
-    // TODO deleted
+    // case #7: delete user with sources
+    assertTrue("Unable to store a User in DB", manager.storeUser(this.user1));
+    Source s = this.makeTestSource1();
+    assertTrue("Unable to store a Source in DB", manager.storeSource(s));
+    assertNotNull("Unable to retrieve source", manager.getSource(s.getName()));
+    assertTrue("Unable to delete user1", manager.deleteUser(this.user1.getEmail()));
+    assertNull("Able to retrieve Source after deleting owner", manager.getSource(s.getName()));
   }
 }

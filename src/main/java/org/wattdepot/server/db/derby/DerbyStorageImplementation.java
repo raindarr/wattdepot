@@ -907,8 +907,8 @@ public class DerbyStorageImplementation extends DbImplementation {
         s.executeUpdate();
 
         if (overwrite) {
-          deleteSubSources(source.getName());
-          deleteSourceProperties(source.getName());
+          deleteSubSources(source.getName(), conn);
+          deleteSourceProperties(source.getName(), conn);
         }
         if (source.isSetSubSources()) {
           for (String subSource : source.getSubSources().getHref()) {
@@ -979,14 +979,100 @@ public class DerbyStorageImplementation extends DbImplementation {
     if (sourceName == null) {
       return false;
     }
-    else {
-      deleteSensorData(sourceName);
-      deleteSubSources(sourceName);
-      deleteParentSources(sourceName);
-      deleteSourceProperties(sourceName);
+    Connection conn = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      conn.setAutoCommit(false);
+      deleteSensorData(sourceName, conn);
+      deleteSubSources(sourceName, conn);
+      deleteParentSources(sourceName, conn);
+      deleteSourceProperties(sourceName, conn);
       String statement = "DELETE FROM Source WHERE Name='" + sourceName.replace("'", "''") + "'";
-      return deleteResource(statement);
+      return deleteResource(statement, conn);
     }
+    catch (SQLException e) {
+      return false;
+    }
+    finally {
+      if (conn != null) {
+        try {
+          conn.setAutoCommit(true);
+          conn.close();
+        }
+        catch (SQLException e) { // NOPMD
+
+        }
+      }
+    }
+  }
+
+  /**
+   * Ensures that the Source with the given name is no longer present in storage. All sensor data
+   * associated with this Source will also be deleted.
+   * 
+   * @param sourceName The name of the Source.
+   * @param conn The connection encapsulating this transaction.
+   * @return True if the Source was deleted, or false if it was not deleted or the requested Source
+   * does not exist.
+   */
+  private boolean deleteSource(String sourceName, Connection conn) {
+    if (sourceName == null) {
+      return false;
+    }
+    else {
+      deleteSensorData(sourceName, conn);
+      deleteSubSources(sourceName, conn);
+      deleteParentSources(sourceName, conn);
+      deleteSourceProperties(sourceName, conn);
+      String statement = "DELETE FROM Source WHERE Name='" + sourceName.replace("'", "''") + "'";
+      return deleteResource(statement, conn);
+    }
+  }
+
+  /**
+   * Find and delete all sources that are owned by the given user.
+   * 
+   * @param username The username of the source owner.
+   * @param conn The connection encapsulating this transaction.
+   * @return True if all sources were deleted.
+   */
+  private boolean deleteSourcesForOwner(String username, Connection conn) {
+    if (username == null) {
+      return false;
+    }
+
+    String statement = "SELECT Name FROM Source WHERE Owner = ?";
+    PreparedStatement s = null;
+    ResultSet rs = null;
+    try {
+      server.getLogger().fine(executeQueryMsg + statement);
+      s = conn.prepareStatement(statement);
+      s.setString(1, username);
+      rs = s.executeQuery();
+      while (rs.next()) {
+        if (!deleteSource(rs.getString("Name"), conn)) {
+          return false;
+        }
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info("DB: Error in deleteSourcesForOwner " + StackTrace.toString(e));
+      return false;
+    }
+    finally {
+      try {
+        if (rs != null) {
+          rs.close();
+        }
+        if (s != null) {
+          s.close();
+        }
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+      }
+    }
+    return true;
   }
 
   /**
@@ -994,11 +1080,13 @@ public class DerbyStorageImplementation extends DbImplementation {
    * where the given source is listed as the parent.
    * 
    * @param sourceName The source to delete subsources for.
+   * @param conn The connection encapsulating this transaction.
    * @return True if the subsources were successfully deleted.
    */
-  public boolean deleteSubSources(String sourceName) {
-    return deleteResource("DELETE FROM SourceHierarchy WHERE ParentSourceName = '"
-        + sourceName.replace("'", "''") + "'");
+  private boolean deleteSubSources(String sourceName, Connection conn) {
+    return deleteResource(
+        "DELETE FROM SourceHierarchy WHERE ParentSourceName = '" + sourceName.replace("'", "''")
+            + "'", conn);
   }
 
   /**
@@ -1006,22 +1094,26 @@ public class DerbyStorageImplementation extends DbImplementation {
    * records where the given source is listed as the subsource.
    * 
    * @param sourceName The source to delete parent sources for.
+   * @param conn The connection encapsulating this transaction.
    * @return True if the parent sources were successfully deleted.
    */
-  public boolean deleteParentSources(String sourceName) {
-    return deleteResource("DELETE FROM SourceHierarchy WHERE SubSourceName='"
-        + sourceName.replace("'", "''") + "'");
+  private boolean deleteParentSources(String sourceName, Connection conn) {
+    return deleteResource(
+        "DELETE FROM SourceHierarchy WHERE SubSourceName='" + sourceName.replace("'", "''") + "'",
+        conn);
   }
 
   /**
    * Delete a source's Property entries from SourceProperty table.
    * 
    * @param sourceName The source to delete properties for.
+   * @param conn The connection encapsulating this transaction.
    * @return True if the properties were successfully deleted.
    */
-  public boolean deleteSourceProperties(String sourceName) {
-    return deleteResource("DELETE FROM SourceProperty WHERE SourceName='"
-        + sourceName.replace("'", "''") + "'");
+  private boolean deleteSourceProperties(String sourceName, Connection conn) {
+    return deleteResource(
+        "DELETE FROM SourceProperty WHERE SourceName='" + sourceName.replace("'", "''") + "'",
+        conn);
   }
 
   /** The SQL string for creating the SensorData table. */
@@ -1523,35 +1615,88 @@ public class DerbyStorageImplementation extends DbImplementation {
   /** {@inheritDoc} */
   @Override
   public boolean deleteSensorData(String sourceName, XMLGregorianCalendar timestamp) {
-    boolean succeeded = false;
     if ((sourceName == null) || (timestamp == null)) {
       return false;
     }
-    else {
-      deleteSensorDataProperties(sourceName, timestamp);
+    Connection conn = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      conn.setAutoCommit(false);
+      deleteSensorDataProperties(sourceName, timestamp, conn);
 
       String statement =
           "DELETE FROM SensorData WHERE Source='" + sourceName.replace("'", "''")
               + "' AND Tstamp='" + Tstamp.makeTimestamp(timestamp) + "'";
-      succeeded = deleteResource(statement);
-      return succeeded;
+      return deleteResource(statement, conn);
+    }
+    catch (SQLException e) {
+      return false;
+    }
+    finally {
+      try {
+        if (conn != null) {
+          conn.setAutoCommit(true);
+          conn.close();
+        }
+      }
+      catch (SQLException e) { // NOPMD
+
+      }
     }
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean deleteSensorData(String sourceName) {
+    if (sourceName == null) {
+      return false;
+    }
+    Connection conn = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      conn.setAutoCommit(false);
+
+      deleteSensorDataProperties(sourceName, conn);
+      String statement =
+          "DELETE FROM SensorData WHERE Source='" + sourceName.replace("'", "''") + "'";
+      return deleteResource(statement, conn);
+    }
+    catch (SQLException e) {
+      return false;
+    }
+    finally {
+      try {
+        if (conn != null) {
+          conn.setAutoCommit(true);
+          conn.close();
+        }
+      }
+      catch (SQLException e) { // NOPMD
+
+      }
+    }
+  }
+
+  /**
+   * Ensures that all sensor data from the named Source is no longer present in storage.
+   * 
+   * @param sourceName The name of the Source whose sensor data is to be deleted.
+   * @param conn The connection encapsulating this transaction.
+   * @return True if all the sensor data was deleted, or false if it was not deleted or the
+   * requested Source does not exist.
+   */
+  private boolean deleteSensorData(String sourceName, Connection conn) {
     boolean succeeded = false;
 
     if (sourceName == null) {
       return false;
     }
     else {
-      deleteSensorDataProperties(sourceName);
+      deleteSensorDataProperties(sourceName, conn);
 
       String statement =
           "DELETE FROM SensorData WHERE Source='" + sourceName.replace("'", "''") + "'";
-      succeeded = deleteResource(statement);
+      succeeded = deleteResource(statement, conn);
     }
     return succeeded;
   }
@@ -1561,22 +1706,27 @@ public class DerbyStorageImplementation extends DbImplementation {
    * 
    * @param sourceName The URI of the source to delete properties for.
    * @param timestamp The timestamp to delete properties for.
+   * @param conn The connection encapsulating this transaction.
    * @return True if the properties were successfully deleted.
    */
-  public boolean deleteSensorDataProperties(String sourceName, XMLGregorianCalendar timestamp) {
-    return deleteResource("DELETE FROM SensorDataProperty WHERE Source='"
-        + sourceName.replace("'", "''") + "' AND Tstamp='" + Tstamp.makeTimestamp(timestamp) + "'");
+  private boolean deleteSensorDataProperties(String sourceName, XMLGregorianCalendar timestamp,
+      Connection conn) {
+    return deleteResource(
+        "DELETE FROM SensorDataProperty WHERE Source='" + sourceName.replace("'", "''")
+            + "' AND Tstamp='" + Tstamp.makeTimestamp(timestamp) + "'", conn);
   }
 
   /**
    * Delete properties from SensorDataProperty table given a sourceURI.
    * 
    * @param sourceName The URI of the source to delete properties for.
+   * @param conn The connection encapsulating this transaction.
    * @return True if the properties were successfully deleted.
    */
-  public boolean deleteSensorDataProperties(String sourceName) {
-    return deleteResource("DELETE FROM SensorDataProperty WHERE Source='"
-        + sourceName.replace("'", "''") + "'");
+  private boolean deleteSensorDataProperties(String sourceName, Connection conn) {
+    return deleteResource(
+        "DELETE FROM SensorDataProperty WHERE Source='" + sourceName.replace("'", "''") + "'",
+        conn);
   }
 
   /**
@@ -1911,13 +2061,30 @@ public class DerbyStorageImplementation extends DbImplementation {
     if (username == null) {
       return false;
     }
-    else {
-      deleteUserProperties(username);
 
+    Connection conn = null;
+    try {
+      conn = DriverManager.getConnection(connectionURL);
+      conn.setAutoCommit(false);
+      deleteSourcesForOwner(username, conn);
+      deleteUserProperties(username, conn);
       String statement =
           "DELETE FROM WattDepotUser WHERE Username='" + username.replace("'", "''") + "'";
-      return deleteResource(statement);
-      // TODO add code to delete sources and sensordata owned by the user
+      return deleteResource(statement, conn);
+    }
+    catch (SQLException e) {
+      return false;
+    }
+    finally {
+      if (conn != null) {
+        try {
+          conn.setAutoCommit(true);
+          conn.close();
+        }
+        catch (SQLException e) { // NOPMD
+
+        }
+      }
     }
   }
 
@@ -1925,26 +2092,27 @@ public class DerbyStorageImplementation extends DbImplementation {
    * Delete properties from WattDepotUserProperty table given a username.
    * 
    * @param username The name of the user to delete properties for.
+   * @param conn The connection encapsulating this transaction.
    * @return True if the properties were successfully deleted.
    */
-  public boolean deleteUserProperties(String username) {
-    return deleteResource("DELETE FROM WattDepotUserProperty WHERE Username='"
-        + username.replace("'", "''") + "'");
+  private boolean deleteUserProperties(String username, Connection conn) {
+    return deleteResource(
+        "DELETE FROM WattDepotUserProperty WHERE Username='" + username.replace("'", "''") + "'",
+        conn);
   }
 
   /**
    * Deletes the resource, given the SQL statement to perform the delete.
    * 
    * @param statement The SQL delete statement.
+   * @param conn The connection encapsulating this transaction.
    * @return True if resource was successfully deleted, false otherwise.
    */
-  private boolean deleteResource(String statement) {
-    Connection conn = null;
+  private boolean deleteResource(String statement, Connection conn) {
     PreparedStatement s = null;
     boolean succeeded = false;
 
     try {
-      conn = DriverManager.getConnection(connectionURL);
       server.getLogger().fine("Derby: " + statement);
       s = conn.prepareStatement(statement);
       int rowCount = s.executeUpdate();
@@ -1964,7 +2132,6 @@ public class DerbyStorageImplementation extends DbImplementation {
     finally {
       try {
         s.close();
-        conn.close();
       }
       catch (SQLException e) {
         this.logger.warning(errorClosingMsg + StackTrace.toString(e));

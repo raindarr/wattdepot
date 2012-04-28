@@ -3,6 +3,7 @@ package org.wattdepot.resource.user;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import java.util.List;
@@ -161,5 +162,43 @@ public class TestUserResource extends ServerTestHelper {
     WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
     assertTrue("Could not store new admin", client.storeUser(newUser));
     assertEquals("Not able to retrieve new admin", newUser, client.getUser(newUser.getEmail()));
+  }
+
+  /**
+   * Tests deleting a user. Note that the User Resource returns NotAuthorized instead of
+   * ResourceNotFound to avoid leaking data.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testUserDelete() throws WattDepotClientException {
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    assertTrue("Unable to delete user", client.deleteUser(defaultOwnerUsername));
+    assertNull("Able to retrieve deleted user", client.getUser(defaultOwnerUsername));
+  }
+
+  /**
+   * Tests deleting a user that has already been deleted. Note that the User Resource returns
+   * NotAuthorized instead of ResourceNotFound to avoid leaking data.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testUserDoubleDelete() throws WattDepotClientException {
+    WattDepotClient client = new WattDepotClient(getHostName(), adminEmail, adminPassword);
+    assertTrue("Unable to delete user", client.deleteUser(defaultOwnerUsername));
+    assertFalse("Able to delete already deleted user", client.deleteUser(defaultOwnerUsername));
+  }
+
+  /**
+   * Tests attempting to delete a user from a non-admin.
+   * 
+   * @throws WattDepotClientException If problems are encountered
+   */
+  @Test(expected = NotAuthorizedException.class)
+  public void testOwnerDeleteNonAdmin() throws WattDepotClientException {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultNonOwnerUsername, defaultNonOwnerPassword);
+    assertFalse("Able to delete source from non-admin", client.deleteUser(defaultOwnerUsername));
   }
 }

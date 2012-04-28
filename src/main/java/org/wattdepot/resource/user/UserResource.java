@@ -147,4 +147,29 @@ public class UserResource extends WattDepotResource {
     return null;
   }
 
+  /**
+   * Implement the DELETE method that deletes an existing User. Only the admin can delete a User
+   * resource.
+   * 
+   * @param variant The type of Representation to deleted.
+   * @return Returns a null Representation.
+   */
+  @Override
+  public Representation delete(Variant variant) {
+    if (isAdminUser() && dbManager.getUser(uriUser) != null) {
+      if (super.dbManager.deleteUser(this.uriUser)) {
+        getResponse().setStatus(Status.SUCCESS_OK);
+      }
+      else {
+        setStatusInternalError(String.format("Unable to delete User %s", this.uriUser));
+        return null;
+      }
+    }
+    else {
+      setStatusBadCredentials();
+      return null;
+    }
+    return null;
+  }
+
 }

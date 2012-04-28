@@ -1,5 +1,6 @@
 package org.wattdepot.server.db.berkeleydb;
 
+import static com.sleepycat.persist.model.Relationship.MANY_TO_ONE;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.resource.property.jaxb.Properties;
 import org.wattdepot.resource.property.jaxb.Property;
@@ -10,6 +11,7 @@ import org.wattdepot.server.Server;
 import org.wattdepot.util.tstamp.Tstamp;
 import com.sleepycat.persist.model.Entity;
 import com.sleepycat.persist.model.PrimaryKey;
+import com.sleepycat.persist.model.SecondaryKey;
 
 /**
  * Represents a source entity for use in BerkeleyDB.
@@ -21,6 +23,7 @@ import com.sleepycat.persist.model.PrimaryKey;
 public class BerkeleyDbSource {
   @PrimaryKey
   private String name;
+  @SecondaryKey(relate = MANY_TO_ONE)
   private String owner;
   private boolean isPublic;
   private boolean isVirtual;

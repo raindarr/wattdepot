@@ -174,4 +174,31 @@ public class SourceResource extends WattDepotResource {
     }
     return null;
   }
+
+  /**
+   * Implement the DELETE method that deletes an existing Source. Only the SourceOwner (or an admin)
+   * can delete a Source resource.
+   * 
+   * @param variant The type of Representation to deleted.
+   * @return Returns a null Representation.
+   */
+  @Override
+  public Representation delete(Variant variant) {
+    Source source = validateKnownSource();
+    // First check if source in URI exists
+    if (source == null) {
+      return null;
+    }
+    if (validateSourceOwnerOrAdmin(source)) {
+      if (super.dbManager.deleteSource(uriSource)) {
+        getResponse().setStatus(Status.SUCCESS_OK);
+      }
+      else {
+        setStatusInternalError(String.format("Unable to delete Source %s", this.uriSource));
+        return null;
+      }
+    }
+    return null;
+  }
+
 }
