@@ -512,6 +512,35 @@ public class TestSensorDataResource extends ServerTestHelper {
 
   }
 
+  /**
+   * Tests getting SensorData with endTime=LATEST
+   * 
+   * @throws Exception If things go wrong during data setup.
+   */
+  @Test
+  public void testGetRangeToLatest() throws Exception {
+    WattDepotClient client =
+        new WattDepotClient(getHostName(), defaultOwnerUsername, defaultOwnerPassword);
+
+    SensorData data1 = makeTestSensorData1(), data2 = makeTestSensorData2(), data3 =
+        makeTestSensorData3();
+
+    XMLGregorianCalendar before1 = Tstamp.makeTimestamp("2009-07-28T08:00:00.000-10:00");
+    XMLGregorianCalendar between1And2 = Tstamp.makeTimestamp("2009-07-28T09:07:00.000-10:00");
+    XMLGregorianCalendar after3 = Tstamp.makeTimestamp("2009-07-28T10:00:00.000-10:00");
+
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data1));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data2));
+    assertTrue(DATA_STORE_FAILED, client.storeSensorData(data3));
+
+    assertEquals("Get range to 'LATEST' returns incorrect number of index results", 3, client
+        .getSensorDataIndex(defaultPublicSource, before1).getSensorDataRef().size());
+    assertEquals("Get range to 'LATEST' returns incorrect number of results", 2, client
+        .getSensorDatas(defaultPublicSource, between1And2).size());
+    assertEquals("Get range to 'LATEST' returns incorrect number of results", 0, client
+        .getSensorDatas(defaultPublicSource, after3).size());
+  }
+
   // Tests for PUT {host}/sources/{source}/sensordata/{timestamp}
 
   /**

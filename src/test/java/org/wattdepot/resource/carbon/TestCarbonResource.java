@@ -45,17 +45,28 @@ public class TestCarbonResource extends ServerTestHelper {
     client.storeSensorData(afterData);
     assertEquals("getCarbonEmitted on degenerate range with default interval gave wrong value",
         0.1, client.getCarbonEmitted(sourceName, beforeTime, afterTime, 0), 0.01);
+    assertEquals("getCarbonEmitted on degenerate range with default interval gave wrong value",
+        0.1, client.getCarbonEmitted(sourceName, beforeTime, 0), 0.01);
     assertEquals("getCarbonEmitted on degenerate range with 2 minute interval gave wrong value",
         0.1, client.getCarbonEmitted(sourceName, beforeTime, afterTime, 2), 0.01);
     assertEquals("getCarbonEmitted on degenerate range with 5 minute interval gave wrong value",
         0.1, client.getCarbonEmitted(sourceName, beforeTime, afterTime, 5), 0.01);
-    assertEquals("getCarbonEmitted on degenerate range with 5 minute interval gave wrong value",
+    assertEquals("getCarbonEmitted on degenerate range with 30 minute interval gave wrong value",
         0.1, client.getCarbonEmitted(sourceName, beforeTime, afterTime, 30), 0.01);
-    assertEquals("getCarbonEmitted on degenerate range with 5 minute interval gave wrong value",
+    assertEquals("getCarbonEmitted on degenerate range with 29 minute interval gave wrong value",
         0.1, client.getCarbonEmitted(sourceName, beforeTime, afterTime, 29), 0.01);
+    assertEquals("getCarbonEmitted on degenerate range with 29 minute interval gave wrong value",
+        0.1, client.getCarbonEmitted(sourceName, beforeTime, 29), 0.01);
     // Try with interval too big
     try {
       client.getCarbonEmitted(sourceName, beforeTime, afterTime, 61);
+      fail("getCarbon worked with interval longer than range");
+    }
+    catch (BadXmlException e) { // NOPMD
+      // Expected in this case
+    }
+    try {
+      client.getCarbonEmitted(sourceName, beforeTime, 61);
       fail("getCarbon worked with interval longer than range");
     }
     catch (BadXmlException e) { // NOPMD
@@ -66,6 +77,20 @@ public class TestCarbonResource extends ServerTestHelper {
     XMLGregorianCalendar tooLate = Tstamp.makeTimestamp("2010-07-28T08:00:00.000-10:00");
     try {
       client.getCarbonEmitted(sourceName, tooEarly, tooLate, 0);
+      fail("getCarbon worked with range outside sensor data");
+    }
+    catch (BadXmlException e) { // NOPMD
+      // Expected in this case
+    }
+    try {
+      client.getCarbonEmitted(sourceName, tooLate, 0);
+      fail("getCarbon worked with range outside sensor data");
+    }
+    catch (BadXmlException e) { // NOPMD
+      // Expected in this case
+    }
+    try {
+      client.getCarbonEmitted(sourceName, tooEarly, 0);
       fail("getCarbon worked with range outside sensor data");
     }
     catch (BadXmlException e) { // NOPMD
@@ -111,6 +136,11 @@ public class TestCarbonResource extends ServerTestHelper {
     SensorData energyData = client.getCarbon(sourceName, timestamp1, timestamp2, 1);
     assertEquals("getCarbon on on Oscar data was wrong", 2.8033333333333332E4, energyData
         .getProperties().getPropertyAsDouble(SensorData.CARBON_EMITTED), 0.2E4);
+
+    assertEquals("getCarbon with 'LATEST' end time gives wrong value",
+        client.getCarbonEmitted(sourceName, timestamp1, afterTime, 0),
+        client.getCarbonEmitted(sourceName, timestamp1, 0), 0.001);
+
   }
 
   /**
@@ -144,16 +174,27 @@ public class TestCarbonResource extends ServerTestHelper {
     client.storeSensorData(afterData);
     assertEquals("getCarbon on degenerate range with default interval gave wrong value", 0.4,
         client.getCarbonEmitted(virtualSourceName, beforeTime, afterTime, 0), 0.01);
+    assertEquals("getCarbon on degenerate range with default interval gave wrong value", 0.4,
+        client.getCarbonEmitted(virtualSourceName, beforeTime, 0), 0.01);
     assertEquals("getCarbon on degenerate range with 2 minute interval gave wrong value", 0.4,
         client.getCarbonEmitted(virtualSourceName, beforeTime, afterTime, 2), 0.01);
     assertEquals("getCarbon on degenerate range with 5 minute interval gave wrong value", 0.4,
         client.getCarbonEmitted(virtualSourceName, beforeTime, afterTime, 5), 0.01);
-    assertEquals("getCarbon on degenerate range with 5 minute interval gave wrong value", 0.4,
+    assertEquals("getCarbon on degenerate range with 30 minute interval gave wrong value", 0.4,
         client.getCarbonEmitted(virtualSourceName, beforeTime, afterTime, 30), 0.01);
-    assertEquals("getCarbon on degenerate range with 5 minute interval gave wrong value", 0.4,
+    assertEquals("getCarbon on degenerate range with 29 minute interval gave wrong value", 0.4,
         client.getCarbonEmitted(virtualSourceName, beforeTime, afterTime, 29), 0.01);
+    assertEquals("getCarbon on degenerate range with 29 minute interval gave wrong value", 0.4,
+        client.getCarbonEmitted(virtualSourceName, beforeTime, 29), 0.01);
     try {
       client.getCarbonEmitted(virtualSourceName, beforeTime, afterTime, 61);
+      fail("getCarbon worked with interval longer than range");
+    }
+    catch (BadXmlException e) { // NOPMD
+      // Expected in this case
+    }
+    try {
+      client.getCarbonEmitted(virtualSourceName, beforeTime, 61);
       fail("getCarbon worked with interval longer than range");
     }
     catch (BadXmlException e) { // NOPMD
@@ -164,6 +205,20 @@ public class TestCarbonResource extends ServerTestHelper {
     XMLGregorianCalendar tooLate = Tstamp.makeTimestamp("2010-07-28T08:00:00.000-10:00");
     try {
       client.getCarbonEmitted(virtualSourceName, tooEarly, tooLate, 0);
+      fail("getCarbon worked with range outside sensor data");
+    }
+    catch (BadXmlException e) { // NOPMD
+      // Expected in this case
+    }
+    try {
+      client.getCarbonEmitted(virtualSourceName, tooEarly, 0);
+      fail("getCarbon worked with range outside sensor data");
+    }
+    catch (BadXmlException e) { // NOPMD
+      // Expected in this case
+    }
+    try {
+      client.getCarbonEmitted(virtualSourceName, tooLate, 0);
       fail("getCarbon worked with range outside sensor data");
     }
     catch (BadXmlException e) { // NOPMD
@@ -215,5 +270,12 @@ public class TestCarbonResource extends ServerTestHelper {
     // Virtual source should get the sum of the two previous power values
     assertEquals("energy for virtual source did not equal expected value", 193440,
         client.getCarbonEmitted(virtualSourceName, timestamp1, timestamp2, 0), 0.01);
+
+    assertEquals(
+        "getCarbon for virtual source with 'LATEST' end time gives wrong value",
+        client.getCarbonEmitted(source1Name, timestamp1, 0)
+            + client.getCarbonEmitted(source2Name, timestamp1, 0),
+        client.getCarbonEmitted(virtualSourceName, timestamp1, 0), 0.001);
+
   }
 }

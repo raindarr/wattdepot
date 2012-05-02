@@ -24,8 +24,6 @@ public class DataCache {
   private JCS sensorDataCache = null;
   private JCS sourceCheckpointCache = null;
 
-  // private JCS sourceWindowLengthCache = null;
-
   /**
    * Instantiate the DataCache with two regions - one for sensor data objects and one for checkpoint
    * timestamps.
@@ -34,7 +32,6 @@ public class DataCache {
     try {
       sensorDataCache = JCS.getInstance("sensorData");
       sourceCheckpointCache = JCS.getInstance("sourceCheckpoint");
-      // sourceWindowLengthCache = JCS.getInstance("sourceWindowLength");
     }
     catch (CacheException e) {
       System.out.println(e.getMessage());
@@ -96,21 +93,23 @@ public class DataCache {
    */
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) {
-    if (sourceName == null || startTime == null || endTime == null) {
+    if (sourceName == null || startTime == null) {
       return null;
     }
-
-    // // Is the desired endTime still in the cache?
-    // Integer windowLength = (Integer) sourceWindowLengthCache.get(sourceName);
-    // if (windowLength != null
-    // && Tstamp.lessThan(endTime,
-    // Tstamp.incrementMinutes(Tstamp.makeTimestamp(), windowLength * -1))) {
-    // return null;
-    // }
 
     @SuppressWarnings("unchecked")
     Set<String> group = sensorDataCache.getGroupKeys(sourceName);
     SensorDataIndex index = new SensorDataIndex();
+
+    if (endTime == null) {
+      SensorData latest = getLatestSensorData(sourceName);
+      if (latest != null) {
+        endTime = latest.getTimestamp();
+      }
+      else {
+        return index;
+      }
+    }
 
     for (String key : group) {
       SensorData data = (SensorData) sensorDataCache.get(key);
@@ -133,19 +132,22 @@ public class DataCache {
    */
   public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) {
-    if (sourceName == null || startTime == null || endTime == null) {
+    if (sourceName == null || startTime == null) {
       return null;
     }
 
-    // Is the desired endTime still in the cache?
-    // Integer windowLength = (Integer) sourceWindowLengthCache.get(sourceName);
-    // if (windowLength != null
-    // && Tstamp.lessThan(endTime,
-    // Tstamp.incrementMinutes(Tstamp.makeTimestamp(), windowLength * -1))) {
-    // return null;
-    // }
-
     SensorDatas datas = new SensorDatas();
+
+    if (endTime == null) {
+      SensorData latest = getLatestSensorData(sourceName);
+      if (latest != null) {
+        endTime = latest.getTimestamp();
+      }
+      else {
+        return datas;
+      }
+    }
+
     @SuppressWarnings("unchecked")
     Set<String> group = sensorDataCache.getGroupKeys(sourceName);
 
@@ -202,14 +204,6 @@ public class DataCache {
     if (sourceName == null) {
       return null;
     }
-
-    // // Is the desired timestamp still in the cache?
-    // Integer windowLength = (Integer) sourceWindowLengthCache.get(sourceName);
-    // if (windowLength != null
-    // && Tstamp.lessThan(timestamp,
-    // Tstamp.incrementMinutes(Tstamp.makeTimestamp(), windowLength * -1))) {
-    // return null;
-    // }
 
     SensorData exact = (SensorData) sensorDataCache.get(sourceName + ":" + timestamp);
     if (exact != null) {
@@ -276,11 +270,7 @@ public class DataCache {
       IElementAttributes attributes = sensorDataCache.getDefaultElementAttributes();
       if (windowLength > 0) {
         attributes.setMaxLifeSeconds(windowLength * 60);
-        // sourceWindowLengthCache.put(sourceName, windowLength);
       }
-      // else {
-      // sourceWindowLengthCache.put(sourceName, (int) attributes.getMaxLifeSeconds() / 60);
-      // }
 
       sensorDataCache.put(key, data, attributes);
       sensorDataCache.putInGroup(key, sourceName, data, attributes);
@@ -407,7 +397,6 @@ public class DataCache {
     try {
       sensorDataCache.clear();
       sourceCheckpointCache.clear();
-      // sourceWindowLengthCache.clear();
     }
     catch (CacheException e) {
       System.out.println(e.getMessage());

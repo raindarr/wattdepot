@@ -232,6 +232,43 @@ public class DbManager {
 
   /**
    * Returns the SensorDataIndex representing all the SensorData resources for the named Source such
+   * that their timestamp is greater than or equal to the given start time. If the Source has no
+   * appropriate SensorData resources, the index will be empty (not null). The list will be sorted
+   * in order of increasing timestamp values.
+   * 
+   * @param sourceName The name of the Source whose sensor data is to be returned.
+   * @param startTime The earliest Sensor Data to be returned.
+   * @throws DbBadIntervalException if startTime is later than endTime.
+   * @return a SensorDataIndex object containing all relevant sensor data resources, or null if
+   * sourceName, startTime, or endTime are invalid.
+   */
+  public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime)
+      throws DbBadIntervalException {
+    if (sourceName == null || startTime == null) {
+      return null;
+    }
+
+    // If we can get a sensor data straddle for the startTime from cache, then the whole time range
+    // is cached and we can skip disk storage.
+    if (this.cache.getSensorDataStraddle(sourceName, startTime) != null) {
+      return this.cache.getSensorDataIndex(sourceName, startTime, null);
+    }
+
+    // Otherwise, combine disk storage with cache.
+    SensorDataIndex index = this.dbImpl.getSensorDataIndex(sourceName, startTime, null);
+    SensorDataIndex cacheIndex = this.cache.getSensorDataIndex(sourceName, startTime, null);
+    if (cacheIndex != null && cacheIndex.getSensorDataRef().size() > 0) {
+      for (SensorDataRef ref : cacheIndex.getSensorDataRef()) {
+        if (!index.getSensorDataRef().contains(ref)) {
+          index.getSensorDataRef().add(ref);
+        }
+      }
+    }
+    return index;
+  }
+
+  /**
+   * Returns the SensorDataIndex representing all the SensorData resources for the named Source such
    * that their timestamp is greater than or equal to the given start time and less than or equal to
    * the given end time. If the Source has no appropriate SensorData resources, the index will be
    * empty (not null). The list will be sorted in order of increasing timestamp values.
@@ -245,6 +282,10 @@ public class DbManager {
    */
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
+    if (sourceName == null || startTime == null || endTime == null) {
+      return null;
+    }
+
     // If we can get a sensor data straddle for the startTime from cache, then the whole time range
     // is cached and we can skip disk storage.
     if (this.cache.getSensorDataStraddle(sourceName, startTime) != null) {
@@ -266,6 +307,43 @@ public class DbManager {
 
   /**
    * Returns a list of all SensorData resources representing all the SensorData resources for the
+   * named Source such that their timestamp is greater than or equal to the given start time. If the
+   * Source has no appropriate SensorData resources, the SensorDatas will be empty (not null). The
+   * list will be sorted in order of increasing timestamp values.
+   * 
+   * @param sourceName The name of the Source whose sensor data is to be returned.
+   * @param startTime The earliest Sensor Data to be returned.
+   * @throws DbBadIntervalException if startTime is later than endTime.
+   * @return a SensorDatas object containing all relevant sensor data resources, or null if
+   * sourceName, startTime, or endTime are invalid.
+   */
+  public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime)
+      throws DbBadIntervalException {
+    if (sourceName == null || startTime == null) {
+      return null;
+    }
+
+    // If we can get a sensor data straddle for the startTime from cache, then the whole time range
+    // is cached and we can skip disk storage.
+    if (this.cache.getSensorDataStraddle(sourceName, startTime) != null) {
+      return this.cache.getSensorDatas(sourceName, startTime, null);
+    }
+
+    // Otherwise, combine disk storage with cache.
+    SensorDatas datas = this.dbImpl.getSensorDatas(sourceName, startTime, null);
+    SensorDatas cacheDatas = this.cache.getSensorDatas(sourceName, startTime, null);
+    if (cacheDatas != null && cacheDatas.getSensorData().size() > 0) {
+      for (SensorData d : cacheDatas.getSensorData()) {
+        if (!datas.getSensorData().contains(d)) {
+          datas.getSensorData().add(d);
+        }
+      }
+    }
+    return datas;
+  }
+
+  /**
+   * Returns a list of all SensorData resources representing all the SensorData resources for the
    * named Source such that their timestamp is greater than or equal to the given start time and
    * less than or equal to the given end time. If the Source has no appropriate SensorData
    * resources, the SensorDatas will be empty (not null). The list will be sorted in order of
@@ -280,6 +358,9 @@ public class DbManager {
    */
   public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
+    if (sourceName == null || startTime == null || endTime == null) {
+      return null;
+    }
 
     // If we can get a sensor data straddle for the startTime from cache, then the whole time range
     // is cached and we can skip disk storage.
@@ -588,6 +669,19 @@ public class DbManager {
   }
 
   /**
+   * Returns the energy in SensorData format for the Source name given after the startTime, or null
+   * if no energy data exists.
+   * 
+   * @param sourceName The name of the source.
+   * @param startTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getEnergy(String sourceName, XMLGregorianCalendar startTime, int interval) {
+    return this.getEnergy(this.getSource(sourceName), startTime, null, interval);
+  }
+
+  /**
    * Returns the energy in SensorData format for the Source given over the range of time between
    * startTime and endTime, or null if no energy data exists.
    * 
@@ -600,6 +694,19 @@ public class DbManager {
   public SensorData getEnergy(Source source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
     return this.dbImpl.getEnergy(source, startTime, endTime, interval);
+  }
+
+  /**
+   * Returns the energy in SensorData format for the Source given after the startTime, or null if no
+   * energy data exists.
+   * 
+   * @param source The source object.
+   * @param startTime The start of the range requested.
+   * @param interval The sampling interval requested in minutes.
+   * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getEnergy(Source source, XMLGregorianCalendar startTime, int interval) {
+    return this.getEnergy(source, startTime, null, interval);
   }
 
   /**
@@ -618,6 +725,19 @@ public class DbManager {
   }
 
   /**
+   * Returns the carbon emitted in SensorData format for the Source name given after the startTime,
+   * or null if no carbon data exists.
+   * 
+   * @param sourceName The name of the source.
+   * @param startTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested carbon in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getCarbon(String sourceName, XMLGregorianCalendar startTime, int interval) {
+    return this.getCarbon(this.getSource(sourceName), startTime, null, interval);
+  }
+
+  /**
    * Returns the carbon emitted in SensorData format for the Source given over the range of time
    * between startTime and endTime, or null if no carbon data exists.
    * 
@@ -630,6 +750,19 @@ public class DbManager {
   public SensorData getCarbon(Source source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
     return this.dbImpl.getCarbon(source, startTime, endTime, interval);
+  }
+
+  /**
+   * Returns the carbon emitted in SensorData format for the Source given after the startTime, or
+   * null if no carbon data exists.
+   * 
+   * @param source The source object.
+   * @param startTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested carbon in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getCarbon(Source source, XMLGregorianCalendar startTime, int interval) {
+    return this.getCarbon(source, startTime, null, interval);
   }
 
   /**

@@ -254,14 +254,14 @@ public class MemoryStorageImplementation extends DbImplementation {
   @Override
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
-    if ((sourceName == null) || (startTime == null) || (endTime == null)) {
+    if ((sourceName == null) || (startTime == null)) {
       return null;
     }
     else if (this.name2SourceHash.get(sourceName) == null) {
       // Unknown Source name, therefore no possibility of SensorData
       return null;
     }
-    else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
+    else if (endTime != null && startTime.compare(endTime) == DatatypeConstants.GREATER) {
       // startTime > endTime, which is bogus
       throw new DbBadIntervalException(startTime, endTime);
     }
@@ -276,7 +276,13 @@ public class MemoryStorageImplementation extends DbImplementation {
         for (SensorData data : sensorDataMap.values()) {
           // Only interested in SensorData that is startTime <= data <= endTime
           int startComparison = data.getTimestamp().compare(startTime);
-          int endComparison = data.getTimestamp().compare(endTime);
+          int endComparison;
+          if (endTime == null) {
+            endComparison = DatatypeConstants.LESSER;
+          }
+          else {
+            endComparison = data.getTimestamp().compare(endTime);
+          }
           if ((startComparison == DatatypeConstants.EQUAL)
               || (endComparison == DatatypeConstants.EQUAL)
               || ((startComparison == DatatypeConstants.GREATER) && (endComparison == DatatypeConstants.LESSER))) {
@@ -294,14 +300,14 @@ public class MemoryStorageImplementation extends DbImplementation {
   @Override
   public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
-    if ((sourceName == null) || (startTime == null) || (endTime == null)) {
+    if ((sourceName == null) || (startTime == null)) {
       return null;
     }
     else if (this.name2SourceHash.get(sourceName) == null) {
       // Unknown Source name, therefore no possibility of SensorData
       return null;
     }
-    else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
+    else if (endTime != null && startTime.compare(endTime) == DatatypeConstants.GREATER) {
       // startTime > endTime, which is bogus
       throw new DbBadIntervalException(startTime, endTime);
     }
@@ -316,7 +322,13 @@ public class MemoryStorageImplementation extends DbImplementation {
         for (SensorData data : sensorDataMap.values()) {
           // Only interested in SensorData that is startTime <= data <= endTime
           int startComparison = data.getTimestamp().compare(startTime);
-          int endComparison = data.getTimestamp().compare(endTime);
+          int endComparison;
+          if (endTime == null) {
+            endComparison = DatatypeConstants.LESSER;
+          }
+          else {
+            endComparison = data.getTimestamp().compare(endTime);
+          }
           if ((startComparison == DatatypeConstants.EQUAL)
               || (endComparison == DatatypeConstants.EQUAL)
               || ((startComparison == DatatypeConstants.GREATER) && (endComparison == DatatypeConstants.LESSER))) {

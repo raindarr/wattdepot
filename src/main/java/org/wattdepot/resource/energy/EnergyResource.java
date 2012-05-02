@@ -7,6 +7,7 @@ import org.restlet.data.MediaType;
 import org.restlet.representation.Representation;
 import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
+import org.wattdepot.server.Server;
 
 /**
  * Represents electrical energy determined by sensor data from a particular source.
@@ -43,7 +44,7 @@ public class EnergyResource extends WattDepotResource {
   @Override
   public Representation get(Variant variant) {
     String xmlString;
-    
+
     // If we make it here, we're all clear to send the XML: either source is public or source is
     // private but user is authorized to GET.
     if (variant.getMediaType().equals(MediaType.TEXT_XML)) {
@@ -64,12 +65,14 @@ public class EnergyResource extends WattDepotResource {
           return null;
         }
         // check if end timestamp is OK
-        try {
-          endObj = Tstamp.makeTimestamp(this.endTime);
-        }
-        catch (Exception e) {
-          setStatusBadTimestamp(this.endTime);
-          return null;
+        if (!this.endTime.equals(Server.LATEST)) {
+          try {
+            endObj = Tstamp.makeTimestamp(this.endTime);
+          }
+          catch (Exception e) {
+            setStatusBadTimestamp(this.endTime);
+            return null;
+          }
         }
 
         if (this.interval != null) {
@@ -83,10 +86,15 @@ public class EnergyResource extends WattDepotResource {
         }
         // build XML string
         try {
-          xmlString = getEnergy(startObj, endObj, intervalMinutes);
+          if (endObj == null) {
+            xmlString = getEnergy(startObj, intervalMinutes);
+          }
+          else {
+            xmlString = getEnergy(startObj, endObj, intervalMinutes);
+          }
           // if we get a null, then there is no SensorData for this range
           if (xmlString == null) {
-            setStatusBadRange(startObj.toString(), endObj.toString());
+            setStatusBadRange(startTime, endTime);
             return null;
           }
           return super.getStringRepresentation(xmlString);

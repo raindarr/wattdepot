@@ -464,8 +464,8 @@ public abstract class DbImplementation {
   }
 
   /**
-   * Returns the energy in SensorData format for the given Source over the range of time between
-   * startTime and endTime, or null if no energy data exists.
+   * Returns the energy in SensorData format for the given non virtual Source over the range of time
+   * between startTime and endTime, or null if no energy data exists.
    * 
    * @param source The source object.
    * @param startTime The start of the range requested.
@@ -474,21 +474,23 @@ public abstract class DbImplementation {
    * energy counters).
    * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
    */
-  public SensorData getEnergy(Source source, XMLGregorianCalendar startTime,
+  protected SensorData getNonVirtualEnergy(Source source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
-    List<Source> nonVirtualSources = getAllNonVirtualSubSources(source);
-    // True only if all non-virtual subsources support energy counters
-    boolean allSupportEnergyCounters = true;
+    if (endTime == null) {
+      endTime = getLatestNonVirtualSensorData(source.getName()).getTimestamp();
 
-    for (Source s : nonVirtualSources) {
-      allSupportEnergyCounters =
-          allSupportEnergyCounters && s.isPropertyTrue(Source.SUPPORTS_ENERGY_COUNTERS);
+      long minutesToMilliseconds = 60L * 1000L;
+      if ((interval * minutesToMilliseconds) > Tstamp.diff(startTime, endTime)) {
+        return null;
+      }
     }
-    if (allSupportEnergyCounters) {
+
+    if (source.isPropertyTrue(Source.SUPPORTS_ENERGY_COUNTERS)) {
       List<Energy> energyList = new ArrayList<Energy>();
       // calculate energy using counters
       List<XMLGregorianCalendar> timestampList = new ArrayList<XMLGregorianCalendar>(2);
       timestampList.add(startTime);
+
       timestampList.add(endTime);
       List<StraddleList> sourceList = getStraddleLists(source, timestampList);
       if ((sourceList == null) || (sourceList.isEmpty())) {
@@ -527,6 +529,73 @@ public abstract class DbImplementation {
         return Energy.getEnergyFromListOfLists(masterList,
             Source.sourceToUri(source.getName(), this.server));
       }
+    }
+  }
+
+  /**
+   * Returns the energy in SensorData format for the given Source over the range of time between
+   * startTime and endTime, or null if no energy data exists.
+   * 
+   * @param source The source object.
+   * @param startTime The start of the range requested.
+   * @param endTime The end of the range requested.
+   * @param interval The sampling interval requested in minutes (ignored if all sources support
+   * energy counters).
+   * @return The requested energy in SensorData format, or null if it cannot be found/calculated.
+   */
+  public SensorData getEnergy(Source source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int interval) {
+
+    if (!source.isVirtual()) {
+      return getNonVirtualEnergy(source, startTime, endTime, interval);
+    }
+
+    List<SensorData> energyList = new ArrayList<SensorData>();
+    List<Source> nonVirtualSources = getAllNonVirtualSubSources(source);
+    for (Source s : nonVirtualSources) {
+      SensorData d = getNonVirtualEnergy(s, startTime, endTime, interval);
+      if (d != null) {
+        energyList.add(d);
+      }
+      else {
+        return null;
+      }
+    }
+    try {
+
+      double totalEnergyGenerated = 0, totalEnergyConsumed = 0;
+      double energyGenerated, energyConsumed;
+      boolean wasInterpolated = true;
+      XMLGregorianCalendar timestamp;
+      if (energyList.isEmpty()) {
+        return null;
+      }
+      else {
+        timestamp = energyList.get(0).getTimestamp();
+        // iterate over list of Energy objects
+        for (SensorData energy : energyList) {
+          energyGenerated = energy.getPropertyAsDouble(SensorData.ENERGY_GENERATED);
+          energyConsumed = energy.getPropertyAsDouble(SensorData.ENERGY_CONSUMED);
+          if (energyGenerated < 0) {
+            throw new EnergyCounterException("computed energyGenerated was < 0: "
+                + energyGenerated);
+          }
+          else if (energyConsumed < 0) {
+            throw new EnergyCounterException("computed energyConsumed was < 0: " + energyConsumed);
+          }
+          else {
+            totalEnergyGenerated += energyGenerated;
+            totalEnergyConsumed += energyConsumed;
+          }
+        }
+        return Energy.makeEnergySensorData(timestamp, source.getName(), totalEnergyGenerated,
+            totalEnergyConsumed, wasInterpolated);
+      }
+    }
+    catch (EnergyCounterException e) {
+      // some sort of counter problem. For now, we just bail and return an error
+      // TODO add rollover support
+      return null;
     }
   }
 
@@ -578,6 +647,40 @@ public abstract class DbImplementation {
   }
 
   /**
+   * Returns the carbon emitted in SensorData format for the virtual source Source given over the
+   * range of time between startTime and endTime, or null if no carbon data exists.
+   * 
+   * @param source The source object.
+   * @param startTime The start of the range requested.
+   * @param endTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The requested carbon in SensorData format, or null if it cannot be found/calculated.
+   */
+  protected SensorData getNonVirtualCarbon(Source source, XMLGregorianCalendar startTime,
+      XMLGregorianCalendar endTime, int interval) {
+
+    if (endTime == null) {
+      endTime = getLatestNonVirtualSensorData(source.getName()).getTimestamp();
+      
+      long minutesToMilliseconds = 60L * 1000L;
+      if ((interval * minutesToMilliseconds) > Tstamp.diff(startTime, endTime)) {
+        return null;
+      }
+    }
+
+    List<StraddleList> masterList =
+        getStraddleLists(source, Tstamp.getTimestampList(startTime, endTime, interval));
+    if ((masterList == null) || (masterList.isEmpty())) {
+      return null;
+    }
+    else {
+      // Make list of carbon intensities, one from each source
+      return Carbon.getCarbonFromStraddleList(masterList,
+          Source.sourceToUri(source.getName(), server));
+    }
+  }
+
+  /**
    * Returns the carbon emitted in SensorData format for the Source given over the range of time
    * between startTime and endTime, or null if no carbon data exists.
    * 
@@ -589,16 +692,38 @@ public abstract class DbImplementation {
    */
   public SensorData getCarbon(Source source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int interval) {
-    List<StraddleList> masterList =
-        getStraddleLists(source, Tstamp.getTimestampList(startTime, endTime, interval));
-    if ((masterList == null) || (masterList.isEmpty())) {
+
+    if (!source.isVirtual()) {
+      return getNonVirtualCarbon(source, startTime, endTime, interval);
+    }
+
+    List<SensorData> carbonList = new ArrayList<SensorData>();
+    List<Source> nonVirtualSources = getAllNonVirtualSubSources(source);
+    for (Source s : nonVirtualSources) {
+      SensorData d = getNonVirtualCarbon(s, startTime, endTime, interval);
+      if (d != null) {
+        carbonList.add(d);
+      }
+      else {
+        return null;
+      }
+    }
+    double totalCarbonEmitted = 0;
+    boolean wasInterpolated = true;
+    XMLGregorianCalendar timestamp;
+    if (carbonList.isEmpty()) {
       return null;
     }
     else {
-      // Make list of carbon intensities, one from each source
-      return Carbon.getCarbonFromStraddleList(masterList,
-          Source.sourceToUri(source.getName(), server));
+      timestamp = carbonList.get(0).getTimestamp();
+      // iterate over list of Carbon objects
+      for (SensorData energy : carbonList) {
+        totalCarbonEmitted += energy.getPropertyAsDouble(SensorData.CARBON_EMITTED);
+      }
+      return Carbon.makeCarbonSensorData(timestamp, source.getName(), totalCarbonEmitted,
+          wasInterpolated);
     }
+
   }
 
   /**

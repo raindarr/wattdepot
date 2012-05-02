@@ -192,9 +192,13 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue("SensorDataIndex generated for period containing no SensorData", manager
         .getSensorDataIndex(this.source1.getName(), after3, moreAfter3).getSensorDataRef()
         .isEmpty());
+    assertTrue("SensorDataIndex generated for period containing no SensorData", manager
+        .getSensorDataIndex(this.source1.getName(), after3).getSensorDataRef().isEmpty());
 
     assertTrue("getSensorDatas non-empty for period containing no SensorData", manager
         .getSensorDatas(this.source1.getName(), after3, moreAfter3).getSensorData().isEmpty());
+    assertTrue("getSensorDatas non-empty for period containing no SensorData", manager
+        .getSensorDatas(this.source1.getName(), after3).getSensorData().isEmpty());
 
     // range covering all three data items
     List<SensorDataRef> retrievedRefs =
@@ -208,6 +212,14 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(REFS_DONT_MATCH_SENSORDATA,
         SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
     assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
+
+    // range starting before data1 with no end date
+    retrievedRefs = manager.getSensorDataIndex(this.source1.getName(), before1).getSensorDataRef();
+    retrievedDatas = manager.getSensorDatas(this.source1.getName(), before1).getSensorData();
+    assertEquals("Retrieved data doesn't match original data with no endTime", origData,
+        retrievedDatas);
+    assertTrue("Retrieved refs don't match original data with no endTime",
+        SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
 
     // range covering only data1
     assertSame("getSensorDataIndex didn't contain all expected SensorData", manager
@@ -259,6 +271,15 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
     assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
+    // range starting after data1 with no end date
+    retrievedRefs =
+        manager.getSensorDataIndex(this.source1.getName(), between1And2).getSensorDataRef();
+    retrievedDatas = manager.getSensorDatas(this.source1.getName(), between1And2).getSensorData();
+    assertEquals("Retrieved data doesn't match original data with no endTime", origData,
+        retrievedDatas);
+    assertTrue("Retrieved refs don't match original data with no endTime",
+        SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+
     // range starting exactly at data1 and ending exactly at data3
     retrievedRefs =
         manager.getSensorDataIndex(this.source1.getName(), at1, at3).getSensorDataRef();
@@ -270,6 +291,14 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
     assertTrue(REFS_DONT_MATCH_SENSORDATA,
         SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
     assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
+
+    // range starting exactly at data1 with no end date
+    retrievedRefs = manager.getSensorDataIndex(this.source1.getName(), at1).getSensorDataRef();
+    retrievedDatas = manager.getSensorDatas(this.source1.getName(), at1).getSensorData();
+    assertEquals("Retrieved data doesn't match original data with no endTime", origData,
+        retrievedDatas);
+    assertTrue("Retrieved refs don't match original data with no endTime",
+        SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
 
     // Confirm that SensorData list is sorted
     for (int i = 0; i < origData.size(); i++) {
@@ -296,30 +325,45 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         manager.getSensorDataIndex("bogus-source-2", before1, after3));
     assertNull("Got non-null List for bogus Source name",
         manager.getSensorDatas("bogus-source-2", before1, after3));
+    assertNull("Found SensorDataIndex for bogus Source name",
+        manager.getSensorDataIndex("bogus-source-2", before1));
+    assertNull("Got non-null List for bogus Source name",
+        manager.getSensorDatas("bogus-source-2", before1));
 
     // retrieving SensorDataIndex for empty Source name
     assertNull("Found SensorDataIndex for empty Source name",
         manager.getSensorDataIndex("", before1, after3));
-    assertNull("Got non-null List for emtpy Source name",
+    assertNull("Got non-null List for empty Source name",
         manager.getSensorDatas("", before1, after3));
+    assertNull("Found SensorDataIndex for empty Source name",
+        manager.getSensorDataIndex("", before1));
+    assertNull("Got non-null List for empty Source name", manager.getSensorDatas("", before1));
 
     // retrieving SensorDataIndex for null Source name
     assertNull("Found SensorDataIndex for null Source name",
         manager.getSensorDataIndex(null, before1, after3));
     assertNull("Got non-null List for null Source name",
         manager.getSensorDatas(null, before1, after3));
+    assertNull("Found SensorDataIndex for null Source name",
+        manager.getSensorDataIndex(null, before1));
+    assertNull("Got non-null List for null Source name", manager.getSensorDatas(null, before1));
 
     // retrieving SensorDataIndex for null startTime
     assertNull("Found SensorDataIndex for null startTime",
         manager.getSensorDataIndex(this.source1.getName(), null, after3));
     assertNull("Got non-null List for null startTime",
         manager.getSensorDatas(this.source1.getName(), null, after3));
+    assertNull("Found SensorDataIndex for null startTime",
+        manager.getSensorDataIndex(this.source1.getName(), null));
+    assertNull("Got non-null List for null startTime",
+        manager.getSensorDatas(this.source1.getName(), null));
 
     // retrieving SensorDataIndex for null endTime
     assertNull("Found SensorDataIndex for null endTime",
         manager.getSensorDataIndex(this.source1.getName(), before1, null));
     assertNull("Got non-null List for null startTime",
         manager.getSensorDatas(this.source1.getName(), before1, null));
+
   }
 
   /**

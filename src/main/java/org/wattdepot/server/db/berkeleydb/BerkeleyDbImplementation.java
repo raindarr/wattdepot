@@ -477,22 +477,29 @@ public class BerkeleyDbImplementation extends DbImplementation {
   @Override
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
-    if (sourceName == null || startTime == null || endTime == null) {
+    if (sourceName == null || startTime == null) {
       return null;
     }
     else if (this.getSource(sourceName) == null) {
       // Unknown Source name, therefore no possibility of SensorData
       return null;
     }
-    else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
+
+    if (endTime != null && startTime.compare(endTime) == DatatypeConstants.GREATER) {
       // startTime > endTime, which is bogus
       throw new DbBadIntervalException(startTime, endTime);
     }
 
     // Construct the range
     CompositeSensorDataKey start = new CompositeSensorDataKey(sourceName, startTime);
-    CompositeSensorDataKey end = new CompositeSensorDataKey(sourceName, endTime);
-    EntityCursor<BerkeleyDbSensorData> cursor = sensorDataIndex.entities(start, true, end, true);
+    EntityCursor<BerkeleyDbSensorData> cursor;
+    if (endTime != null) {
+      CompositeSensorDataKey end = new CompositeSensorDataKey(sourceName, endTime);
+      cursor = sensorDataIndex.entities(start, true, end, true);
+    }
+    else {
+      cursor = sensorDataIndex.entities(start, true, null, true);
+    }
 
     // Iterate over the results and add refs.
     SensorDataIndex index = new SensorDataIndex();
@@ -551,21 +558,28 @@ public class BerkeleyDbImplementation extends DbImplementation {
   @Override
   public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
-    if ((sourceName == null) || (startTime == null) || (endTime == null)) {
+    if ((sourceName == null) || (startTime == null)) {
       return null;
     }
     else if (getSource(sourceName) == null) {
       // Unknown Source name, therefore no possibility of SensorData
       return null;
     }
-    else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
+
+    if (endTime != null && startTime.compare(endTime) == DatatypeConstants.GREATER) {
       // startTime > endTime, which is bogus
       throw new DbBadIntervalException(startTime, endTime);
     }
 
     CompositeSensorDataKey start = new CompositeSensorDataKey(sourceName, startTime);
-    CompositeSensorDataKey end = new CompositeSensorDataKey(sourceName, endTime);
-    EntityCursor<BerkeleyDbSensorData> cursor = sensorDataIndex.entities(start, true, end, true);
+    EntityCursor<BerkeleyDbSensorData> cursor;
+    if (endTime != null) {
+      CompositeSensorDataKey end = new CompositeSensorDataKey(sourceName, endTime);
+      cursor = sensorDataIndex.entities(start, true, end, true);
+    }
+    else {
+      cursor = sensorDataIndex.entities(start, true, null, true);
+    }
 
     SensorDatas datas = new SensorDatas();
     for (BerkeleyDbSensorData data : cursor) {

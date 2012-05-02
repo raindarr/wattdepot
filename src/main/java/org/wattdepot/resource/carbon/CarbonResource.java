@@ -7,6 +7,7 @@ import org.restlet.data.MediaType;
 import org.restlet.representation.Representation;
 import org.restlet.representation.Variant;
 import org.wattdepot.resource.WattDepotResource;
+import org.wattdepot.server.Server;
 
 /**
  * Represents carbon emitted determined by sensor data from a particular source.
@@ -64,12 +65,14 @@ public class CarbonResource extends WattDepotResource {
           return null;
         }
         // check if end timestamp is OK
-        try {
-          endObj = Tstamp.makeTimestamp(this.endTime);
-        }
-        catch (Exception e) {
-          setStatusBadTimestamp(this.endTime);
-          return null;
+        if (!this.endTime.equals(Server.LATEST)) {
+          try {
+            endObj = Tstamp.makeTimestamp(this.endTime);
+          }
+          catch (Exception e) {
+            setStatusBadTimestamp(this.endTime);
+            return null;
+          }
         }
 
         if (this.interval != null) {
@@ -83,10 +86,15 @@ public class CarbonResource extends WattDepotResource {
         }
         // build XML string
         try {
-          xmlString = getCarbon(startObj, endObj, intervalMinutes);
+          if (endObj == null) {
+            xmlString = getCarbon(startObj, intervalMinutes);
+          }
+          else {
+            xmlString = getCarbon(startObj, endObj, intervalMinutes);
+          }
           // if we get a null, then there is no SensorData for this range
           if (xmlString == null) {
-            setStatusBadRange(startObj.toString(), endObj.toString());
+            setStatusBadRange(startTime, endTime);
             return null;
           }
           return super.getStringRepresentation(xmlString);

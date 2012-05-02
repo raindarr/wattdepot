@@ -456,9 +456,40 @@ public class WattDepotResource extends ServerResource {
    */
   public String getSensorDataIndex(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime)
       throws JAXBException, DbBadIntervalException {
+    if (startTime == null || endTime == null) {
+      return null;
+    }
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorDataIndex index = this.dbManager.getSensorDataIndex(this.uriSource, startTime, endTime);
+    if (index == null) {
+      return null;
+    }
+    else {
+      marshaller.marshal(index, writer);
+      return writer.toString();
+    }
+  }
+
+  /**
+   * Returns an XML string representation of a SensorDataIndex containing all the SensorData for the
+   * Source name given in the URI after the provided start time, or null if the named Source doesn't
+   * exist.
+   * 
+   * @param startTime The start time requested.
+   * @return The XML string representing the requested SensorDataIndex, or null if source name is
+   * unknown.
+   * @throws JAXBException If there are problems mashalling the SensorDataIndex.
+   * @throws DbBadIntervalException If the start time is later than the end time.
+   */
+  public String getSensorDataIndex(XMLGregorianCalendar startTime) throws JAXBException,
+      DbBadIntervalException {
+    if (startTime == null) {
+      return null;
+    }
+    Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+    SensorDataIndex index = this.dbManager.getSensorDataIndex(this.uriSource, startTime);
     if (index == null) {
       return null;
     }
@@ -482,9 +513,40 @@ public class WattDepotResource extends ServerResource {
    */
   public String getSensorDatas(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime)
       throws JAXBException, DbBadIntervalException {
+    if (startTime == null || endTime == null) {
+      return null;
+    }
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorDatas datas = this.dbManager.getSensorDatas(this.uriSource, startTime, endTime);
+    if (datas == null) {
+      return null;
+    }
+    else {
+      marshaller.marshal(datas, writer);
+      return writer.toString();
+    }
+  }
+
+  /**
+   * Returns an XML string representation of a SensorDatas object containing all the SensorData for
+   * the Source name given in the URI after the provided start time, or null if the named Source
+   * doesn't exist.
+   * 
+   * @param startTime The start time requested.
+   * @return The XML string representing the requested SensorDatas object, or null if source name is
+   * unknown.
+   * @throws JAXBException If there are problems mashalling the SensorDataIndex.
+   * @throws DbBadIntervalException If the start time is later than the end time.
+   */
+  public String getSensorDatas(XMLGregorianCalendar startTime) throws JAXBException,
+      DbBadIntervalException {
+    if (startTime == null) {
+      return null;
+    }
+    Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+    SensorDatas datas = this.dbManager.getSensorDatas(this.uriSource, startTime);
     if (datas == null) {
       return null;
     }
@@ -568,6 +630,37 @@ public class WattDepotResource extends ServerResource {
   }
 
   /**
+   * Returns the XML string containing the energy in SensorData format for the Source name given in
+   * the URI after the startTime, or null if no energy data exists.
+   * 
+   * @param startTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The XML string representing the requested energy in SensorData format, or null if it
+   * cannot be found/calculated.
+   * @throws JAXBException If there are problems mashalling the SensorData.
+   */
+  public String getEnergy(XMLGregorianCalendar startTime, int interval) throws JAXBException {
+    Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+    SensorData energyData = null;
+
+    if (interval < 0) {
+      setStatusBadSamplingInterval(Integer.toString(interval));
+      // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
+      return null;
+    }
+
+    energyData = this.dbManager.getEnergy(this.uriSource, startTime, interval);
+    if (energyData == null) {
+      return null;
+    }
+    else {
+      marshaller.marshal(energyData, writer);
+      return writer.toString();
+    }
+  }
+
+  /**
    * Returns the XML string containing the carbon in SensorData format for the Source name given in
    * the URI over the range of time between startTime and endTime, or null if no carbon data exists.
    * 
@@ -597,6 +690,37 @@ public class WattDepotResource extends ServerResource {
       return null;
     }
     carbonData = this.dbManager.getCarbon(this.uriSource, startTime, endTime, interval);
+    if (carbonData == null) {
+      return null;
+    }
+    else {
+      marshaller.marshal(carbonData, writer);
+      return writer.toString();
+    }
+  }
+
+  /**
+   * Returns the XML string containing the carbon in SensorData format for the Source name given in
+   * the URI after the startTime, or null if no carbon data exists.
+   * 
+   * @param startTime The start of the range requested.
+   * @param interval The sampling interval requested.
+   * @return The XML string representing the requested carbon in SensorData format, or null if it
+   * cannot be found/calculated.
+   * @throws JAXBException If there are problems mashalling the SensorData.
+   */
+  public String getCarbon(XMLGregorianCalendar startTime, int interval) throws JAXBException {
+    Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
+    StringWriter writer = new StringWriter();
+    SensorData carbonData = null;
+
+    if (interval < 0) {
+      setStatusBadSamplingInterval(Integer.toString(interval));
+      // TODO BOGUS, should throw an exception so EnergyResource can distinguish between problems
+      return null;
+    }
+
+    carbonData = this.dbManager.getCarbon(this.uriSource, startTime, interval);
     if (carbonData == null) {
       return null;
     }

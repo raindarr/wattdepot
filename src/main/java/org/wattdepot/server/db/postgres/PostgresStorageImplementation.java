@@ -1422,22 +1422,30 @@ public class PostgresStorageImplementation extends DbImplementation {
   public SensorDataIndex getSensorDataIndex(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
 
-    if ((sourceName == null) || (startTime == null) || (endTime == null)) {
+    if ((sourceName == null) || (startTime == null)) {
       return null;
     }
     else if (getSource(sourceName) == null) {
       // Unknown Source name, therefore no possibility of SensorData
       return null;
     }
-    else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
+    else if (endTime != null && startTime.compare(endTime) == DatatypeConstants.GREATER) {
       // startTime > endTime, which is bogus
       throw new DbBadIntervalException(startTime, endTime);
     }
     else {
       SensorDataIndex index = new SensorDataIndex();
-      String statement =
-          "SELECT Tstamp, Tool, Source FROM SensorData WHERE Source = ? AND "
-              + " (Tstamp BETWEEN ? AND ?)" + " ORDER BY Tstamp";
+      String statement;
+      if (endTime == null) {
+        statement =
+            "SELECT Tstamp, Tool, Source FROM SensorData WHERE Source = ? AND "
+                + "Tstamp >= ? ORDER BY Tstamp";
+      }
+      else {
+        statement =
+            "SELECT Tstamp, Tool, Source FROM SensorData WHERE Source = ? AND "
+                + " (Tstamp BETWEEN ? AND ?)" + " ORDER BY Tstamp";
+      }
       Connection conn = null;
       PreparedStatement s = null;
       ResultSet rs = null;
@@ -1448,7 +1456,9 @@ public class PostgresStorageImplementation extends DbImplementation {
         s = conn.prepareStatement(statement);
         s.setString(1, sourceName);
         s.setTimestamp(2, Tstamp.makeTimestamp(startTime));
-        s.setTimestamp(3, Tstamp.makeTimestamp(endTime));
+        if (endTime != null) {
+          s.setTimestamp(3, Tstamp.makeTimestamp(endTime));
+        }
         rs = s.executeQuery();
         while (rs.next()) {
           Timestamp timestamp = rs.getTimestamp("Tstamp");
@@ -1486,22 +1496,28 @@ public class PostgresStorageImplementation extends DbImplementation {
   public SensorDatas getSensorDatas(String sourceName, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) throws DbBadIntervalException {
 
-    if ((sourceName == null) || (startTime == null) || (endTime == null)) {
+    if ((sourceName == null) || (startTime == null)) {
       return null;
     }
     else if (getSource(sourceName) == null) {
       // Unknown Source name, therefore no possibility of SensorData
       return null;
     }
-    else if (startTime.compare(endTime) == DatatypeConstants.GREATER) {
+    else if (endTime != null && startTime.compare(endTime) == DatatypeConstants.GREATER) {
       // startTime > endTime, which is bogus
       throw new DbBadIntervalException(startTime, endTime);
     }
     else {
       SensorDatas datas = new SensorDatas();
-      String statement =
-          "SELECT * FROM SensorData WHERE Source = ? AND (Tstamp BETWEEN ? AND ?)"
-              + " ORDER BY Tstamp";
+      String statement;
+      if (endTime == null) {
+        statement = "SELECT * FROM SensorData WHERE Source = ? AND Tstamp >= ? ORDER BY Tstamp";
+      }
+      else {
+        statement =
+            "SELECT * FROM SensorData WHERE Source = ? AND (Tstamp BETWEEN ? AND ?)"
+                + " ORDER BY Tstamp";
+      }
       Connection conn = null;
       PreparedStatement s = null;
       ResultSet rs = null;
@@ -1511,7 +1527,9 @@ public class PostgresStorageImplementation extends DbImplementation {
         s = conn.prepareStatement(statement);
         s.setString(1, sourceName);
         s.setTimestamp(2, Tstamp.makeTimestamp(startTime));
-        s.setTimestamp(3, Tstamp.makeTimestamp(endTime));
+        if (endTime != null) {
+          s.setTimestamp(3, Tstamp.makeTimestamp(endTime));
+        }
         rs = s.executeQuery();
         while (rs.next()) {
           SensorData data = resultSetToSensorData(rs);

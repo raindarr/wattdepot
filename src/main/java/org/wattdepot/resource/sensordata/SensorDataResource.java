@@ -130,22 +130,34 @@ public class SensorDataResource extends WattDepotResource {
           return null;
         }
         // check if end timestamp is OK
-        try {
-          endObj = Tstamp.makeTimestamp(this.endTime);
-        }
-        catch (Exception e) {
-          setStatusBadTimestamp(this.endTime);
-          return null;
+        if (!this.endTime.equals(Server.LATEST)) {
+          try {
+            endObj = Tstamp.makeTimestamp(this.endTime);
+          }
+          catch (Exception e) {
+            setStatusBadTimestamp(this.endTime);
+            return null;
+          }
         }
         try {
           // If fetchAll requested, return SensorDatas
           if (this.fetchAll) {
-            xmlString = getSensorDatas(startObj, endObj);
+            if (endObj == null) {
+              xmlString = getSensorDatas(startObj);
+            }
+            else {
+              xmlString = getSensorDatas(startObj, endObj);
+            }
             return super.getStringRepresentation(xmlString);
           }
           // Otherwise, return SensorDataIndex
           else {
-            xmlString = getSensorDataIndex(startObj, endObj);
+            if (endObj == null) {
+              xmlString = getSensorDataIndex(startObj);
+            }
+            else {
+              xmlString = getSensorDataIndex(startObj, endObj);
+            }
             return super.getStringRepresentation(xmlString);
           }
         }
