@@ -160,7 +160,7 @@
 	<unjar src="${settings.localRepository}/com/sleepycat/je/${berkeleydb.version}/je-${berkeleydb.version}.jar" dest="${tmp.dir}" />
 	<unjar src="${settings.localRepository}/commons-dbcp/commons-dbcp/${dbcp.version}/commons-dbcp-${dbcp.version}.jar" dest="${tmp.dir}" />
 	<unjar src="${settings.localRepository}/commons-pool/commons-pool/${pool.version}/commons-pool-${pool.version}.jar" dest="${tmp.dir}" />
-	<unjar src="${settings.localRepository}/jcs/jcs/${jcs.version}/jcs-${jcs.version}.jar" dest="${tmp.dir}" />
+	<unjar src="${settings.localRepository}/org/apache/jcs/jcs/${jcs.version}/jcs-${jcs.version}.jar" dest="${tmp.dir}" />
 	<unjar src="${settings.localRepository}/concurrent/concurrent/${concurrent.version}/concurrent-${concurrent.version}.jar" dest="${tmp.dir}" />
 	
 	<jar destfile="${build.jar.dir}/wattdepot-server.jar" basedir="${tmp.dir}">

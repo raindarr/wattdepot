@@ -161,14 +161,16 @@
 		<name>Public online Restlet repository</name>  
 		<url>http://maven.restlet.org</url>  
 	</repository> 
-	<repository>
-        <snapshots>
-			<enabled>false</enabled>
-        </snapshots>
+	<!--<repository>
         <id>artifactory</id>
-        <name>repo</name>
+        <name>Repository that contains modbus</name>
         <url>http://maven.etl.luc.edu/artifactory/repo</url>
-	</repository> 
+	</repository> -->
+	<repository>
+        <id>local</id>
+        <name>Local repository that contains modbus</name>
+        <url>file://${project.basedir}/repository</url>
+	</repository>
 </repositories>
 <build>
 	<defaultGoal>verify</defaultGoal>
