@@ -2,7 +2,9 @@ package org.wattdepot.datainput;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TreeMap;
 
@@ -33,6 +35,8 @@ public class DataInputClientProperties {
   public static final String BMO_DB_KEY = "datainput.bmo.db";
   /** The BuildingManagerOnline AS key. This is a mysterious, opaque parameter from BMO. */
   public static final String BMO_AS_KEY = "datainput.bmo.as";
+  /** The prefix for individual source properties. */
+  public static final String SOURCE_PREFIX = "datainput.source.";
 
   /** Where we store the properties. */
   private Properties properties;
@@ -188,5 +192,43 @@ public class DataInputClientProperties {
       String propName = (String) entry.getKey();
       properties.setProperty(propName, properties.getProperty(propName).trim());
     }
+  }
+
+  /**
+   * Returns the SensorSources from the properties file mapped by their source key.
+   * 
+   * @return A map of source keys to SensorSource objects, containing all sensor source properties.
+   */
+  public Map<String, SensorSource> getSources() {
+    Map<String, SensorSource> sources = new HashMap<String, SensorSource>();
+    for (Entry<Object, Object> entry : this.properties.entrySet()) {
+      String entryKey = entry.getKey().toString();
+      if (entryKey.startsWith(SOURCE_PREFIX)) {
+        String sourceKey = entryKey.substring(SOURCE_PREFIX.length(), entryKey.lastIndexOf('.'));
+        String suffix = entryKey.substring(entryKey.lastIndexOf('.') + 1);
+
+        SensorSource source = sources.get(sourceKey);
+        if (source == null) {
+          source = new SensorSource(sourceKey);
+          sources.put(sourceKey, source);
+        }
+        if ("name".equals(suffix)) {
+          source.setName(entry.getValue().toString());
+        }
+        if ("updateRate".equals(suffix)) {
+          try {
+            int possibleValue = Integer.parseInt(entry.getValue().toString());
+            source.setUpdateRate(possibleValue);
+          }
+          catch (NumberFormatException e) {
+            source.setUpdateRate(0);
+          }
+        }
+        if ("meterHostname".equals(suffix)) {
+          source.setMeterHostname(entry.getValue().toString());
+        }
+      }
+    }
+    return sources;
   }
 }

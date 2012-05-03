@@ -6,7 +6,10 @@ import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_USERNA
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 import javax.xml.datatype.XMLGregorianCalendar;
 import net.wimpi.modbus.Modbus;
 import net.wimpi.modbus.io.ModbusTCPTransaction;
@@ -28,6 +31,7 @@ import org.wattdepot.client.NotAuthorizedException;
 import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.datainput.DataInputClientProperties;
+import org.wattdepot.datainput.SensorSource;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -43,10 +47,13 @@ import org.wattdepot.util.tstamp.Tstamp;
  * 
  * @author Robert Brewer
  */
-public class SharkSensor {
+public class SharkSensor extends TimerTask {
 
-  /** Name of the property file containing essential preferences. */
-  protected DataInputClientProperties properties;
+  protected String wattDepotUri;
+  protected String wattDepotUsername;
+  protected String wattDepotPassword;
+  /** The source key, which identifies the source in the config file. */
+  protected String sourceKey;
   /** The name of the source to send data to. */
   private String sourceName;
   /** The rate at which to poll the device for new data. */
@@ -79,197 +86,251 @@ public class SharkSensor {
   private static final int UPDATE_RATE_SENTINEL = 0;
 
   /** Making PMD happy. */
+  private static final String REQUIRED_SOURCE_PARAMETER_ERROR_MSG =
+      "Required parameter %s not found in properties for %s.%n";
   private static final String REQUIRED_PARAMETER_ERROR_MSG =
       "Required parameter %s not found in properties.%n";
 
   /**
    * Creates the new streaming sensor.
    * 
-   * @param propertyFilename Name of the file to read essential properties from.
-   * @param sourceName The name of the source to send data to.
-   * @param updateRate The rate at which to send new data to the source, in seconds.
+   * @param wattDepotUri Uri of the WattDepot server to send this sensor data to.
+   * @param wattDepotUsername Username to connect to the WattDepot server with.
+   * @param wattDepotPassword Password to connect to the WattDepot server with.
+   * @param sensorSource The SensorSource containing configuration settings for this sensor.
    * @param debug If true then display new sensor data when sending it.
-   * @param meterHostname The hostname of the meter to be polled.
-   * @throws IOException If the property file cannot be found or read.
    */
-  public SharkSensor(String propertyFilename, String sourceName, int updateRate, boolean debug,
-      String meterHostname) throws IOException {
-    if (propertyFilename == null) {
-      this.properties = new DataInputClientProperties();
-    }
-    else {
-      this.properties = new DataInputClientProperties(propertyFilename);
-    }
-    this.sourceName = sourceName;
-    if (updateRate < UPDATE_RATE_SENTINEL) {
-      // Got a bogus updateRate, set to sentinel value to ensure a default is picked
-      this.updateRate = UPDATE_RATE_SENTINEL;
-    }
-    else {
-      this.updateRate = updateRate;
-    }
+  public SharkSensor(String wattDepotUri, String wattDepotUsername,
+      String wattDepotPassword, SensorSource sensorSource, boolean debug) {
+
+    this.wattDepotUri = wattDepotUri;
+    this.wattDepotUsername = wattDepotUsername;
+    this.wattDepotPassword = wattDepotPassword;
+    this.sourceKey = sensorSource.getKey();
+    this.sourceName = sensorSource.getName();
+    this.meterHostname = sensorSource.getMeterHostname();
+    this.updateRate = sensorSource.getUpdateRate();
     this.debug = debug;
-    if (this.debug) {
-      System.err.println(this.properties.echoProperties());
-    }
-    this.meterHostname = meterHostname;
   }
 
   /**
-   * Retrieves meter sensor data periodically and sends it to a Source in a WattDepot server.
+   * Checks that all required parameters are set, that the WattDepotClient can connect, that the
+   * source exists, and that the meterHostname is valid.
    * 
-   * @return False if there is a fatal problem. Otherwise will never return.
-   * @throws InterruptedException If some other thread interrupts our sleep.
+   * @return true if everything is good to go.
    */
-  public boolean process() throws InterruptedException {
-    String wattDepotURI = this.properties.get(WATTDEPOT_URI_KEY);
-    if (wattDepotURI == null) {
+  protected boolean isValid() {
+    if (wattDepotUri == null) {
       System.err.format(REQUIRED_PARAMETER_ERROR_MSG, WATTDEPOT_URI_KEY);
       return false;
     }
-    String wattDepotUsername = this.properties.get(WATTDEPOT_USERNAME_KEY);
+
     if (wattDepotUsername == null) {
       System.err.format(REQUIRED_PARAMETER_ERROR_MSG, WATTDEPOT_USERNAME_KEY);
       return false;
     }
-    String wattDepotPassword = this.properties.get(WATTDEPOT_PASSWORD_KEY);
     if (wattDepotPassword == null) {
       System.err.format(REQUIRED_PARAMETER_ERROR_MSG, WATTDEPOT_PASSWORD_KEY);
       return false;
     }
-
-    String sourceURI = Source.sourceToUri(this.sourceName, wattDepotURI);
+    if (sourceName == null) {
+      System.err.format(REQUIRED_SOURCE_PARAMETER_ERROR_MSG, "Source name", sourceKey);
+      return false;
+    }
+    if (meterHostname == null) {
+      System.err.format(REQUIRED_SOURCE_PARAMETER_ERROR_MSG, "Meter hostname", sourceKey);
+      return false;
+    }
 
     WattDepotClient client =
-        new WattDepotClient(wattDepotURI, wattDepotUsername, wattDepotPassword);
-    Source source;
-    if (client.isAuthenticated()) {
-      try {
-        source = client.getSource(this.sourceName);
+        new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);
+    Source source = getSourceFromClient(client);
+    if (source == null) {
+      return false;
+    }
+
+    if (this.updateRate <= UPDATE_RATE_SENTINEL) {
+      // Need to pick a reasonable default pollingInterval
+      // Check the polling rate specified in the source
+      int possibleInterval = source.getPropertyAsInt(Source.UPDATE_INTERVAL);
+
+      if (possibleInterval > DEFAULT_UPDATE_RATE) {
+        // Sane interval, so use it
+        this.updateRate = possibleInterval;
       }
-      catch (NotAuthorizedException e) {
-        System.err.format("You do not have access to the source %s. Aborting.%n", this.sourceName);
-        return false;
+      else {
+        // Bogus interval, so use hard coded default
+        this.updateRate = DEFAULT_UPDATE_RATE;
       }
-      catch (ResourceNotFoundException e) {
-        System.err.format("Source %s does not exist on server. Aborting.%n", this.sourceName);
-        return false;
+    }
+
+    if (getMeterAddress() == null) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Given a WattDepotClient, ensure authentication has succeeded and that the desired source is
+   * accessible.
+   * 
+   * @param client The client to attempt to retrieve the source from.
+   * @return The source object with the source name provided in the constructor.
+   */
+  private Source getSourceFromClient(WattDepotClient client) {
+    if (!client.isHealthy()) {
+      System.err.format("Could not connect to server %s. Aborting.%n", this.wattDepotUri);
+      return null;
+    }
+    if (!client.isAuthenticated()) {
+      System.err.format("Invalid credentials for server %s. Aborting.%n", this.wattDepotUri);
+      return null;
+    }
+
+    try {
+      return client.getSource(sourceName);
+    }
+    catch (NotAuthorizedException e) {
+      System.err.format("You do not have access to the source %s. Aborting.%n", sourceName);
+    }
+    catch (ResourceNotFoundException e) {
+      System.err.format("Source %s does not exist on server. Aborting.%n", sourceName);
+    }
+    catch (BadXmlException e) {
+      System.err.println("Received bad XML from server, which is weird. Aborting.");
+    }
+    catch (MiscClientException e) {
+      System.err.println("Had problems retrieving source from server, which is weird. Aborting.");
+    }
+    return null;
+  }
+
+  /**
+   * Returns the InetAddress of the meterHostname given in the constructor, or null if it cannot be
+   * resolved.
+   * 
+   * @return The InetAddress of the meterHostname given in the constructor, or null if it cannot be
+   * resolved.
+   */
+  private InetAddress getMeterAddress() {
+    try {
+      return InetAddress.getByName(meterHostname);
+    }
+    catch (UnknownHostException e) {
+      System.err.format("Unable to resolve meter hostname %s, aborting.%n", meterHostname);
+      return null;
+    }
+  }
+
+  /**
+   * Retrieves meter sensor data and sends it to a Source in a WattDepot server.
+   */
+  public void run() {
+    WattDepotClient client =
+        new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);
+    Source source = getSourceFromClient(client);
+    if (source == null) {
+      this.cancel();
+      return;
+    }
+
+    // Resolve provided meter hostname
+    InetAddress meterAddress = getMeterAddress();
+    if (meterAddress == null) {
+      this.cancel();
+      return;
+    }
+
+    if (this.updateRate <= UPDATE_RATE_SENTINEL) {
+      // Need to pick a reasonable default pollingInterval
+      // Check the polling rate specified in the source
+      String updateIntervalString = source.getProperty(Source.UPDATE_INTERVAL);
+      if (updateIntervalString == null) {
+        // no update interval, so just use hard coded default
+        this.updateRate = DEFAULT_UPDATE_RATE;
       }
-      catch (BadXmlException e) {
-        System.err.println("Received bad XML from server, which is weird. Aborting.");
-        return false;
-      }
-      catch (MiscClientException e) {
-        System.err.println("Had problems retrieving source from server, which is weird. Aborting.");
-        return false;
-      }
-      if (this.updateRate == UPDATE_RATE_SENTINEL) {
-        // Need to pick a reasonable default pollingInterval
-        // Check the polling rate specified in the source
-        String updateIntervalString = source.getProperty(Source.UPDATE_INTERVAL);
-        if (updateIntervalString == null) {
-          // no update interval, so just use hard coded default
-          this.updateRate = DEFAULT_UPDATE_RATE;
-        }
-        else {
-          int possibleInterval;
-          try {
-            possibleInterval = Integer.valueOf(updateIntervalString);
-            if (possibleInterval > DEFAULT_UPDATE_RATE) {
-              // Sane interval, so use it
-              this.updateRate = possibleInterval;
-            }
-            else {
-              // Bogus interval, so use hard coded default
-              this.updateRate = DEFAULT_UPDATE_RATE;
-            }
+      else {
+        int possibleInterval;
+        try {
+          possibleInterval = Integer.valueOf(updateIntervalString);
+          if (possibleInterval > DEFAULT_UPDATE_RATE) {
+            // Sane interval, so use it
+            this.updateRate = possibleInterval;
           }
-          catch (NumberFormatException e) {
-            System.err.println("Unable to parse updateInterval, using default value: "
-                + DEFAULT_UPDATE_RATE);
+          else {
             // Bogus interval, so use hard coded default
             this.updateRate = DEFAULT_UPDATE_RATE;
           }
         }
-      }
-
-      SensorData data;
-
-      // Resolve provided meter hostname
-      InetAddress meterAddress = null;
-      try {
-        meterAddress = InetAddress.getByName(meterHostname);
-      }
-      catch (UnknownHostException e) {
-        System.err.println("Unable to resolve provided meter hostname, aborting.");
-        return false;
-      }
-
-      // Need to retrieve some configuration parameters from meter, but only want to do it once
-      // per session.
-      ModbusResponse response;
-      ReadMultipleRegistersResponse goodResponse = null;
-      try {
-        response = readRegisters(meterAddress, ENERGY_FORMAT_REGISTER, ENERGY_FORMAT_LENGTH);
-      }
-      catch (Exception e) {
-        System.err.format(
-            "Unable to retrieve energy format parameters from meter: %s, aborting.%n", e
-                .getMessage());
-        return false;
-      }
-      if (response instanceof ReadMultipleRegistersResponse) {
-        goodResponse = (ReadMultipleRegistersResponse) response;
-      }
-      else if (response instanceof ExceptionResponse) {
-        System.err
-            .println("Got Modbus exception response while retrieving energy format parameters from meter, code: "
-                + ((ExceptionResponse) response).getExceptionCode());
-        return false;
-      }
-      else {
-        System.err
-            .println("Got strange Modbus reply while retrieving energy format parameters from meter, aborting.");
-        return false;
-      }
-
-      double energyMultiplier = decodeEnergyMultiplier(goodResponse);
-      if (energyMultiplier == 0) {
-        System.err.println("Got bad energy multiplier from meter energy format, aborting.");
-        return false;
-      }
-
-      int energyDecimals = decodeEnergyDecimals(goodResponse);
-      if (energyDecimals == 0) {
-        System.err.println("Got bad energy decimal format from meter energy format, aborting.");
-        return false;
-      }
-
-      while (true) {
-        // Get data from meter
-        data = pollMeter(meterAddress, toolName, sourceURI, energyMultiplier, energyDecimals);
-        if (data == null) {
-          continue;
+        catch (NumberFormatException e) {
+          System.err.println("Unable to parse updateInterval, using default value: "
+              + DEFAULT_UPDATE_RATE);
+          // Bogus interval, so use hard coded default
+          this.updateRate = DEFAULT_UPDATE_RATE;
         }
-        // Store SensorData in WattDepot server
-        try {
-          client.storeSensorData(data);
-        }
-        catch (Exception e) {
-          System.err
-              .format(
-                  "%s: Unable to store sensor data due to exception (%s), hopefully this is temporary.%n",
-                  Tstamp.makeTimestamp(), e);
-        }
-        if (debug) {
-          System.out.println(data);
-        }
-        Thread.sleep(updateRate * 1000);
       }
     }
+
+    // Need to retrieve some configuration parameters from meter, but only want to do it once
+    // per session.
+    ModbusResponse response;
+    ReadMultipleRegistersResponse goodResponse = null;
+    try {
+      response = readRegisters(meterAddress, ENERGY_FORMAT_REGISTER, ENERGY_FORMAT_LENGTH);
+    }
+    catch (Exception e) {
+      System.err.format("Unable to retrieve energy format parameters from meter: %s, aborting.%n",
+          e.getMessage());
+      this.cancel();
+      return;
+    }
+    if (response instanceof ReadMultipleRegistersResponse) {
+      goodResponse = (ReadMultipleRegistersResponse) response;
+    }
+    else if (response instanceof ExceptionResponse) {
+      System.err
+          .println("Got Modbus exception response while retrieving energy format parameters from meter, code: "
+              + ((ExceptionResponse) response).getExceptionCode());
+      this.cancel();
+    }
     else {
-      System.err.format("Invalid credentials for source %s. Aborting.%n", this.sourceName);
-      return false;
+      System.err
+          .println("Got strange Modbus reply while retrieving energy format parameters from meter, aborting.");
+      this.cancel();
+      return;
+    }
+
+    double energyMultiplier = decodeEnergyMultiplier(goodResponse);
+    if (energyMultiplier == 0) {
+      System.err.println("Got bad energy multiplier from meter energy format, aborting.");
+      this.cancel();
+      return;
+    }
+
+    int energyDecimals = decodeEnergyDecimals(goodResponse);
+    if (energyDecimals == 0) {
+      System.err.println("Got bad energy decimal format from meter energy format, aborting.");
+      this.cancel();
+      return;
+    }
+
+    // Get data from meter
+    String sourceURI = Source.sourceToUri(this.sourceName, wattDepotUri);
+    SensorData data =
+        pollMeter(meterAddress, toolName, sourceURI, energyMultiplier, energyDecimals);
+    if (data != null) {
+      try {
+        client.storeSensorData(data);
+      }
+      catch (Exception e) {
+        System.err
+            .format(
+                "%s: Unable to store sensor data due to exception (%s), hopefully this is temporary.%n",
+                Tstamp.makeTimestamp(), e);
+      }
+      if (debug) {
+        System.out.println(data);
+      }
     }
   }
 
@@ -465,8 +526,8 @@ public class SharkSensor {
       powerResponse = readRegisters(meterAddress, port, POWER_REGISTER, POWER_LENGTH);
     }
     catch (Exception e) {
-      System.err.format("%s Unable to retrieve energy data from meter: %s.%n", new Date(), e
-          .getMessage());
+      System.err.format("%s Unable to retrieve energy data from meter: %s.%n", new Date(),
+          e.getMessage());
       return null;
     }
 
@@ -521,19 +582,10 @@ public class SharkSensor {
     Options options = new Options();
     options.addOption("h", "help", false, "Print this message");
     options.addOption("p", "propertyFilename", true, "Filename of property file");
-    options
-        .addOption("s", "source", true, "Name of the source to send data to, ex. \"foo-source\"");
-    options.addOption("u", "updateRate", true,
-        "The rate at which to query the meter, in seconds. If not specified, will "
-            + "default to value of source's updateInterval property, or " + DEFAULT_UPDATE_RATE
-            + " seconds if source has no such property");
-    options.addOption("m", "meterHostname", true,
-        "Hostname of meter. Note just hostname (or IP address), not full URI");
     options.addOption("d", "debug", false, "Displays sensor data as it is sent to the server.");
 
     CommandLine cmd = null;
-    String propertyFilename = null, sourceName = null, meterHostname = null;
-    int updateRate = UPDATE_RATE_SENTINEL;
+    String propertyFilename = null;
     boolean debug = false;
 
     CommandLineParser parser = new PosixParser();
@@ -556,64 +608,48 @@ public class SharkSensor {
     else {
       System.out.println("No property file name provided, using default.");
     }
-    if (cmd.hasOption("s")) {
-      sourceName = cmd.getOptionValue("s");
-    }
-    else {
-      System.err.println("Required Source name parameter not provided, exiting.");
-      formatter.printHelp(toolName, options);
-      System.exit(1);
-    }
-    if (cmd.hasOption("u")) {
-      String updateRateString = cmd.getOptionValue("u");
-      // Make an int out of the command line argument
-      try {
-        updateRate = Integer.parseInt(updateRateString);
-      }
-      catch (NumberFormatException e) {
-        System.err.println("Provided updateRate does not appear to be a number. Bad format?");
-        formatter.printHelp(toolName, options);
-        System.exit(1);
-      }
-      // Check rate for sanity
-      if (updateRate < 1) {
-        System.err.println("Provided updateRate is < 1, which is not allowed.");
-        formatter.printHelp(toolName, options);
-        System.exit(1);
-      }
-    }
-    if (cmd.hasOption("m")) {
-      meterHostname = cmd.getOptionValue("m");
-    }
-    else {
-      System.err.println("Required tedHostname parameter not provided, exiting.");
-      formatter.printHelp(toolName, options);
-      System.exit(1);
-    }
+
     debug = cmd.hasOption("d");
 
     if (debug) {
       System.out.println("propertyFilename: " + propertyFilename);
-      System.out.println("sourceName: " + sourceName);
-      System.out.println("updateRate: " + updateRate);
-      System.out.println("meterHostname: " + meterHostname);
       System.out.println("debug: " + debug);
       System.out.println();
     }
 
-    // Actually create the input client
-    SharkSensor sensor = null;
+    DataInputClientProperties properties = null;
     try {
-      sensor = new SharkSensor(propertyFilename, sourceName, updateRate, debug, meterHostname);
+      properties = new DataInputClientProperties(propertyFilename);
     }
     catch (IOException e) {
-      System.err.println("Unable to read properties file, terminating.");
+      System.err.println("Unable to read properties file " + propertyFilename + ", terminating.");
       System.exit(2);
     }
-    // Just do it
-    if (sensor != null) {
-      System.err.format("Starting polling meter at %s%n", Tstamp.makeTimestamp());
-      sensor.process();
+
+    String wattDepotUri = properties.get(WATTDEPOT_URI_KEY);
+    String wattDepotUsername = properties.get(WATTDEPOT_USERNAME_KEY);
+    String wattDepotPassword = properties.get(WATTDEPOT_PASSWORD_KEY);
+    Collection<SensorSource> sources = properties.getSources().values();
+
+    boolean running = false;
+    for (SensorSource s : sources) {
+      // Create a separate Timer for each source. Otherwise they interfere with each other and the
+      // timing becomes unreliable.
+      Timer t = new Timer();
+      SharkSensorThreaded sensor =
+          new SharkSensorThreaded(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
+      if (sensor.isValid()) {
+        System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
+        t.scheduleAtFixedRate(sensor, 0, sensor.updateRate * 1000);
+        running = true;
+      }
+      else {
+        System.err.format("Cannot poll %s meter%n", s.getKey());
+      }
+    }
+    if (!running) {
+      System.err.println("\nNo meters are being polled.");
+      System.exit(2);
     }
   }
 }
