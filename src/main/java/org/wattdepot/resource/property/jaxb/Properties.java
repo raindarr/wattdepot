@@ -154,6 +154,27 @@ public class Properties implements Serializable {
   }
 
   /**
+   * Returns the value of the Property with the given key as an int. If the key is not found, it
+   * returns 0. Only the first property with the given key is returned.
+   * 
+   * @param key The key.
+   * @return The key's value as an int.
+   */
+  public int getPropertyAsInt(String key) {
+    if (this.property == null) {
+      return 0;
+    }
+    else {
+      for (Property prop : this.property) {
+        if (key.equals(prop.getKey())) {
+          return Integer.valueOf(prop.getValue());
+        }
+      }
+      return 0;
+    }
+  }
+  
+  /**
    * Returns the value of the Property with the given key as a double. If the key is not found, it
    * returns 0. Only the first property with the given key is returned.
    * 

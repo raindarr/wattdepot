@@ -33,6 +33,7 @@ import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
 import com.sleepycat.je.util.DbBackup;
 import com.sleepycat.persist.EntityCursor;
 import com.sleepycat.persist.EntityStore;
@@ -194,7 +195,9 @@ public class BerkeleyDbImplementation extends DbImplementation {
    */
   private void configure() {
     EnvironmentConfig envConfig = new EnvironmentConfig();
+    envConfig.setTransactional(true);
     StoreConfig storeConfig = new StoreConfig();
+    storeConfig.setTransactional(true);
     envConfig.setAllowCreate(true);
     storeConfig.setAllowCreate(true);
     this.environment = new Environment(topDir, envConfig);
@@ -344,22 +347,65 @@ public class BerkeleyDbImplementation extends DbImplementation {
       return false;
     }
 
+    Transaction txn = environment.beginTransaction(null, null);
+
     // Construct the range of sensor data.
     CompositeSensorDataKey start = new CompositeSensorDataKey(sourceName, Tstamp.makeTimestamp(0));
     CompositeSensorDataKey end = new CompositeSensorDataKey(sourceName, Tstamp.makeTimestamp());
     EntityCursor<BerkeleyDbSensorDataProperty> pcursor =
-        sensorDataPropertyIndex.entities(start, true, end, true);
-    int count = 0;
+        sensorDataPropertyIndex.entities(txn, start, true, end, true, null);
     while (pcursor.next() != null) {
-      pcursor.delete();
-      count++;
+      sensorDataPropertyIndex.delete(txn, pcursor.current().getSensorDataKey());
     }
     pcursor.close();
 
-    EntityCursor<BerkeleyDbSensorData> cursor = sensorDataIndex.entities(start, true, end, true);
-    count = 0;
+    EntityCursor<BerkeleyDbSensorData> cursor =
+        sensorDataIndex.entities(txn, start, true, end, true, null);
+    int count = 0;
     while (cursor.next() != null) {
-      cursor.delete();
+      sensorDataIndex.delete(txn, cursor.current().getCompositeKey());
+      count++;
+    }
+    cursor.close();
+
+    if (count > 0) {
+      txn.commit();
+      return true;
+    }
+    else {
+      txn.abort();
+      return false;
+    }
+  }
+
+  /**
+   * Ensures that all sensor data from the named Source is no longer present in storage.
+   * 
+   * @param txn The transaction to run the delete under.
+   * @param sourceName The name of the Source whose sensor data is to be deleted.
+   * @return True if all the sensor data was deleted, or false if it was not deleted or the
+   * requested Source does not exist.
+   */
+  private boolean deleteSensorData(Transaction txn, String sourceName) {
+    if (sourceName == null) {
+      return false;
+    }
+
+    // Construct the range of sensor data.
+    CompositeSensorDataKey start = new CompositeSensorDataKey(sourceName, Tstamp.makeTimestamp(0));
+    CompositeSensorDataKey end = new CompositeSensorDataKey(sourceName, Tstamp.makeTimestamp());
+    EntityCursor<BerkeleyDbSensorDataProperty> pcursor =
+        sensorDataPropertyIndex.entities(txn, start, true, end, true, null);
+    while (pcursor.next() != null) {
+      sensorDataPropertyIndex.delete(txn, pcursor.current().getSensorDataKey());
+    }
+    pcursor.close();
+
+    EntityCursor<BerkeleyDbSensorData> cursor =
+        sensorDataIndex.entities(txn, start, true, end, true, null);
+    int count = 0;
+    while (cursor.next() != null) {
+      sensorDataIndex.delete(txn, cursor.current().getCompositeKey());
       count++;
     }
     cursor.close();
@@ -371,11 +417,42 @@ public class BerkeleyDbImplementation extends DbImplementation {
     if (sourceName == null) {
       return false;
     }
-    deleteSensorData(sourceName);
-    sourceHierarchyParentIndex.delete(sourceName);
-    sourceHierarchySubSourceIndex.delete(sourceName);
-    sourcePropertyIndex.delete(sourceName);
-    return sourceIndex.delete(sourceName);
+
+    Transaction txn = environment.beginTransaction(null, null);
+
+    deleteSensorData(txn, sourceName);
+    sourceHierarchyParentIndex.delete(txn, sourceName);
+    sourceHierarchySubSourceIndex.delete(txn, sourceName);
+    sourcePropertyIndex.delete(txn, sourceName);
+
+    if (sourceIndex.delete(txn, sourceName)) {
+      txn.commit();
+      return true;
+    }
+    else {
+      txn.abort();
+      return false;
+    }
+  }
+
+  /**
+   * Ensures that the Source with the given name is no longer present in storage. All sensor data
+   * associated with this Source will also be deleted.
+   * 
+   * @param txn The transaction to run the delete under.
+   * @param sourceName The name of the Source.
+   * @return True if the Source was deleted, or false if it was not deleted or the requested Source
+   * does not exist.
+   */
+  private boolean deleteSource(Transaction txn, String sourceName) {
+    if (sourceName == null) {
+      return false;
+    }
+    deleteSensorData(txn, sourceName);
+    sourceHierarchyParentIndex.delete(txn, sourceName);
+    sourceHierarchySubSourceIndex.delete(txn, sourceName);
+    sourcePropertyIndex.delete(txn, sourceName);
+    return sourceIndex.delete(txn, sourceName);
   }
 
   @Override
@@ -384,16 +461,26 @@ public class BerkeleyDbImplementation extends DbImplementation {
       return false;
     }
 
+    Transaction txn = environment.beginTransaction(null, null);
+
     // Delete all sources owned by this user
     EntityCursor<BerkeleyDbSource> cursor =
-        sourceOwnerIndex.entities(username, true, username, true);
+        sourceOwnerIndex.entities(txn, username, true, username, true, null);
     for (BerkeleyDbSource dbSource : cursor) {
-      deleteSource(dbSource.getName());
+      deleteSource(txn, dbSource.getName());
     }
     cursor.close();
 
-    userPropertyIndex.delete(username);
-    return userIndex.delete(username);
+    userPropertyIndex.delete(txn, username);
+
+    if (userIndex.delete(txn, username)) {
+      txn.commit();
+      return true;
+    }
+    else {
+      txn.abort();
+      return false;
+    }
   }
 
   @Override
@@ -933,50 +1020,55 @@ public class BerkeleyDbImplementation extends DbImplementation {
 
   @Override
   public boolean wipeData() {
+    Transaction txn = environment.beginTransaction(null, null);
+
     EntityCursor<BerkeleyDbSensorDataProperty> sensorDataPropCursor =
-        sensorDataPropertyPrimaryIndex.entities();
+        sensorDataPropertyPrimaryIndex.entities(txn, null);
     while (sensorDataPropCursor.next() != null) {
       sensorDataPropCursor.delete();
     }
     sensorDataPropCursor.close();
 
-    EntityCursor<BerkeleyDbSensorData> sensorDataCursor = sensorDataIndex.entities();
+    EntityCursor<BerkeleyDbSensorData> sensorDataCursor = sensorDataIndex.entities(txn, null);
     while (sensorDataCursor.next() != null) {
       sensorDataCursor.delete();
     }
     sensorDataCursor.close();
 
     EntityCursor<BerkeleyDbSourceProperty> sourcePropCursor =
-        sourcePropertyPrimaryIndex.entities();
+        sourcePropertyPrimaryIndex.entities(txn, null);
     while (sourcePropCursor.next() != null) {
       sourcePropCursor.delete();
     }
     sourcePropCursor.close();
 
     EntityCursor<BerkeleyDbSourceHierarchy> sourceHierarchyCursor =
-        sourceHierarchyIndex.entities();
+        sourceHierarchyIndex.entities(txn, null);
     while (sourceHierarchyCursor.next() != null) {
       sourceHierarchyCursor.delete();
     }
     sourceHierarchyCursor.close();
 
-    EntityCursor<BerkeleyDbSource> sourceCursor = sourceIndex.entities();
+    EntityCursor<BerkeleyDbSource> sourceCursor = sourceIndex.entities(txn, null);
     while (sourceCursor.next() != null) {
       sourceCursor.delete();
     }
     sourceCursor.close();
 
-    EntityCursor<BerkeleyDbUserProperty> userPropCursor = userPropertyPrimaryIndex.entities();
+    EntityCursor<BerkeleyDbUserProperty> userPropCursor =
+        userPropertyPrimaryIndex.entities(txn, null);
     while (userPropCursor.next() != null) {
       userPropCursor.delete();
     }
     userPropCursor.close();
 
-    EntityCursor<BerkeleyDbUser> userCursor = userIndex.entities();
+    EntityCursor<BerkeleyDbUser> userCursor = userIndex.entities(txn, null);
     while (userCursor.next() != null) {
       userCursor.delete();
     }
     userCursor.close();
+
+    txn.commit();
 
     return true;
   }

@@ -77,6 +77,18 @@ public class Property implements Serializable {
     this.key = key;
     this.value = Double.toString(value);
   }
+  
+  /**
+   * Returns a new Property object with the provided key and int value (which will be converted to
+   * a string for storage). Convenience method.
+   * 
+   * @param key The key.
+   * @param value The int value.
+   */
+  public Property(String key, int value) {
+    this.key = key;
+    this.value = Integer.toString(value);
+  }
 
   /**
    * Gets the value of the key property.

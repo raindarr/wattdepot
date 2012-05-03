@@ -1044,7 +1044,7 @@ public class PostgresStorageImplementation extends DbImplementation {
             s.setString(9, source.getProperties().getProperty(Source.FUEL_TYPE));
           }
           if (source.getProperties().getProperty(Source.UPDATE_INTERVAL) != null) {
-            s.setDouble(10, source.getProperties().getPropertyAsDouble(Source.UPDATE_INTERVAL));
+            s.setInt(10, source.getProperties().getPropertyAsInt(Source.UPDATE_INTERVAL));
           }
           if (source.getProperties().getProperty(Source.ENERGY_DIRECTION) != null) {
             s.setString(11, source.getProperties().getProperty(Source.ENERGY_DIRECTION));
@@ -1054,11 +1054,10 @@ public class PostgresStorageImplementation extends DbImplementation {
                 Source.SUPPORTS_ENERGY_COUNTERS)));
           }
           if (source.getProperties().getProperty(Source.CACHE_WINDOW_LENGTH) != null) {
-            s.setDouble(13, source.getProperties().getPropertyAsDouble(Source.CACHE_WINDOW_LENGTH));
+            s.setInt(13, source.getProperties().getPropertyAsInt(Source.CACHE_WINDOW_LENGTH));
           }
           if (source.getProperties().getProperty(Source.CACHE_CHECKPOINT_INTERVAL) != null) {
-            s.setDouble(14,
-                source.getProperties().getPropertyAsDouble(Source.CACHE_CHECKPOINT_INTERVAL));
+            s.setInt(14, source.getProperties().getPropertyAsInt(Source.CACHE_CHECKPOINT_INTERVAL));
           }
         }
 

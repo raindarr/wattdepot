@@ -213,6 +213,12 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
     assertEquals("Retrieved data doesn't match original data", origData, retrievedDatas);
 
+    // Confirm that SensorData list is sorted
+    for (int i = 0; i < origData.size(); i++) {
+      assertTrue("getSensorDataIndex index not sorted",
+          retrievedRefs.get(i).equalsSensorData(origData.get(i)));
+    }
+
     // range starting before data1 with no end date
     retrievedRefs = manager.getSensorDataIndex(this.source1.getName(), before1).getSensorDataRef();
     retrievedDatas = manager.getSensorDatas(this.source1.getName(), before1).getSensorData();
@@ -220,6 +226,12 @@ public class TestDbManagerSensorData extends DbManagerTestHelper {
         retrievedDatas);
     assertTrue("Retrieved refs don't match original data with no endTime",
         SensorDataRef.compareSensorDataRefsToSensorDatas(retrievedRefs, origData));
+
+    // Confirm that SensorData list is sorted
+    for (int i = 0; i < origData.size(); i++) {
+      assertTrue("getSensorDataIndex index not sorted",
+          retrievedRefs.get(i).equalsSensorData(origData.get(i)));
+    }
 
     // range covering only data1
     assertSame("getSensorDataIndex didn't contain all expected SensorData", manager

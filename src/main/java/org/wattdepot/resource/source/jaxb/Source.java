@@ -573,6 +573,23 @@ public class Source implements Serializable, Comparable<Source> {
       return 0;
     }
   }
+  
+  /**
+   * Returns the value of the Property with the given key as an int. If the key is not found, it
+   * returns 0. Only the first property with the given key is returned. This is a convenience method
+   * that calls the underlying Properties method.
+   * 
+   * @param key The key.
+   * @return The key's value as an int.
+   */
+  public int getPropertyAsInt(String key) {
+    if (this.properties != null) {
+      return this.properties.getPropertyAsInt(key);
+    }
+    else {
+      return 0;
+    }
+  }
 
   /**
    * Returns the value of the Property with the given key as a String. If the key is not found, it

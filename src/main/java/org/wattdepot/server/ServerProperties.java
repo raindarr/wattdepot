@@ -294,7 +294,10 @@ public class ServerProperties {
   }
 
   /**
-   * Returns a string containing all current properties in alphabetical order.
+   * Returns a string containing all current properties in alphabetical order. Properties with the
+   * word "password" in their key list "((hidden))" rather than their actual value for security
+   * reasons. This is not super sophisticated - other properties such as database URLs might benefit
+   * from being hidden too - but it should work for now.
    * 
    * @return A string with the properties.
    */
@@ -312,7 +315,12 @@ public class ServerProperties {
     StringBuffer buff = new StringBuffer(25);
     buff.append("Server Properties:").append(cr);
     for (String key : alphaProps.keySet()) {
-      buff.append(pad).append(key).append(eq).append(get(key)).append(cr);
+      if (key.contains("password")) {
+        buff.append(pad).append(key).append(eq).append("((hidden))").append(cr);
+      }
+      else {
+        buff.append(pad).append(key).append(eq).append(get(key)).append(cr);
+      }
     }
     return buff.toString();
   }

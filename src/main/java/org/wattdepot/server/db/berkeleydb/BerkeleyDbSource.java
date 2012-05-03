@@ -77,7 +77,7 @@ public class BerkeleyDbSource {
         this.fuelType = properties.getProperty(Source.FUEL_TYPE);
       }
       if (properties.getProperty(Source.UPDATE_INTERVAL) != null) {
-        this.updateInterval = (int) properties.getPropertyAsDouble(Source.UPDATE_INTERVAL);
+        this.updateInterval = properties.getPropertyAsInt(Source.UPDATE_INTERVAL);
       }
       if (properties.getProperty(Source.ENERGY_DIRECTION) != null) {
         this.energyDirection = properties.getProperty(Source.ENERGY_DIRECTION);
@@ -87,11 +87,11 @@ public class BerkeleyDbSource {
             Boolean.valueOf(properties.getProperty(Source.SUPPORTS_ENERGY_COUNTERS));
       }
       if (properties.getProperty(Source.CACHE_WINDOW_LENGTH) != null) {
-        this.cacheWindowLength = (int) properties.getPropertyAsDouble(Source.CACHE_WINDOW_LENGTH);
+        this.cacheWindowLength = properties.getPropertyAsInt(Source.CACHE_WINDOW_LENGTH);
       }
       if (properties.getProperty(Source.CACHE_CHECKPOINT_INTERVAL) != null) {
         this.cacheCheckpointInterval =
-            (int) properties.getPropertyAsDouble(Source.CACHE_CHECKPOINT_INTERVAL);
+            properties.getPropertyAsInt(Source.CACHE_CHECKPOINT_INTERVAL);
       }
     }
   }

@@ -225,7 +225,9 @@ public class DbManager {
           index.getSensorDataRef().add(ref);
         }
       }
-      Collections.sort(index.getSensorDataRef());
+      if (index != null) {
+        Collections.sort(index.getSensorDataRef());
+      }
     }
     return index;
   }
@@ -248,22 +250,32 @@ public class DbManager {
       return null;
     }
 
+    SensorDataIndex index;
     // If we can get a sensor data straddle for the startTime from cache, then the whole time range
     // is cached and we can skip disk storage.
     if (this.cache.getSensorDataStraddle(sourceName, startTime) != null) {
-      return this.cache.getSensorDataIndex(sourceName, startTime, null);
-    }
-
-    // Otherwise, combine disk storage with cache.
-    SensorDataIndex index = this.dbImpl.getSensorDataIndex(sourceName, startTime, null);
-    SensorDataIndex cacheIndex = this.cache.getSensorDataIndex(sourceName, startTime, null);
-    if (cacheIndex != null && cacheIndex.getSensorDataRef().size() > 0) {
-      for (SensorDataRef ref : cacheIndex.getSensorDataRef()) {
-        if (!index.getSensorDataRef().contains(ref)) {
-          index.getSensorDataRef().add(ref);
-        }
+      index = this.cache.getSensorDataIndex(sourceName, startTime, null);
+      if (index != null) {
+        Collections.sort(index.getSensorDataRef());
       }
     }
+
+    else {
+      // Otherwise, combine disk storage with cache.
+      index = this.dbImpl.getSensorDataIndex(sourceName, startTime, null);
+      SensorDataIndex cacheIndex = this.cache.getSensorDataIndex(sourceName, startTime, null);
+      if (cacheIndex != null && cacheIndex.getSensorDataRef().size() > 0) {
+        for (SensorDataRef ref : cacheIndex.getSensorDataRef()) {
+          if (!index.getSensorDataRef().contains(ref)) {
+            index.getSensorDataRef().add(ref);
+          }
+        }
+      }
+      if (index != null) {
+        Collections.sort(index.getSensorDataRef());
+      }
+    }
+
     return index;
   }
 
@@ -286,19 +298,27 @@ public class DbManager {
       return null;
     }
 
+    SensorDataIndex index;
     // If we can get a sensor data straddle for the startTime from cache, then the whole time range
     // is cached and we can skip disk storage.
     if (this.cache.getSensorDataStraddle(sourceName, startTime) != null) {
-      return this.cache.getSensorDataIndex(sourceName, startTime, endTime);
+      index = this.cache.getSensorDataIndex(sourceName, startTime, endTime);
+      if (index != null) {
+        Collections.sort(index.getSensorDataRef());
+      }
     }
-
-    // Otherwise, combine disk storage with cache.
-    SensorDataIndex index = this.dbImpl.getSensorDataIndex(sourceName, startTime, endTime);
-    SensorDataIndex cacheIndex = this.cache.getSensorDataIndex(sourceName, startTime, endTime);
-    if (cacheIndex != null && cacheIndex.getSensorDataRef().size() > 0) {
-      for (SensorDataRef ref : cacheIndex.getSensorDataRef()) {
-        if (!index.getSensorDataRef().contains(ref)) {
-          index.getSensorDataRef().add(ref);
+    else {
+      // Otherwise, combine disk storage with cache.
+      index = this.dbImpl.getSensorDataIndex(sourceName, startTime, endTime);
+      SensorDataIndex cacheIndex = this.cache.getSensorDataIndex(sourceName, startTime, endTime);
+      if (cacheIndex != null && cacheIndex.getSensorDataRef().size() > 0) {
+        for (SensorDataRef ref : cacheIndex.getSensorDataRef()) {
+          if (!index.getSensorDataRef().contains(ref)) {
+            index.getSensorDataRef().add(ref);
+          }
+        }
+        if (index != null) {
+          Collections.sort(index.getSensorDataRef());
         }
       }
     }
@@ -323,19 +343,27 @@ public class DbManager {
       return null;
     }
 
+    SensorDatas datas;
     // If we can get a sensor data straddle for the startTime from cache, then the whole time range
     // is cached and we can skip disk storage.
     if (this.cache.getSensorDataStraddle(sourceName, startTime) != null) {
-      return this.cache.getSensorDatas(sourceName, startTime, null);
+      datas = this.cache.getSensorDatas(sourceName, startTime, null);
+      if (datas != null) {
+        Collections.sort(datas.getSensorData());
+      }
     }
-
-    // Otherwise, combine disk storage with cache.
-    SensorDatas datas = this.dbImpl.getSensorDatas(sourceName, startTime, null);
-    SensorDatas cacheDatas = this.cache.getSensorDatas(sourceName, startTime, null);
-    if (cacheDatas != null && cacheDatas.getSensorData().size() > 0) {
-      for (SensorData d : cacheDatas.getSensorData()) {
-        if (!datas.getSensorData().contains(d)) {
-          datas.getSensorData().add(d);
+    else {
+      // Otherwise, combine disk storage with cache.
+      datas = this.dbImpl.getSensorDatas(sourceName, startTime, null);
+      SensorDatas cacheDatas = this.cache.getSensorDatas(sourceName, startTime, null);
+      if (cacheDatas != null && cacheDatas.getSensorData().size() > 0) {
+        for (SensorData d : cacheDatas.getSensorData()) {
+          if (!datas.getSensorData().contains(d)) {
+            datas.getSensorData().add(d);
+          }
+        }
+        if (datas != null) {
+          Collections.sort(datas.getSensorData());
         }
       }
     }
@@ -362,19 +390,27 @@ public class DbManager {
       return null;
     }
 
+    SensorDatas datas;
     // If we can get a sensor data straddle for the startTime from cache, then the whole time range
     // is cached and we can skip disk storage.
     if (this.cache.getSensorDataStraddle(sourceName, startTime) != null) {
-      return this.cache.getSensorDatas(sourceName, startTime, endTime);
+      datas = this.cache.getSensorDatas(sourceName, startTime, endTime);
+      if (datas != null) {
+        Collections.sort(datas.getSensorData());
+      }
     }
-
-    // Otherwise, combine disk storage with cache.
-    SensorDatas datas = this.dbImpl.getSensorDatas(sourceName, startTime, endTime);
-    SensorDatas cacheDatas = this.cache.getSensorDatas(sourceName, startTime, endTime);
-    if (cacheDatas != null && cacheDatas.getSensorData().size() > 0) {
-      for (SensorData d : cacheDatas.getSensorData()) {
-        if (!datas.getSensorData().contains(d)) {
-          datas.getSensorData().add(d);
+    else {
+      // Otherwise, combine disk storage with cache.
+      datas = this.dbImpl.getSensorDatas(sourceName, startTime, endTime);
+      SensorDatas cacheDatas = this.cache.getSensorDatas(sourceName, startTime, endTime);
+      if (cacheDatas != null && cacheDatas.getSensorData().size() > 0) {
+        for (SensorData d : cacheDatas.getSensorData()) {
+          if (!datas.getSensorData().contains(d)) {
+            datas.getSensorData().add(d);
+          }
+        }
+        if (datas != null) {
+          Collections.sort(datas.getSensorData());
         }
       }
     }
