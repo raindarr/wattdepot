@@ -52,6 +52,11 @@
 	<checkstyle.filter.file>${config.dir}/checkstyle.xml</checkstyle.filter.file>
   </properties>
  <dependencies>
+	 <dependency>
+		<groupId>commons-pool</groupId>
+		<artifactId>commons-pool</artifactId>
+		<version>${pool.version}</version>
+	</dependency>
 	<dependency>
 		<groupId>commons-dbcp</groupId>
 		<artifactId>commons-dbcp</artifactId>
