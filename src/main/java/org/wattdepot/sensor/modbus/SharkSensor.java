@@ -636,8 +636,8 @@ public class SharkSensor extends TimerTask {
       // Create a separate Timer for each source. Otherwise they interfere with each other and the
       // timing becomes unreliable.
       Timer t = new Timer();
-      SharkSensorThreaded sensor =
-          new SharkSensorThreaded(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
+      SharkSensor sensor =
+          new SharkSensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
       if (sensor.isValid()) {
         System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
         t.scheduleAtFixedRate(sensor, 0, sensor.updateRate * 1000);

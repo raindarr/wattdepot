@@ -167,7 +167,7 @@
         <url>http://maven.etl.luc.edu/artifactory/repo</url>
 	</repository> -->
 	<repository>
-        <id>local</id>
+        <id>local-repo</id>
         <name>Local repository that contains modbus</name>
         <url>file://${project.basedir}/repository</url>
 	</repository>
