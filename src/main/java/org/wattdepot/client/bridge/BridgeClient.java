@@ -11,7 +11,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.restlet.data.Status;
 import org.wattdepot.client.BadXmlException;
 import org.wattdepot.client.MiscClientException;
 import org.wattdepot.client.NotAuthorizedException;
@@ -53,6 +52,7 @@ public class BridgeClient {
   int sourceSuccessCount = 0;
   int sourceErrorCount = 0;
   int sensorDataSuccessCount = 0;
+  int sensorDatasSkippedCount = 0;
   int sensorDataErrorCount = 0;
 
   /** Name of this tool. */
@@ -109,10 +109,33 @@ public class BridgeClient {
    */
   private void transfer() {
 
+    Source source = null;
+    if (sourceName != null) {
+      try {
+        source = originClient.getSource(sourceName);
+      }
+      catch (NotAuthorizedException e) {
+        System.out.println("The givin origin user is not authorized to retrieve " + sourceName);
+        return;
+      }
+      catch (ResourceNotFoundException e) {
+        System.out.println("The source " + sourceName + " was not found on the origin server.");
+        return;
+      }
+      catch (BadXmlException e) {
+        System.out.println("An exception occured when retrieving the source " + sourceName);
+        return;
+      }
+      catch (MiscClientException e) {
+        System.out.println("An exception occured when retrieving the source " + sourceName);
+        return;
+      }
+    }
+
     System.out.println("Starting transfer...");
     Long before = new Date().getTime();
-    storeUsers();
-    storeSources();
+    storeUsers(source);
+    storeSources(source);
     Long after = new Date().getTime();
 
     System.out.println("\n ----------------------- \n");
@@ -134,141 +157,118 @@ public class BridgeClient {
     else {
       System.out.println(sourceSuccessCount + " sources were transferred successfully.");
       System.out.println(sourceErrorCount + " sources could not be transferred.");
-
-      if (sensorDataErrorCount < 0) {
-        System.out.println("ERROR: Not all sensor datas could be transferred between servers!");
-      }
-      else {
-        System.out
-            .println(sensorDataSuccessCount + " sensor datas were transferred successfully.");
-        System.out.println(sensorDataErrorCount + " sensor datas could not be transferred.");
-      }
     }
     Long duration = (after - before) / 60000;
     System.out.println("Took " + duration + " minutes to complete");
   }
 
   /**
-   * Transfer all sources.
+   * Transfer sources.
+   * 
+   * @param source If not null, only transfer the given source and the given source's sensor data.
    */
-  private void storeSources() {
+  private void storeSources(Source source) {
     try {
-      if (sourceName != null) {
-        try {
-          Source source = originClient.getSource(sourceName);
-          if (destClient.storeSource(source, false)) {
-            sourceSuccessCount++;
-            storeSensorDatas(sourceName);
-          }
-          else {
-            System.out.println("Could not store sourceName " + sourceName);
-            sourceErrorCount++;
-          }
-        }
-        catch (ResourceNotFoundException e) {
-          System.out.println(sourceName + " does not exist on the origin");
-          sourceErrorCount++;
-        }
-        catch (OverwriteAttemptedException e) {
-          System.out.println("Source " + sourceName + " already exists.");
-          sourceErrorCount++;
-          storeSensorDatas(sourceName);
-        }
-        catch (JAXBException e) {
-          System.out.println("Could not store sourceName " + sourceName + ": " + e.getMessage());
-          sourceErrorCount++;
-        }
+
+      List<Source> sources = null;
+      if (source != null) {
+        sources = new ArrayList<Source>();
+        sources.add(source);
       }
       else {
-        List<Source> sources = originClient.getSources();
-        List<Source> virtualSources = new ArrayList<Source>();
-        for (Source s : sources) {
-          // Do virtual sources at the end
-          if (s.isVirtual()) {
-            virtualSources.add(s);
-            continue;
+        sources = originClient.getSources();
+      }
+      List<Source> virtualSources = new ArrayList<Source>();
+      for (Source s : sources) {
+        // Do virtual sources at the end
+        if (s.isVirtual()) {
+          virtualSources.add(s);
+          continue;
+        }
+        try {
+          if (destClient.storeSource(s, false)) {
+            sourceSuccessCount++;
+            System.out.println("Stored source " + s.getName()
+                + "successfully. Now storing sensor datas.");
+            storeSensorDatas(s.getName());
           }
+          else {
+            System.out.println("Could not store sourceName " + s.getName());
+            sourceErrorCount++;
+          }
+        }
+        catch (NotAuthorizedException e) {
+          System.out.println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
+          sourceErrorCount++;
+        }
+        catch (BadXmlException e) {
+          System.out.println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
+          sourceErrorCount++;
+        }
+        catch (MiscClientException e) {
+          System.out.println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
+          sourceErrorCount++;
+
+        }
+        catch (OverwriteAttemptedException e) {
           try {
-            if (destClient.storeSource(s, false)) {
-              sourceSuccessCount++;
+            Source existingSource = destClient.getSource(s.getName());
+
+            if (existingSource.equals(s)) {
+              System.out.println("Source " + s.getName() + " already exists on the destination "
+                  + "and is equivalent to the one on the origin.");
               storeSensorDatas(s.getName());
             }
             else {
-              System.out.println("Could not store sourceName " + s.getName());
+              System.out.println("Source " + s.getName() + " already exists on the destination "
+                  + "and is NOT equivalent to the one on the origin.");
+              System.out.println(" Origin: " + s);
+              System.out.println(" Dest:   " + existingSource);
               sourceErrorCount++;
-            }
-          }
-          catch (NotAuthorizedException e) {
-            System.out
-                .println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
-            sourceErrorCount++;
-          }
-          catch (BadXmlException e) {
-            System.out
-                .println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
-            sourceErrorCount++;
-          }
-          catch (MiscClientException e) {
-            if (e.getStatus() == Status.CLIENT_ERROR_CONFLICT) {
-              System.out.println("Source " + s.getName() + " already exists.");
               storeSensorDatas(s.getName());
             }
-            else {
-              System.out.println("Could not store sourceName " + s.getName() + ": "
-                  + e.getMessage());
-            }
-            sourceErrorCount++;
           }
-          catch (OverwriteAttemptedException e) {
-            System.out.println("Source " + s.getName() + " already exists.");
+          catch (ResourceNotFoundException e1) {
+            // This should never happen
+            System.out.println("Overwrite attempted on " + s.getName());
             sourceErrorCount++;
             storeSensorDatas(s.getName());
           }
-          catch (JAXBException e) {
-            System.out
-                .println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
+        }
+        catch (JAXBException e) {
+          System.out.println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
+          sourceErrorCount++;
+        }
+      }
+      for (Source s : virtualSources) {
+        try {
+          if (destClient.storeSource(s, false)) {
+            sourceSuccessCount++;
+          }
+          else {
+            System.out.println("Could not store sourceName " + s.getName());
             sourceErrorCount++;
           }
         }
-        for (Source s : virtualSources) {
-          try {
-            if (destClient.storeSource(s, false)) {
-              sourceSuccessCount++;
-            }
-            else {
-              System.out.println("Could not store sourceName " + s.getName());
-              sourceErrorCount++;
-            }
-          }
-          catch (NotAuthorizedException e) {
-            System.out
-                .println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
-            sourceErrorCount++;
-          }
-          catch (BadXmlException e) {
-            System.out
-                .println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
-            sourceErrorCount++;
-          }
-          catch (MiscClientException e) {
-            if (e.getStatus() == Status.CLIENT_ERROR_CONFLICT) {
-              System.out.println("Source " + s.getName() + " already exists.");
-            }
-            else {
-              System.out.println("Could not store sourceName " + s.getName() + ": "
-                  + e.getMessage());
-            }
-            sourceErrorCount++;
-          }
-          catch (OverwriteAttemptedException e) {
-            System.out.println("Source " + s.getName() + " already exists.");
-            sourceErrorCount++;
-          }
-          catch (JAXBException e) {
-            System.out
-                .println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
-            sourceErrorCount++;
-          }
+        catch (NotAuthorizedException e) {
+          System.out.println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
+          sourceErrorCount++;
+        }
+        catch (BadXmlException e) {
+          System.out.println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
+          sourceErrorCount++;
+        }
+        catch (MiscClientException e) {
+          System.out.println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
+          sourceErrorCount++;
+        }
+        catch (OverwriteAttemptedException e) {
+          System.out.println("Source " + s.getName() + " already exists.");
+          sourceErrorCount++;
+        }
+        catch (JAXBException e) {
+          System.out.println("Could not store sourceName " + s.getName() + ": " + e.getMessage());
+          sourceErrorCount++;
         }
       }
     }
@@ -288,13 +288,30 @@ public class BridgeClient {
 
   /**
    * Transfer all users.
+   * 
+   * @param source If not null, only transfer the given source's owner.
    */
-  private void storeUsers() {
+  private void storeUsers(Source source) {
     try {
-      List<User> users = originClient.getUsers();
+      List<User> users = null;
+      if (source != null) {
+        users = new ArrayList<User>();
+        try {
+          users.add(originClient.getUser(UriUtils.getUriSuffix(source.getOwner())));
+        }
+        catch (ResourceNotFoundException e) {
+          System.out.println("The user " + source.getOwner()
+              + " could not be found on the origin server.");
+          userErrorCount++;
+        }
+      }
+      else {
+        users = originClient.getUsers();
+      }
       for (User u : users) {
         try {
           if (destClient.storeUser(u)) {
+            System.out.println("Stored user " + u.getEmail() + " successfully.");
             userSuccessCount++;
           }
           else {
@@ -315,8 +332,26 @@ public class BridgeClient {
           userErrorCount++;
         }
         catch (OverwriteAttemptedException e) {
-          System.out.println("Could not store user " + u.getEmail() + ": " + e.getMessage());
-          userErrorCount++;
+          try {
+            User existingUser = destClient.getUser(u.getEmail());
+
+            if (existingUser.equals(u)) {
+              System.out.println("User " + u.getEmail() + " already exists on the destination "
+                  + "and is equivalent to the one on the origin.");
+            }
+            else {
+              System.out.println("User " + u.getEmail() + " already exists on the destination "
+                  + "and is NOT equivalent to the one on the origin.");
+              System.out.println(" Origin: " + u);
+              System.out.println(" Dest:   " + existingUser);
+              userErrorCount++;
+            }
+          }
+          catch (ResourceNotFoundException e1) {
+            // This should never happen
+            System.out.println("Overwrite attempted on " + u.getEmail());
+            userErrorCount++;
+          }
         }
         catch (JAXBException e) {
           System.out.println("Could not store user " + u.getEmail() + ": " + e.getMessage());
@@ -354,6 +389,12 @@ public class BridgeClient {
       endTime = Tstamp.makeTimestamp();
     }
 
+    XMLGregorianCalendar firstTime = null;
+    XMLGregorianCalendar lastTime = null;
+    sensorDataSuccessCount = 0;
+    sensorDataErrorCount = 0;
+    sensorDatasSkippedCount = 0;
+
     try {
       List<SensorData> datas = originClient.getSensorDatas(name, startTime, endTime);
 
@@ -364,68 +405,130 @@ public class BridgeClient {
           try {
             d.setSource(Source.sourceToUri(UriUtils.getUriSuffix(d.getSource()), destUri));
             if (destClient.storeSensorData(d)) {
+              if (firstTime == null) {
+                firstTime = d.getTimestamp();
+                System.out.println("  First timestamp: " + firstTime);
+              }
+              lastTime = d.getTimestamp();
               sensorDataSuccessCount++;
             }
             else {
-              System.out.println("Could not store sensordata " + d.getSource() + " "
+              System.out.println("  Could not store sensordata " + d.getSource() + " "
                   + d.getTimestamp());
               sensorDataErrorCount++;
             }
           }
           catch (NotAuthorizedException e) {
-            System.out.println("Could not store sensordata " + d.getSource() + " "
+            System.out.println("  Could not store sensordata " + d.getSource() + " "
                 + d.getTimestamp() + ": " + e.getMessage());
             sensorDataErrorCount++;
           }
           catch (BadXmlException e) {
-            System.out.println("Could not store sensordata " + d.getSource() + " "
+            System.out.println("  Could not store sensordata " + d.getSource() + " "
                 + d.getTimestamp() + ": " + e.getMessage());
             sensorDataErrorCount++;
           }
           catch (MiscClientException e) {
-            System.out.println("Could not store sensordata " + d.getSource() + " "
+            System.out.println("  Could not store sensordata " + d.getSource() + " "
                 + d.getTimestamp() + ": " + e.getMessage());
             sensorDataErrorCount++;
           }
           catch (OverwriteAttemptedException e) {
-            System.out.println("Could not store sensordata " + d.getSource() + " "
-                + d.getTimestamp() + ": " + e.getMessage());
-            sensorDataErrorCount++;
+            try {
+              SensorData existingData =
+                  destClient.getSensorData(UriUtils.getUriSuffix(d.getSource()), d.getTimestamp());
+
+              if (existingData.equals(d)) {
+                System.out.println("  Sensor Data " + d.getSource() + " " + d.getTimestamp()
+                    + " already exists on the destination "
+                    + "and is equivalent to the one on the origin.");
+              }
+              else {
+                System.out.println("  Sensor Data " + d.getSource() + " " + d.getTimestamp()
+                    + " already exists on the destination "
+                    + "and is NOT equivalent to the one on the origin.");
+                System.out.println("   Origin: " + d);
+                System.out.println("   Dest:   " + existingData);
+                sensorDataErrorCount++;
+              }
+            }
+            catch (ResourceNotFoundException e1) {
+              // This should never happen
+              System.out.println("  Overwrite attempted on " + d.getSource() + " "
+                  + d.getTimestamp());
+              sensorDataErrorCount++;
+            }
+            catch (NotAuthorizedException e1) {
+              System.out.println("  Overwrite attempted on " + d.getSource() + " "
+                  + d.getTimestamp());
+              sensorDataErrorCount++;
+            }
+            catch (BadXmlException e1) {
+              System.out.println("  Overwrite attempted on " + d.getSource() + " "
+                  + d.getTimestamp());
+              sensorDataErrorCount++;
+            }
+            catch (MiscClientException e1) {
+              System.out.println("  Overwrite attempted on " + d.getSource() + " "
+                  + d.getTimestamp());
+              sensorDataErrorCount++;
+            }
           }
           catch (ResourceNotFoundException e) {
-            System.out.println("Could not store sensordata " + d.getSource() + " "
+            System.out.println("  Could not store sensordata " + d.getSource() + " "
                 + d.getTimestamp() + ": " + e.getMessage());
             sensorDataErrorCount++;
           }
           catch (JAXBException e) {
-            System.out.println("Could not store sensordata " + d.getSource() + " "
+            System.out.println("  Could not store sensordata " + d.getSource() + " "
                 + d.getTimestamp() + ": " + e.getMessage());
             sensorDataErrorCount++;
           }
 
           compareTime = Tstamp.incrementMinutes(d.getTimestamp(), interval);
         }
+        else {
+          sensorDatasSkippedCount++;
+        }
       }
     }
     catch (ResourceNotFoundException e) {
-      System.out.println("Could not get sensor data from sourceName server for " + name + ": "
+      System.out.println("  Could not get sensor data from origin server for " + name + ": "
           + e.getMessage());
       sensorDataErrorCount = -1;
     }
     catch (NotAuthorizedException e) {
-      System.out.println("Could not get sensor data from sourceName server for " + name + ": "
+      System.out.println("  Could not get sensor data from origin server for " + name + ": "
           + e.getMessage());
       sensorDataErrorCount = -1;
     }
     catch (BadXmlException e) {
-      System.out.println("Could not get sensor data from sourceName server for " + name + ": "
+      System.out.println("  Could not get sensor data from origin server for " + name + ": "
           + e.getMessage());
       sensorDataErrorCount = -1;
     }
     catch (MiscClientException e) {
-      System.out.println("Could not get sensor data from sourceName server for " + name + ": "
+      System.out.println("  Could not get sensor data from origin server for " + name + ": "
           + e.getMessage());
       sensorDataErrorCount = -1;
+    }
+
+    if (sensorDataErrorCount < 0) {
+      System.out.println("  ERROR: No sensor data could be transferred for this source.");
+    }
+    else {
+      if (lastTime != null) {
+        System.out.println("  Last timestamp: " + lastTime);
+      }
+
+      System.out.println("  " + sensorDataSuccessCount
+          + " sensor datas were transferred successfully for this source.");
+      if (interval > 0) {
+        System.out.println("  " + sensorDatasSkippedCount
+            + " sensor datas were skipped for this source due to the interval.");
+      }
+      System.out.println("  " + sensorDataErrorCount
+          + " sensor datas could not be transferred for this source.");
     }
   }
 
@@ -450,7 +553,7 @@ public class BridgeClient {
     options.addOption("dp", "Destination-Password", true,
         "The password for the Administrator on the destination server, ex. \"Passw0rd\"");
     options.addOption("interval", "Transfer-Interval", true,
-        "The minimum desired number of seconds between sensor datas on the destination server");
+        "The minimum desired number of minutes between sensor datas on the destination server");
     options.addOption("source", "Transfer-Source", true,
         "If this option is used, data will only be transferred for the given sourceName "
             + " rather than for all sources. ex. \"Ilima-04-telco\"");
