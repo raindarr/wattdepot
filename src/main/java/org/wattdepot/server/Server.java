@@ -5,6 +5,7 @@ import static org.wattdepot.server.ServerProperties.SERVER_HOME_DIR;
 import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
 import static org.wattdepot.server.ServerProperties.PORT_KEY;
 import static org.wattdepot.server.ServerProperties.TEST_INSTALL_KEY;
+import static org.wattdepot.server.ServerProperties.DATAINPUT_FILE_KEY;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.resource.source.summary.SourceSummaryResource;
 import org.wattdepot.resource.user.UserResource;
 import org.wattdepot.resource.user.jaxb.User;
+import org.wattdepot.sensor.MultiThreadedSensor;
 import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.logger.RestletLoggerUtil;
 import org.wattdepot.util.logger.WattDepotLogger;
@@ -239,7 +241,8 @@ public class Server extends Application {
     else {
       server.dbManager = new DbManager(server);
       try {
-        server.loadDefaultResources(server.dbManager, server.serverProperties.get(SERVER_HOME_DIR));
+        server
+            .loadDefaultResources(server.dbManager, server.serverProperties.get(SERVER_HOME_DIR));
       }
       catch (Exception e) {
         server.logger.severe("Unable to load default resources: " + e.toString());
@@ -268,6 +271,10 @@ public class Server extends Application {
           + (Runtime.getRuntime().maxMemory() / 1000000.0));
       server.component.start();
       server.logger.warning("WattDepot server (Version " + getVersion() + ") now running.");
+      
+      if (!"true".equals(server.serverProperties.get(TEST_INSTALL_KEY))) {
+        MultiThreadedSensor.start(server.serverProperties.get(DATAINPUT_FILE_KEY), null);
+      }
       return server;
     }
   }

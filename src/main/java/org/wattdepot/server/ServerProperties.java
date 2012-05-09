@@ -90,6 +90,8 @@ public class ServerProperties {
   public static final String HEROKU_HOSTNAME_KEY = "wattdepot-server.heroku.hostname";
   /** The heroku database URL. */
   public static final String HEROKU_DATABASE_URL_KEY = "wattdepot-server.heroku.db.url";
+  /** The file to use for sensor configuraiton. */
+  public static final String DATAINPUT_FILE_KEY = "wattdepot-server.datainput.file";
 
   /** Where we store the properties. */
   private Properties properties;
@@ -156,6 +158,7 @@ public class ServerProperties {
     properties.setProperty(DB_HOSTNAME_KEY, "localhost");
     properties.setProperty(DB_PORT_KEY, "5432");
     properties.setProperty(DB_DATABASE_NAME_KEY, "wattdepot");
+    properties.setProperty(DATAINPUT_FILE_KEY, wattDepotHome + "/client/datainput.properties");
 
     properties.setProperty(HOSTNAME_KEY, "localhost");
     properties.setProperty(LOGGING_LEVEL_KEY, "INFO");

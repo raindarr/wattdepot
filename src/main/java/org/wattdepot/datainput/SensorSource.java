@@ -12,6 +12,17 @@ public class SensorSource {
   private String name;
   private int updateRate;
   private String meterHostname;
+  private METER_TYPE meterType;
+
+  /** Enumerations for various meter types. */
+  public enum METER_TYPE {
+    /** SharkSensor. */
+    MODBUS,
+    /** Ted5000Sensor. */
+    TED5000,
+    /** EGaugeSensor. */
+    EGAUGE
+  };
 
   /**
    * Creates a SensorSource with the given key.
@@ -92,5 +103,23 @@ public class SensorSource {
    */
   public void setMeterHostname(String meterHostname) {
     this.meterHostname = meterHostname;
+  }
+
+  /**
+   * Returns the METER_TYPE.
+   * 
+   * @return The value of the METER_TYPE
+   */
+  public METER_TYPE getMeterType() {
+    return meterType;
+  }
+
+  /**
+   * Sets the METER_TYPE.
+   * 
+   * @param meterType The value of the METER_TYPE
+   */
+  public void setMeterType(METER_TYPE meterType) {
+    this.meterType = meterType;
   }
 }

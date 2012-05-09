@@ -227,6 +227,9 @@ public class DataInputClientProperties {
         if ("meterHostname".equals(suffix)) {
           source.setMeterHostname(entry.getValue().toString());
         }
+        if ("meterType".equals(suffix)) {
+          source.setMeterType(SensorSource.METER_TYPE.valueOf(entry.getValue().toString()));
+        }
       }
     }
     return sources;
