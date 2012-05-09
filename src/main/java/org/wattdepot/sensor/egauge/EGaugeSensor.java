@@ -140,9 +140,18 @@ public class EGaugeSensor extends MultiThreadedSensor {
       // energy is given in kWh
       Double energyToDate = ((Double) energyResult) * 1000;
       data = new SensorData(timestamp, toolName, sourceUri);
-      data.addProperty(new Property(SensorData.POWER_CONSUMED, currentPower));
-      data.addProperty(new Property(SensorData.ENERGY_CONSUMED_TO_DATE, energyToDate));
-
+      if (currentPower <= 0) {
+        data.addProperty(new Property(SensorData.POWER_CONSUMED, currentPower * -1));
+      }
+      else {
+        data.addProperty(new Property(SensorData.POWER_GENERATED, currentPower));
+      }
+      if (energyToDate <= 0) {
+        data.addProperty(new Property(SensorData.ENERGY_CONSUMED_TO_DATE, energyToDate * -1));
+      }
+      else {
+        data.addProperty(new Property(SensorData.ENERGY_GENERATED_TO_DATE, energyToDate));
+      }
     }
     catch (MalformedURLException e) {
       System.err.format("Hostname %s for %s was invalid leading to malformed URL%n",

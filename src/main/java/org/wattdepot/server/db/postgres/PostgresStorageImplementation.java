@@ -159,9 +159,13 @@ public class PostgresStorageImplementation extends DbImplementation {
       DriverManagerConnectionFactory connectionFactory =
           new DriverManagerConnectionFactory(connectionUrl, null);
       objectPool = new GenericObjectPool();
-      PoolableConnectionFactory poolableConnectionFactory =
-          new PoolableConnectionFactory(connectionFactory, objectPool, null, null, false, true);
-      objectPool.setFactory(poolableConnectionFactory);
+      // TODO: This setup is pretty stupid. Apparently the PoolableConnectionFactory below sets
+      // itself to be the objectPool's factory, but we don't use the factory for anything else.
+      // Version 2.0 of apache commons dbcp should fix this.
+      // http://apache-commons.680414.n4.nabble.com/dbcp-PoolingDataSource-setup-problem-td3735271.html
+
+      // PoolableConnectionFactory poolableConnectionFactory =
+      new PoolableConnectionFactory(connectionFactory, objectPool, null, null, false, true);
       connectionPool = new PoolingDataSource(objectPool);
       conn = this.connectionPool.getConnection();
     }
