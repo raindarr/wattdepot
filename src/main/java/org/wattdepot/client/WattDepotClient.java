@@ -1,6 +1,5 @@
 package org.wattdepot.client;
 
-import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -12,17 +11,11 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.ChallengeScheme;
-import org.restlet.data.CharacterSet;
-import org.restlet.data.Language;
-import org.restlet.data.MediaType;
-import org.restlet.data.Method;
-import org.restlet.data.Preference;
 import org.restlet.data.Reference;
-import org.restlet.Response;
 import org.restlet.data.Status;
-import org.restlet.representation.Representation;
-import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.ClientResource;
+import org.restlet.resource.ResourceException;
+import org.wattdepot.resource.ResourceInterface;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataRef;
@@ -48,12 +41,6 @@ import org.wattdepot.util.logger.RestletLoggerUtil;
 public class WattDepotClient {
 
   private static final String START_TIME_PARAM = "?startTime=";
-
-  /** The representation type for XML. */
-  private Preference<MediaType> XML_MEDIA = new Preference<MediaType>(MediaType.TEXT_XML);
-
-  /** The representation type for plain text. */
-  private Preference<MediaType> TEXT_MEDIA = new Preference<MediaType>(MediaType.TEXT_PLAIN);
 
   /** The HTTP authentication approach. */
   private ChallengeScheme scheme = ChallengeScheme.HTTP_BASIC;
@@ -139,24 +126,16 @@ public class WattDepotClient {
   }
 
   /**
-   * Does the housekeeping for making HTTP requests to WattDepot, including authentication if
-   * requested. It is only public to allow testing of the WattDepot server in certain cases. It is
-   * not intended for client use.
+   * Creates a ClientResource for the given request, with authentication where appropriate. Calling
+   * code MUST release the ClientResource when finished.
    * 
-   * @param method the HTTP method requested.
    * @param requestString A string, such as "users". Do not start the string with a '/' (it is
    * unneeded).
-   * @param mediaPref Indication of what type of media the client prefers from the server. See
-   * XML_MEDIA and TEXT_MEDIA constants.
-   * @param entity The representation to be sent with the request, or null if not needed.
-   * @return The Response instance returned from the server.
+   * @return The client resource
    */
-  public Response makeRequest(Method method, String requestString,
-      Preference<MediaType> mediaPref, Representation entity) {
+  public ClientResource makeClient(String requestString) {
     Reference reference = new Reference(this.wattDepotUri + requestString);
-    ClientResource client = new ClientResource(method, reference);
-    client.getClientInfo().getAcceptedMediaTypes().add(mediaPref);
-    client.getRequest().setEntity(entity);
+    ClientResource client = new ClientResource(reference);
 
     if (!isAnonymous()) {
       ChallengeResponse authentication =
@@ -164,21 +143,7 @@ public class WattDepotClient {
       client.setChallengeResponse(authentication);
     }
 
-    try {
-      Representation representation = client.handle();
-      if (method == Method.GET) {
-        // TODO: this seems dumb, but I can't get the Restlet 2.0 way to work
-        client.getResponse().setEntity(representation.getText(), mediaPref.getMetadata());
-      }
-    }
-    catch (IOException e) { // NOPMD
-      // We couldn't get the text from the representation.
-      // The calling code will handle it.
-    }
-
-    // Release the request object, which hopefully closes the network socket
-    client.release();
-    return client.getResponse();
+    return client;
   }
 
   /**
@@ -187,11 +152,11 @@ public class WattDepotClient {
    * @return true if the server is healthy, false if not healthy
    */
   public boolean isHealthy() {
-    // Make HEAD request, since we only care about status code
-    Response response = makeRequest(Method.HEAD, Server.HEALTH_URI, TEXT_MEDIA, null);
-
-    // If we get a success status code, then server is healthy
-    return response.getStatus().isSuccess();
+    ClientResource client = makeClient(Server.HEALTH_URI);
+    client.head();
+    boolean healthy = client.getStatus().isSuccess();
+    client.release();
+    return healthy;
   }
 
   /**
@@ -200,16 +165,11 @@ public class WattDepotClient {
    * @return the health message from server, or null if unable to retrieve any message
    */
   public String getHealthString() {
-    // Make the request
-    Response response = makeRequest(Method.GET, Server.HEALTH_URI, TEXT_MEDIA, null);
-
-    // Try to extract the response text and return it
-    try {
-      return response.getEntity().getText();
-    }
-    catch (IOException e) {
-      return null;
-    }
+    ClientResource client = makeClient(Server.HEALTH_URI);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = resource.getXml();
+    client.release();
+    return xmlString;
   }
 
   /**
@@ -227,8 +187,11 @@ public class WattDepotClient {
       return false;
     }
     else {
-      Response response = makeRequest(Method.HEAD, usersUri, XML_MEDIA, null);
-      return response.getStatus().isSuccess();
+      ClientResource client = makeClient(usersUri);
+      client.head();
+      boolean healthy = client.getStatus().isSuccess();
+      client.release();
+      return healthy;
     }
   }
 
@@ -247,28 +210,40 @@ public class WattDepotClient {
    */
   public SensorDataIndex getSensorDataIndex(String source) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    Response response =
-        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI,
-            XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client =
+        makeClient(Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
+    finally {
+      client.release();
+    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorDataIndex) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -279,6 +254,7 @@ public class WattDepotClient {
       // Some totally unexpected non-success status code, just throw generic client exception
       throw new MiscClientException(status);
     }
+
   }
 
   /**
@@ -305,30 +281,41 @@ public class WattDepotClient {
     String uri =
         Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&" + "endTime=" + endTime.toXMLFormat();
-    Response response = makeRequest(Method.GET, uri, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    finally {
+      client.release();
     }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorDataIndex) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -364,30 +351,41 @@ public class WattDepotClient {
     String uri =
         Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&" + "endTime=" + Server.LATEST;
-    Response response = makeRequest(Method.GET, uri, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    finally {
+      client.release();
     }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorDataIndex) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -425,30 +423,40 @@ public class WattDepotClient {
         Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&" + "endTime=" + endTime.toXMLFormat() + "&"
             + "fetchAll=true";
-    Response response = makeRequest(Method.GET, uri, XML_MEDIA, null);
-    Status status = response.getStatus();
-
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    finally {
+      client.release();
     }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return ((SensorDatas) unmarshaller.unmarshal(new StringReader(xmlString))).getSensorData();
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -484,30 +492,41 @@ public class WattDepotClient {
     String uri =
         Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&" + "endTime=" + Server.LATEST + "&" + "fetchAll=true";
-    Response response = makeRequest(Method.GET, uri, XML_MEDIA, null);
-    Status status = response.getStatus();
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
+    }
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
+    }
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    finally {
+      client.release();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
-    }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
-    }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return ((SensorDatas) unmarshaller.unmarshal(new StringReader(xmlString))).getSensorData();
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -538,32 +557,43 @@ public class WattDepotClient {
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
 
-    Response response =
-        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
-            + "/" + timestamp.toXMLFormat(), XML_MEDIA, null);
-    Status status = response.getStatus();
-
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    String uri =
+        Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/"
+            + timestamp.toXMLFormat();
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified, or timestamp could not be found
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified, or timestamp could not be found
-      throw new ResourceNotFoundException(status);
+    finally {
+      client.release();
     }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -598,32 +628,43 @@ public class WattDepotClient {
    */
   public SensorData getLatestSensorData(String source) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    Response response =
-        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
-            + "/" + Server.LATEST, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    String uri =
+        Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/" + Server.LATEST;
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified, or timestamp could not be found
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified, or timestamp could not be found
-      throw new ResourceNotFoundException(status);
+    finally {
+      client.release();
     }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -748,32 +789,43 @@ public class WattDepotClient {
   public SensorData getPower(String source, XMLGregorianCalendar timestamp)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
-    Response response =
-        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.POWER_URI + "/"
-            + timestamp.toXMLFormat(), XML_MEDIA, null);
-    Status status = response.getStatus();
+    String uri =
+        Server.SOURCES_URI + "/" + source + "/" + Server.POWER_URI + "/" + timestamp.toXMLFormat();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    finally {
+      client.release();
     }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -871,37 +923,47 @@ public class WattDepotClient {
   public SensorData getEnergy(String source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    String uriString =
+    String uri =
         Server.SOURCES_URI + "/" + source + "/" + Server.ENERGY_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&endTime=" + endTime.toXMLFormat();
     if (samplingInterval > 0) {
       // client provided sampling interval, so pass to server
-      uriString = uriString + "&samplingInterval=" + Integer.toString(samplingInterval);
+      uri = uri + "&samplingInterval=" + Integer.toString(samplingInterval);
     }
-    Response response = makeRequest(Method.GET, uriString, XML_MEDIA, null);
-    Status status = response.getStatus();
-
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    finally {
+      client.release();
     }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -935,37 +997,47 @@ public class WattDepotClient {
   public SensorData getEnergy(String source, XMLGregorianCalendar startTime, int samplingInterval)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
-    String uriString =
+    String uri =
         Server.SOURCES_URI + "/" + source + "/" + Server.ENERGY_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&endTime=" + Server.LATEST;
     if (samplingInterval > 0) {
       // client provided sampling interval, so pass to server
-      uriString = uriString + "&samplingInterval=" + Integer.toString(samplingInterval);
+      uri = uri + "&samplingInterval=" + Integer.toString(samplingInterval);
     }
-    Response response = makeRequest(Method.GET, uriString, XML_MEDIA, null);
-    Status status = response.getStatus();
-
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    finally {
+      client.release();
     }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -1136,37 +1208,48 @@ public class WattDepotClient {
   public SensorData getCarbon(String source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    String uriString =
+    String uri =
         Server.SOURCES_URI + "/" + source + "/" + Server.CARBON_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&endTime=" + endTime.toXMLFormat();
     if (samplingInterval > 0) {
       // client provided sampling interval, so pass to server
-      uriString = uriString + "&samplingInterval=" + Integer.toString(samplingInterval);
+      uri = uri + "&samplingInterval=" + Integer.toString(samplingInterval);
     }
-    Response response = makeRequest(Method.GET, uriString, XML_MEDIA, null);
-    Status status = response.getStatus();
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
+    }
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
+    }
+    finally {
+      client.release();
+    }
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
-    }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
-    }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
-    }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -1199,37 +1282,47 @@ public class WattDepotClient {
   public SensorData getCarbon(String source, XMLGregorianCalendar startTime, int samplingInterval)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
-    String uriString =
+    String uri =
         Server.SOURCES_URI + "/" + source + "/" + Server.CARBON_URI + "/" + START_TIME_PARAM
             + startTime.toXMLFormat() + "&endTime=" + Server.LATEST;
     if (samplingInterval > 0) {
       // client provided sampling interval, so pass to server
-      uriString = uriString + "&samplingInterval=" + Integer.toString(samplingInterval);
+      uri = uri + "&samplingInterval=" + Integer.toString(samplingInterval);
     }
-    Response response = makeRequest(Method.GET, uriString, XML_MEDIA, null);
-    Status status = response.getStatus();
-
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    finally {
+      client.release();
     }
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sensorDataJAXB.createUnmarshaller();
         return (SensorData) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -1330,32 +1423,46 @@ public class WattDepotClient {
     else {
       marshaller.marshal(data, writer);
     }
-    Representation rep =
-        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
-            CharacterSet.UTF_8);
 
-    Response response =
-        makeRequest(Method.PUT, Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource())
-            + "/" + Server.SENSORDATA_URI + "/" + data.getTimestamp().toXMLFormat(), XML_MEDIA,
-            rep);
-    Status status = response.getStatus();
+    String uri =
+        Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
+            + Server.SENSORDATA_URI + "/" + data.getTimestamp().toXMLFormat();
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    try {
+      resource.store(writer.toString());
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // either bad timestamp provided in URI or bad XML in entity body
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
+        // client attempted to overwrite existing data
+        throw new OverwriteAttemptedException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // either bad timestamp provided in URI or bad XML in entity body
-      throw new BadXmlException(status);
+    finally {
+      client.release();
     }
-    if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
-      // client attempted to overwrite existing data
-      throw new OverwriteAttemptedException(status);
-    }
+    Status status = client.getStatus();
+    client.release();
+
     if (status.isSuccess()) {
       return true;
     }
@@ -1380,23 +1487,43 @@ public class WattDepotClient {
   public boolean deleteSensorData(String source, XMLGregorianCalendar timestamp)
       throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
       MiscClientException {
-    Response response =
-        makeRequest(Method.DELETE, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
-            + "/" + timestamp.toXMLFormat(), XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    String uri =
+        Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/"
+            + timestamp.toXMLFormat();
+
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+
+    try {
+      resource.remove();
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified, or timestamp could not be found
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified, or timestamp could not be found
-      throw new ResourceNotFoundException(status);
+    finally {
+      client.release();
     }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       return true;
     }
@@ -1418,23 +1545,40 @@ public class WattDepotClient {
    */
   public boolean deleteAllSensorData(String source) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    Response response =
-        makeRequest(Method.DELETE, Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI
-            + "/" + Server.ALL, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client =
+        makeClient(Server.SOURCES_URI + "/" + source + "/" + Server.SENSORDATA_URI + "/"
+            + Server.ALL);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    try {
+      resource.remove();
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad timestamp provided in URI
-      throw new BadXmlException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad timestamp provided in URI
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified, or timestamp could not be found
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified, or timestamp could not be found
-      throw new ResourceNotFoundException(status);
+    finally {
+      client.release();
     }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       return true;
     }
@@ -1456,23 +1600,35 @@ public class WattDepotClient {
    */
   public UserIndex getUserIndex() throws NotAuthorizedException, BadXmlException,
       MiscClientException {
-    Response response = makeRequest(Method.GET, Server.USERS_URI, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // User credentials did not correspond to an admin
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(Server.USERS_URI);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // User credentials did not correspond to an admin
+        throw new NotAuthorizedException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
+    }
+    finally {
+      client.release();
+    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         // System.err.println("UserIndex in client: " + xmlString); // DEBUG
         Unmarshaller unmarshaller = userJAXB.createUnmarshaller();
         return (UserIndex) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -1526,27 +1682,38 @@ public class WattDepotClient {
    */
   public User getUser(String username) throws NotAuthorizedException, ResourceNotFoundException,
       BadXmlException, MiscClientException {
-    Response response =
-        makeRequest(Method.GET, Server.USERS_URI + "/" + username, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(Server.USERS_URI + "/" + username);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown username was specified
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown username was specified
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
+    finally {
+      client.release();
+    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = userJAXB.createUnmarshaller();
         return (User) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -1583,26 +1750,38 @@ public class WattDepotClient {
     else {
       marshaller.marshal(user, writer);
     }
-    Representation rep =
-        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
-            CharacterSet.UTF_8);
 
-    Response response =
-        makeRequest(Method.PUT, Server.USERS_URI + "/" + user.getEmail(), XML_MEDIA, rep);
-    Status status = response.getStatus();
+    ClientResource client = makeClient(Server.USERS_URI + "/" + user.getEmail());
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    try {
+      resource.store(writer.toString());
+    }
+    catch (ResourceException e) {
+      Status status = e.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad XML in entity body
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
+        // client attempted to overwrite existing data and didn't set overwrite to true
+        throw new OverwriteAttemptedException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad XML in entity body
-      throw new BadXmlException(status);
+    finally {
+      client.release();
     }
-    if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
-      // client attempted to overwrite existing data and didn't set overwrite to true
-      throw new OverwriteAttemptedException(status);
-    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       return true;
     }
@@ -1639,18 +1818,34 @@ public class WattDepotClient {
    */
   public boolean deleteUser(String username) throws NotAuthorizedException,
       ResourceNotFoundException, MiscClientException {
-    Response response =
-        makeRequest(Method.DELETE, Server.USERS_URI + "/" + username, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(Server.USERS_URI + "/" + username);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    try {
+      resource.remove();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified, or timestamp could not be found
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified, or timestamp could not be found
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
+    finally {
+      client.release();
+    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       return true;
     }
@@ -1674,22 +1869,34 @@ public class WattDepotClient {
    */
   public SourceIndex getSourceIndex() throws NotAuthorizedException, BadXmlException,
       MiscClientException {
-    Response response = makeRequest(Method.GET, Server.SOURCES_URI, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // User credentials are invalid
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(Server.SOURCES_URI);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // User credentials are invalid
+        throw new NotAuthorizedException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
+    }
+    finally {
+      client.release();
+    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sourceJAXB.createUnmarshaller();
         return (SourceIndex) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -1715,16 +1922,32 @@ public class WattDepotClient {
   public List<Source> getSources() throws NotAuthorizedException, BadXmlException,
       MiscClientException {
     String uri = Server.SOURCES_URI + "/?fetchAll=true";
-    Response response = makeRequest(Method.GET, uri, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // User credentials are invalid
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(uri);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // User credentials are invalid
+        throw new NotAuthorizedException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
+    }
+    finally {
+      client.release();
+    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sourceJAXB.createUnmarshaller();
         Sources sources = (Sources) unmarshaller.unmarshal(new StringReader(xmlString));
         if (sources == null) {
@@ -1733,10 +1956,6 @@ public class WattDepotClient {
         else {
           return sources.getSource();
         }
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -1762,27 +1981,38 @@ public class WattDepotClient {
    */
   public Source getSource(String source) throws NotAuthorizedException, ResourceNotFoundException,
       BadXmlException, MiscClientException {
-    Response response =
-        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(Server.SOURCES_URI + "/" + source);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
+    finally {
+      client.release();
+    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sourceJAXB.createUnmarshaller();
         return (Source) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -1822,9 +2052,7 @@ public class WattDepotClient {
     else {
       marshaller.marshal(source, writer);
     }
-    Representation rep =
-        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
-            CharacterSet.UTF_8);
+
     String overwriteFlag;
     if (overwrite) {
       overwriteFlag = "?overwrite=true";
@@ -1833,23 +2061,38 @@ public class WattDepotClient {
       overwriteFlag = "";
     }
 
-    Response response =
-        makeRequest(Method.PUT, Server.SOURCES_URI + "/" + source.getName() + overwriteFlag,
-            XML_MEDIA, rep);
-    Status status = response.getStatus();
+    ClientResource client =
+        makeClient(Server.SOURCES_URI + "/" + source.getName() + overwriteFlag);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    try {
+      resource.store(writer.toString());
+    }
+    catch (ResourceException e) {
+      Status status = e.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // bad XML in entity body
+        throw new BadXmlException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
+        // client attempted to overwrite existing data and didn't set overwrite to true
+        throw new OverwriteAttemptedException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // bad XML in entity body
-      throw new BadXmlException(status);
+    finally {
+      client.release();
     }
-    if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
-      // client attempted to overwrite existing data and didn't set overwrite to true
-      throw new OverwriteAttemptedException(status);
-    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       return true;
     }
@@ -1888,28 +2131,39 @@ public class WattDepotClient {
    */
   public SourceSummary getSourceSummary(String source) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    Response response =
-        makeRequest(Method.GET, Server.SOURCES_URI + "/" + source + "/" + Server.SUMMARY_URI,
-            XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client =
+        makeClient(Server.SOURCES_URI + "/" + source + "/" + Server.SUMMARY_URI);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    String xmlString = null;
+    try {
+      xmlString = resource.getXml();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
+    finally {
+      client.release();
+    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       try {
-        String xmlString = response.getEntity().getText();
         Unmarshaller unmarshaller = sourceSummaryJAXB.createUnmarshaller();
         return (SourceSummary) unmarshaller.unmarshal(new StringReader(xmlString));
-      }
-      catch (IOException e) {
-        // Error getting the text from the entity body, bad news
-        throw new MiscClientException(status, e);
       }
       catch (JAXBException e) {
         // Got some XML we can't parse
@@ -1933,18 +2187,34 @@ public class WattDepotClient {
    */
   public boolean deleteSource(String sourceName) throws NotAuthorizedException,
       ResourceNotFoundException, MiscClientException {
-    Response response =
-        makeRequest(Method.DELETE, Server.SOURCES_URI + "/" + sourceName, XML_MEDIA, null);
-    Status status = response.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server
-      throw new NotAuthorizedException(status);
+    ClientResource client = makeClient(Server.SOURCES_URI + "/" + sourceName);
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    try {
+      resource.remove();
     }
-    if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
-      // an unknown source name was specified, or timestamp could not be found
-      throw new ResourceNotFoundException(status);
+    catch (ResourceException e) {
+      Status status = e.getStatus();
+
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+        // an unknown source name was specified, or timestamp could not be found
+        throw new ResourceNotFoundException(status);
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
+    finally {
+      client.release();
+    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       return true;
     }
@@ -1964,22 +2234,37 @@ public class WattDepotClient {
    */
   public boolean makeSnapshot() throws NotAuthorizedException, MiscClientException {
 
-    Response response =
-        makeRequest(Method.PUT, Server.DATABASE_URI + "/" + "snapshot", XML_MEDIA, null);
-    Status status = response.getStatus();
+    ClientResource client = makeClient(Server.DATABASE_URI + "/" + "snapshot");
+    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    try {
+      resource.store(null);
+    }
+    catch (ResourceException e) {
+      Status status = e.getStatus();
 
-    if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
-      // credentials were unacceptable to server, perhaps not admin?
-      throw new NotAuthorizedException(status);
+      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+        // credentials were unacceptable to server, perhaps not admin?
+        throw new NotAuthorizedException(status);
+      }
+      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+        // Unexpected, perhaps snapshot method not accepted?
+        throw new MiscClientException(status);
+      }
+      if (status.equals(Status.SERVER_ERROR_INTERNAL)) {
+        // Server had a problem creating the snapshot
+        return false;
+      }
+      else {
+        // Some totally unexpected non-success status code, just throw generic client exception
+        throw new MiscClientException(status);
+      }
     }
-    if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
-      // Unexpected, perhaps snapshot method not accepted?
-      throw new MiscClientException(status);
+    finally {
+      client.release();
     }
-    if (status.equals(Status.SERVER_ERROR_INTERNAL)) {
-      // Server had a problem creating the snapshot
-      return false;
-    }
+
+    Status status = client.getStatus();
+    client.release();
     if (status.isSuccess()) {
       return true;
     }

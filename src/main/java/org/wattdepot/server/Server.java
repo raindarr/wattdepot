@@ -28,7 +28,6 @@ import org.restlet.routing.Router;
 import org.restlet.routing.Template;
 import org.restlet.data.Protocol;
 import org.wattdepot.resource.NoResource;
-import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.carbon.CarbonResource;
 import org.wattdepot.resource.db.DatabaseResource;
 import org.wattdepot.resource.energy.EnergyResource;
@@ -271,7 +270,7 @@ public class Server extends Application {
           + (Runtime.getRuntime().maxMemory() / 1000000.0));
       server.component.start();
       server.logger.warning("WattDepot server (Version " + getVersion() + ") now running.");
-      
+
       if (!"true".equals(server.serverProperties.get(TEST_INSTALL_KEY))) {
         MultiThreadedSensor.start(server.serverProperties.get(DATAINPUT_FILE_KEY), null);
       }
@@ -493,8 +492,7 @@ public class Server extends Application {
         + TIMESTAMP_PARAM, GVisualizationResource.class);
 
     router.attach("/" + DATABASE_URI + "/" + "{method}", DatabaseResource.class);
-    router.attachDefault(WattDepotResource.class);
-    router.attach("/", WattDepotResource.class);
+    router.attachDefault(NoResource.class);
     router.attach("/", NoResource.class, Template.MODE_STARTS_WITH);
 
     // Authenticate

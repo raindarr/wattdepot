@@ -9,15 +9,9 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.restlet.data.CharacterSet;
 import org.restlet.data.Form;
-import org.restlet.data.Language;
-import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.data.Status;
-import org.restlet.representation.Representation;
-import org.restlet.representation.StringRepresentation;
-import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
@@ -94,11 +88,6 @@ public class WattDepotResource extends ServerResource {
     }
   }
 
-  protected static final String MESSAGE_TEXT =
-      "<img src=\"http://code.google.com/p/wattdepot/logo?cct=1332883388\"/><br/>"
-          + "Welcome to WattDepot!<br/><br/>"
-          + "See <a href=\"http://code.google.com/p/wattdepot/wiki/RestApi\">the RestApi</a> for help.";
-
   /**
    * Initialize with attributes from the Request and only TEXT_XML variant.
    */
@@ -114,7 +103,7 @@ public class WattDepotResource extends ServerResource {
     this.uriSource = (String) this.getRequest().getAttributes().get("source");
 
     // This resource has only one type of representation.
-    getVariants().add(new Variant(MediaType.TEXT_XML));
+    // getVariants().add(new Variant(MediaType.TEXT_XML));
 
     // Add Cross-Origin Resource Sharing header to all responses.
     // See https://developer.mozilla.org/En/HTTP_access_control for more details
@@ -135,33 +124,6 @@ public class WattDepotResource extends ServerResource {
     if (uriSource != null && this.getMethod() == Method.GET) {
       validateUriSource();
     }
-  }
-
-  /**
-   * Returns a full representation for a given variant.
-   * 
-   * @param variant the requested variant of this representation
-   * @return the representation of this resource
-   */
-  @Override
-  public Representation get(Variant variant) {
-    return new StringRepresentation(MESSAGE_TEXT, MediaType.TEXT_HTML);
-  }
-
-  /**
-   * Creates and returns a new Restlet StringRepresentation built from xmlData. The xmlData will be
-   * prefixed with a processing instruction indicating UTF-8 and version 1.0.
-   * 
-   * @param xmlData The XML data as a string.
-   * @return A StringRepresentation of that xmlData.
-   */
-  public static StringRepresentation getStringRepresentation(String xmlData) {
-    // StringBuilder builder = new StringBuilder(500);
-    // builder.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-    // builder.append(xmlData);
-    // return new StringRepresentation(builder, MediaType.TEXT_XML, Language.ALL,
-    // CharacterSet.UTF_8);
-    return new StringRepresentation(xmlData, MediaType.TEXT_XML, Language.ALL, CharacterSet.UTF_8);
   }
 
   /**
@@ -861,6 +823,16 @@ public class WattDepotResource extends ServerResource {
     else {
       return false;
     }
+  }
+
+  /**
+   * Called if the method is not allowed. Just sets the response code.
+   */
+  protected void setStatusMethodNotAllowed() {
+    this.responseMsg = ResponseMessage.methodNotAllowed(this, this.getLogger());
+
+    getResponse().setStatus(Status.CLIENT_ERROR_METHOD_NOT_ALLOWED,
+        removeNewLines(this.responseMsg));
   }
 
   /**

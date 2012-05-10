@@ -14,21 +14,16 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.junit.Test;
-import org.restlet.data.CharacterSet;
-import org.restlet.data.Language;
-import org.restlet.data.MediaType;
-import org.restlet.data.Method;
-import org.restlet.data.Preference;
-import org.restlet.Response;
 import org.restlet.data.Status;
-import org.restlet.representation.Representation;
-import org.restlet.representation.StringRepresentation;
+import org.restlet.resource.ClientResource;
+import org.restlet.resource.ResourceException;
 import org.wattdepot.client.BadXmlException;
 import org.wattdepot.client.NotAuthorizedException;
 import org.wattdepot.client.OverwriteAttemptedException;
 import org.wattdepot.client.ResourceNotFoundException;
 import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.client.WattDepotClientException;
+import org.wattdepot.resource.ResourceInterface;
 import org.wattdepot.resource.property.jaxb.Properties;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
@@ -207,13 +202,23 @@ public class TestSensorDataResource extends ServerTestHelper {
   public void testGetWithBadTimestamp() throws Exception {
     WattDepotClient client = new WattDepotClient(getHostName());
 
-    Response response =
-        client.makeRequest(Method.GET, Server.SOURCES_URI + "/" + defaultPublicSource + "/"
-            + Server.SENSORDATA_URI + "/" + "bogus-timestamp", new Preference<MediaType>(
-            MediaType.TEXT_XML), null);
-    Status status = response.getStatus();
-    assertEquals("Able to get SensorData with bad timestamp", Status.CLIENT_ERROR_BAD_REQUEST,
-        status);
+    ClientResource clientResource =
+        client.makeClient(Server.SOURCES_URI + "/" + defaultPublicSource + "/"
+            + Server.SENSORDATA_URI + "/" + "bogus-timestamp");
+    ResourceInterface resource = clientResource.wrap(ResourceInterface.class);
+    try {
+      resource.getXml();
+      fail("Able to get SensorData with bad timestamp");
+    }
+    catch (ResourceException e) {
+      assertEquals("Able to get SensorData with bad timestamp", Status.CLIENT_ERROR_BAD_REQUEST,
+          e.getStatus());
+      return;
+    }
+    finally {
+      clientResource.release();
+    }
+
   }
 
   // Tests for GET {host}/sources/{source}/sensordata/?startTime={timestamp}&endTime={timestamp}
@@ -689,17 +694,24 @@ public class TestSensorDataResource extends ServerTestHelper {
     Marshaller marshaller = sensorDataJAXB.createMarshaller();
     StringWriter writer = new StringWriter();
     marshaller.marshal(data, writer);
-    Representation rep =
-        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
-            CharacterSet.UTF_8);
-    Response response =
-        client.makeRequest(Method.PUT,
-            Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
-                + Server.SENSORDATA_URI + "/" + "bogus-timestamp", new Preference<MediaType>(
-                MediaType.TEXT_XML), rep);
-    Status status = response.getStatus();
-    assertEquals("Able to store SensorData with bad timestamp", Status.CLIENT_ERROR_BAD_REQUEST,
-        status);
+
+    ClientResource clientResource =
+        client.makeClient(Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
+            + Server.SENSORDATA_URI + "/" + "bogus-timestamp");
+    ResourceInterface resource = clientResource.wrap(ResourceInterface.class);
+
+    try {
+      resource.store(writer.toString());
+      fail("Able to store SensorData with bad timestamp");
+    }
+    catch (ResourceException e) {
+      assertEquals("Able to store SensorData with bad timestamp", Status.CLIENT_ERROR_BAD_REQUEST,
+          e.getStatus());
+      return;
+    }
+    finally {
+      clientResource.release();
+    }
   }
 
   /**
@@ -713,14 +725,24 @@ public class TestSensorDataResource extends ServerTestHelper {
             server));
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send empty
     // body. Have to do things manually.
-    Response response =
-        client.makeRequest(Method.PUT,
-            Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
-                + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString(),
-            new Preference<MediaType>(MediaType.TEXT_XML), null);
-    Status status = response.getStatus();
-    assertEquals("Able to store SensorData with no entity body", Status.CLIENT_ERROR_BAD_REQUEST,
-        status);
+
+    ClientResource clientResource =
+        client.makeClient(Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
+            + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString());
+    ResourceInterface resource = clientResource.wrap(ResourceInterface.class);
+
+    try {
+      resource.store(null);
+      fail("Able to store SensorData with no entity body");
+    }
+    catch (ResourceException e) {
+      assertEquals("Able to store SensorData with no entity body",
+          Status.CLIENT_ERROR_BAD_REQUEST, e.getStatus());
+      return;
+    }
+    finally {
+      clientResource.release();
+    }
   }
 
   /**
@@ -734,16 +756,24 @@ public class TestSensorDataResource extends ServerTestHelper {
             server));
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send empty
     // body. Have to do things manually.
-    Representation rep =
-        new StringRepresentation("", MediaType.TEXT_XML, Language.ALL, CharacterSet.UTF_8);
-    Response response =
-        client.makeRequest(Method.PUT,
-            Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
-                + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString(),
-            new Preference<MediaType>(MediaType.TEXT_XML), rep);
-    Status status = response.getStatus();
-    assertEquals("Able to store SensorData with empty entity body",
-        Status.CLIENT_ERROR_BAD_REQUEST, status);
+
+    ClientResource clientResource =
+        client.makeClient(Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
+            + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString());
+    ResourceInterface resource = clientResource.wrap(ResourceInterface.class);
+
+    try {
+      resource.store("");
+      fail("Able to store SensorData with empty entity body");
+    }
+    catch (ResourceException e) {
+      assertEquals("Able to store SensorData with empty entity body",
+          Status.CLIENT_ERROR_BAD_REQUEST, e.getStatus());
+      return;
+    }
+    finally {
+      clientResource.release();
+    }
   }
 
   /**
@@ -757,17 +787,23 @@ public class TestSensorDataResource extends ServerTestHelper {
             server));
     // Can't use WattDepotClient.storeSensorData() to test this, as it is unable to send bogus XML.
     // Have to do things manually.
-    Representation rep =
-        new StringRepresentation("bogus-non-XML", MediaType.TEXT_XML, Language.ALL,
-            CharacterSet.UTF_8);
-    Response response =
-        client.makeRequest(Method.PUT,
-            Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
-                + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString(),
-            new Preference<MediaType>(MediaType.TEXT_XML), rep);
-    Status status = response.getStatus();
-    assertEquals("Able to store SensorData with bogus XML in entity body",
-        Status.CLIENT_ERROR_BAD_REQUEST, status);
+    ClientResource clientResource =
+        client.makeClient(Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
+            + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString());
+    ResourceInterface resource = clientResource.wrap(ResourceInterface.class);
+
+    try {
+      resource.store("bogus-non-XML");
+      fail("Able to store SensorData with bogus XML in entity body");
+    }
+    catch (ResourceException e) {
+      assertEquals("Able to store SensorData with bogus XML in entity body",
+          Status.CLIENT_ERROR_BAD_REQUEST, e.getStatus());
+      return;
+    }
+    finally {
+      clientResource.release();
+    }
   }
 
   /**
@@ -789,19 +825,27 @@ public class TestSensorDataResource extends ServerTestHelper {
     Marshaller marshaller = sensorDataJAXB.createMarshaller();
     StringWriter writer = new StringWriter();
     marshaller.marshal(data, writer);
-    Representation rep =
-        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
-            CharacterSet.UTF_8);
+
     // make timestamp 1 hour later in URI
     XMLGregorianCalendar uriTimestamp = Tstamp.incrementHours(timestamp, 1);
-    Response response =
-        client.makeRequest(Method.PUT,
-            Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
-                + Server.SENSORDATA_URI + "/" + uriTimestamp.toString(),
-            new Preference<MediaType>(MediaType.TEXT_XML), rep);
-    Status status = response.getStatus();
-    assertEquals("Able to store SensorData with mismatching timestamps between URI and body",
-        Status.CLIENT_ERROR_BAD_REQUEST, status);
+
+    ClientResource clientResource =
+        client.makeClient(Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
+            + Server.SENSORDATA_URI + "/" + uriTimestamp.toString());
+    ResourceInterface resource = clientResource.wrap(ResourceInterface.class);
+
+    try {
+      resource.store(writer.toString());
+      fail("Able to store SensorData with mismatching timestamps between URI and body");
+    }
+    catch (ResourceException e) {
+      assertEquals("Able to store SensorData with mismatching timestamps between URI and body",
+          Status.CLIENT_ERROR_BAD_REQUEST, e.getStatus());
+      return;
+    }
+    finally {
+      clientResource.release();
+    }
   }
 
   /**
@@ -823,17 +867,24 @@ public class TestSensorDataResource extends ServerTestHelper {
     Marshaller marshaller = sensorDataJAXB.createMarshaller();
     StringWriter writer = new StringWriter();
     marshaller.marshal(data, writer);
-    Representation rep =
-        new StringRepresentation(writer.toString(), MediaType.TEXT_XML, Language.ALL,
-            CharacterSet.UTF_8);
-    // make timestamp 1 hour later in URI
-    Response response =
-        client.makeRequest(Method.PUT, Server.SOURCES_URI + "/" + defaultPublicSource + "/"
-            + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString(),
-            new Preference<MediaType>(MediaType.TEXT_XML), rep);
-    Status status = response.getStatus();
-    assertEquals("Able to store SensorData with mismatching source name between URI and body",
-        Status.CLIENT_ERROR_BAD_REQUEST, status);
+
+    ClientResource clientResource =
+        client.makeClient(Server.SOURCES_URI + "/" + defaultPublicSource + "/"
+            + Server.SENSORDATA_URI + "/" + data.getTimestamp().toString());
+    ResourceInterface resource = clientResource.wrap(ResourceInterface.class);
+
+    try {
+      resource.store(writer.toString());
+      fail("Able to store SensorData with mismatching source name between URI and body");
+    }
+    catch (ResourceException e) {
+      assertEquals("Able to store SensorData with mismatching source name between URI and body",
+          Status.CLIENT_ERROR_BAD_REQUEST, e.getStatus());
+      return;
+    }
+    finally {
+      clientResource.release();
+    }
   }
 
   /**

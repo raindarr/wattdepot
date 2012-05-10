@@ -1,13 +1,10 @@
 package org.wattdepot.resource.sensordata;
 
-import java.io.IOException;
 import javax.xml.bind.JAXBException;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.wattdepot.util.tstamp.Tstamp;
-import org.restlet.data.MediaType;
 import org.restlet.data.Status;
-import org.restlet.representation.Representation;
-import org.restlet.representation.Variant;
+import org.wattdepot.resource.ResourceInterface;
 import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
@@ -21,7 +18,7 @@ import org.wattdepot.server.db.DbBadIntervalException;
  * @author Robert Brewer
  */
 
-public class SensorDataResource extends WattDepotResource {
+public class SensorDataResource extends WattDepotResource implements ResourceInterface {
 
   /** To be retrieved from the URI, or else null if not found. */
   private String timestamp;
@@ -48,169 +45,42 @@ public class SensorDataResource extends WattDepotResource {
     this.fetchAll = "true".equalsIgnoreCase(fetchAllString);
   }
 
-  /**
-   * Returns a full representation for a given variant.
-   * 
-   * @param variant the requested variant of this representation
-   * @return the representation of this resource
-   */
   @Override
-  public Representation get(Variant variant) {
+  public String getXml() {
     String xmlString;
 
     // If we make it here, we're all clear to send the XML: either source is public or source is
     // private but user is authorized to GET.
-    if (variant.getMediaType().equals(MediaType.TEXT_XML)) {
-      // If no parameters, must be looking for index of all sensor data for this source
-      if ((timestamp == null) && (startTime == null) && (endTime == null)) {
-        try {
-          xmlString = getSensorDataIndex();
-          return getStringRepresentation(xmlString);
-        }
-        catch (JAXBException e) {
-          setStatusInternalError(e);
-          return null;
-        }
+    // If no parameters, must be looking for index of all sensor data for this source
+    if ((timestamp == null) && (startTime == null) && (endTime == null)) {
+      try {
+        return getSensorDataIndex();
       }
-      // If only timestamp parameter provided
-      else if ((timestamp != null) && (startTime == null) && (endTime == null)) {
-        // Is it a request for latest sensor data?
-        if (timestamp.equals(Server.LATEST)) {
-          // build XML string
-          try {
-            xmlString = getLatestSensorData();
-            // if we get a null, then there is no SensorData in this source
-            if (xmlString == null) {
-              setStatusSourceLacksSensorData();
-              return null;
-            }
-            return super.getStringRepresentation(xmlString);
-          }
-          catch (JAXBException e) {
-            setStatusInternalError(e);
-            return null;
-          }
-        }
-        // otherwise assume it is a request for a particular timestamp
-        else {
-          XMLGregorianCalendar timestampObj = null;
-          // check if timestamp is OK
-          try {
-            timestampObj = Tstamp.makeTimestamp(this.timestamp);
-          }
-          catch (Exception e) {
-            setStatusBadTimestamp(this.timestamp);
-            return null;
-          }
-          // build XML string
-          try {
-            xmlString = getSensorData(timestampObj);
-            // if we get a null, then there is no SensorData for this timestamp
-            if (xmlString == null) {
-              setStatusTimestampNotFound(timestampObj.toString());
-              return null;
-            }
-            return super.getStringRepresentation(xmlString);
-          }
-          catch (JAXBException e) {
-            setStatusInternalError(e);
-            return null;
-          }
-        }
-      }
-      // If only start and end times are provided, must be looking for a range of sensor data
-      else if ((timestamp == null) && (startTime != null) && (endTime != null)) {
-        XMLGregorianCalendar startObj = null, endObj = null;
-        // check if start timestamp is OK
-        try {
-          startObj = Tstamp.makeTimestamp(this.startTime);
-        }
-        catch (Exception e) {
-          setStatusBadTimestamp(this.startTime);
-          return null;
-        }
-        // check if end timestamp is OK
-        if (!this.endTime.equals(Server.LATEST)) {
-          try {
-            endObj = Tstamp.makeTimestamp(this.endTime);
-          }
-          catch (Exception e) {
-            setStatusBadTimestamp(this.endTime);
-            return null;
-          }
-        }
-        try {
-          // If fetchAll requested, return SensorDatas
-          if (this.fetchAll) {
-            if (endObj == null) {
-              xmlString = getSensorDatas(startObj);
-            }
-            else {
-              xmlString = getSensorDatas(startObj, endObj);
-            }
-            return super.getStringRepresentation(xmlString);
-          }
-          // Otherwise, return SensorDataIndex
-          else {
-            if (endObj == null) {
-              xmlString = getSensorDataIndex(startObj);
-            }
-            else {
-              xmlString = getSensorDataIndex(startObj, endObj);
-            }
-            return super.getStringRepresentation(xmlString);
-          }
-        }
-        catch (DbBadIntervalException e) {
-          setStatusBadInterval(startObj.toString(), endObj.toString());
-          return null;
-        }
-        catch (JAXBException e) {
-          setStatusInternalError(e);
-          return null;
-        }
-
-      }
-      // Some bad combination of options, so just fail
-      else {
-        setStatusMiscError("Request could not be understood.");
+      catch (JAXBException e) {
+        setStatusInternalError(e);
         return null;
       }
     }
-    // Some MediaType other than text/xml requested
-    else {
-      return null;
-    }
-  }
-
-  /**
-   * Implement the DELETE method that deletes an existing SensorData given its timestamp. Only the
-   * SourceOwner (or an admin) can delete a SensorData resource.
-   * 
-   * @param variant The type of Representation to deleted.
-   * @return Returns a null Representation.
-   */
-  @Override
-  public Representation delete(Variant variant) {
-
-    Source source = validateKnownSource();
-    // First check if source in URI exists
-    if (source == null) {
-      return null;
-    }
-    if (validateSourceOwnerOrAdmin(source)) {
-      // Is it a request to delete all sensor data?
-      if (timestamp.equals(Server.ALL)) {
-        if (super.dbManager.deleteSensorData(uriSource)) {
-          getResponse().setStatus(Status.SUCCESS_OK);
+    // If only timestamp parameter provided
+    else if ((timestamp != null) && (startTime == null) && (endTime == null)) {
+      // Is it a request for latest sensor data?
+      if (timestamp.equals(Server.LATEST)) {
+        // build XML string
+        try {
+          xmlString = getLatestSensorData();
+          // if we get a null, then there is no SensorData in this source
+          if (xmlString == null) {
+            setStatusSourceLacksSensorData();
+            return null;
+          }
+          return xmlString;
         }
-        else {
-          // all inputs have been validated by this point, so must be internal error
-          setStatusInternalError(String.format("Unable to delete SensorData for timestamp %s",
-              this.timestamp));
+        catch (JAXBException e) {
+          setStatusInternalError(e);
           return null;
         }
       }
+      // otherwise assume it is a request for a particular timestamp
       else {
         XMLGregorianCalendar timestampObj = null;
         // check if timestamp is OK
@@ -221,45 +91,139 @@ public class SensorDataResource extends WattDepotResource {
           setStatusBadTimestamp(this.timestamp);
           return null;
         }
-        // check if there is any sensor data for given timestamp
-        if (!super.dbManager.hasSensorData(uriSource, timestampObj)) {
-          setStatusTimestampNotFound(this.timestamp);
+        // build XML string
+        try {
+          xmlString = getSensorData(timestampObj);
+          // if we get a null, then there is no SensorData for this timestamp
+          if (xmlString == null) {
+            setStatusTimestampNotFound(timestampObj.toString());
+            return null;
+          }
+          return xmlString;
+        }
+        catch (JAXBException e) {
+          setStatusInternalError(e);
           return null;
         }
-        if (super.dbManager.deleteSensorData(uriSource, timestampObj)) {
+      }
+    }
+    // If only start and end times are provided, must be looking for a range of sensor data
+    else if ((timestamp == null) && (startTime != null) && (endTime != null)) {
+      XMLGregorianCalendar startObj = null, endObj = null;
+      // check if start timestamp is OK
+      try {
+        startObj = Tstamp.makeTimestamp(this.startTime);
+      }
+      catch (Exception e) {
+        setStatusBadTimestamp(this.startTime);
+        return null;
+      }
+      // check if end timestamp is OK
+      if (!this.endTime.equals(Server.LATEST)) {
+        try {
+          endObj = Tstamp.makeTimestamp(this.endTime);
+        }
+        catch (Exception e) {
+          setStatusBadTimestamp(this.endTime);
+          return null;
+        }
+      }
+      try {
+        // If fetchAll requested, return SensorDatas
+        if (this.fetchAll) {
+          if (endObj == null) {
+            xmlString = getSensorDatas(startObj);
+          }
+          else {
+            xmlString = getSensorDatas(startObj, endObj);
+          }
+          return xmlString;
+        }
+        // Otherwise, return SensorDataIndex
+        else {
+          if (endObj == null) {
+            xmlString = getSensorDataIndex(startObj);
+          }
+          else {
+            xmlString = getSensorDataIndex(startObj, endObj);
+          }
+          return xmlString;
+        }
+      }
+      catch (DbBadIntervalException e) {
+        setStatusBadInterval(startObj.toString(), endObj.toString());
+        return null;
+      }
+      catch (JAXBException e) {
+        setStatusInternalError(e);
+        return null;
+      }
+
+    }
+    // Some bad combination of options, so just fail
+    else {
+      setStatusMiscError("Request could not be understood.");
+      return null;
+    }
+  }
+
+  /**
+   * Implement the DELETE method that deletes an existing SensorData given its timestamp. Only the
+   * SourceOwner (or an admin) can delete a SensorData resource.
+   */
+  @Override
+  public void remove() {
+    Source source = validateKnownSource();
+    // First check if source in URI exists
+    if (source != null && validateSourceOwnerOrAdmin(source)) {
+      // Is it a request to delete all sensor data?
+      if (timestamp.equals(Server.ALL)) {
+        if (super.dbManager.deleteSensorData(uriSource)) {
           getResponse().setStatus(Status.SUCCESS_OK);
         }
         else {
           // all inputs have been validated by this point, so must be internal error
           setStatusInternalError(String.format("Unable to delete SensorData for timestamp %s",
               this.timestamp));
-          return null;
+          return;
+        }
+      }
+      else {
+        XMLGregorianCalendar timestampObj = null;
+        // check if timestamp is OK
+        try {
+          timestampObj = Tstamp.makeTimestamp(this.timestamp);
+        }
+        catch (Exception e) {
+          setStatusBadTimestamp(this.timestamp);
+          return;
+        }
+        // check if there is any sensor data for given timestamp
+        if (!super.dbManager.hasSensorData(uriSource, timestampObj)) {
+          setStatusTimestampNotFound(this.timestamp);
+        }
+        else if (super.dbManager.deleteSensorData(uriSource, timestampObj)) {
+          getResponse().setStatus(Status.SUCCESS_OK);
+        }
+        else {
+          // all inputs have been validated by this point, so must be internal error
+          setStatusInternalError(String.format("Unable to delete SensorData for timestamp %s",
+              this.timestamp));
         }
       }
     }
-    else {
-      return null;
-    }
-    return null;
   }
 
   /**
    * Implement the PUT method that creates a SensorData resource.
    * 
    * @param entity The entity to be put.
-   * @param variant The type of Representation to put.
-   * @return Returns a null Representation.
    */
   @Override
-  public Representation put(Representation entity, Variant variant) {
-
+  public void store(String entity) {
     Source source = validateKnownSource();
-    // First check if source in URI exists
-    if (source == null) {
-      return null;
-    }
 
-    if (validateSourceOwnerOrAdmin(source)) {
+    if (source != null && validateSourceOwnerOrAdmin(source)) {
       XMLGregorianCalendar timestampObj = null;
       // check if timestamp is OK
       try {
@@ -267,59 +231,43 @@ public class SensorDataResource extends WattDepotResource {
       }
       catch (Exception e) {
         setStatusBadTimestamp(this.timestamp);
-        return null;
+        return;
       }
       // Get the payload.
-      String entityString = null;
-      try {
-        entityString = entity.getText();
-      }
-      catch (IOException e) {
-        setStatusMiscError("Bad or missing content");
-        return null;
-      }
       SensorData data;
       // Try to make the XML payload into sensor data, return failure if this fails.
-      if ((entityString == null) || ("".equals(entityString))) {
+      if ((entity == null) || ("".equals(entity))) {
         setStatusMiscError("Entity body was empty");
-        return null;
+        return;
       }
       try {
-        data = makeSensorData(entityString);
+        data = makeSensorData(entity);
       }
       catch (JAXBException e) {
-        setStatusMiscError("Invalid SensorData representation: " + entityString);
-        return null;
+        setStatusMiscError("Invalid SensorData representation: " + entity);
+        return;
       }
       // Return failure if the payload XML timestamp doesn't match the URI timestamp.
       if ((this.timestamp == null) || (!this.timestamp.equals(data.getTimestamp().toString()))) {
         setStatusMiscError("Timestamp in URI does not match timestamp in sensor data instance.");
-        return null;
       }
       // Return failure if the SensorData Source doesn't match the uriSource
-      if (!source.toUri(server).equals(data.getSource())) {
+      else if (!source.toUri(server).equals(data.getSource())) {
         setStatusMiscError("The source given in the URI (" + source.toUri(server)
             + ") does not match the source given in the payload (" + data.getSource() + ")");
-        return null;
       }
       // if there is any already existing sensor data for given timestamp, then PUT fails
-      if (super.dbManager.hasSensorData(uriSource, timestampObj)) {
+      else if (super.dbManager.hasSensorData(uriSource, timestampObj)) {
         setStatusResourceOverwrite(this.timestamp);
-        return null;
       }
-      if (dbManager.storeSensorData(data, source)) {
+      else if (dbManager.storeSensorData(data, source)) {
         getResponse().setStatus(Status.SUCCESS_CREATED);
       }
       else {
         // all inputs have been validated by this point, so must be internal error
         setStatusInternalError(String.format("Unable to create SensorData for timestamp %s",
             this.timestamp));
-        return null;
       }
     }
-    else {
-      return null;
-    }
-    return null;
   }
 }

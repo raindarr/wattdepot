@@ -7,9 +7,8 @@ import java.util.Hashtable;
 import java.util.List;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.restlet.data.MediaType;
-import org.restlet.representation.Representation;
-import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
+import org.restlet.resource.Get;
 import org.wattdepot.resource.WattDepotResource;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
@@ -148,20 +147,16 @@ public class GVisualizationResource extends WattDepotResource {
       tqxString = null;
     }
 
-    // This resource has only one type of representation.
-    getVariants().add(new Variant(MediaType.APPLICATION_JSON));
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
-
   }
 
   /**
-   * Returns a full representation for a given variant.
+   * The GET method for plain text data.
    * 
-   * @param variant the requested variant of this representation
-   * @return the representation of this resource
+   * @return The text representation of this resource
    */
-  @Override
-  public Representation get(Variant variant) {
+  @Get("txt")
+  public String getTxt() {
     try {
 
       XMLGregorianCalendar startTime = null;
@@ -210,13 +205,13 @@ public class GVisualizationResource extends WattDepotResource {
         response += "reqId:'" + reqId + "',";
       }
       response += "table:" + tableString + "});";
-      return new StringRepresentation(response);
+      return response;
     }
     catch (DataSourceException e) {
       String response =
           "google.visualization.Query.setResponse({status:'error',errors:[{reason:'"
               + e.getReasonType().toString() + "',message:'" + e.getMessageToUser() + "'}]});";
-      return new StringRepresentation(response);
+      return response;
     }
   }
 

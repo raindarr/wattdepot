@@ -4,8 +4,7 @@
 package org.wattdepot.resource.db;
 
 import org.restlet.data.Status;
-import org.restlet.representation.Representation;
-import org.restlet.representation.Variant;
+import org.restlet.resource.Put;
 import org.wattdepot.resource.WattDepotResource;
 
 /**
@@ -32,11 +31,9 @@ public class DatabaseResource extends WattDepotResource {
    * Implement the PUT method that executes the method provided.
    * 
    * @param entity The entity to be posted.
-   * @param variant The variant of Representation to put.
-   * @return Returns a null Representation.
    */
-  @Override
-  public Representation put(Representation entity, Variant variant) {
+  @Put
+  public void snapshot(String entity) {
     if (isAdminUser()) {
       if ("snapshot".equalsIgnoreCase(this.methodString)) {
         if (super.dbManager.makeSnapshot()) {
@@ -45,7 +42,7 @@ public class DatabaseResource extends WattDepotResource {
         else {
           // all inputs have been validated by this point, so must be internal error
           setStatusInternalError("Unable to create database snapshot");
-          return null;
+          return;
         }
       }
       else {
@@ -55,8 +52,7 @@ public class DatabaseResource extends WattDepotResource {
     }
     else {
       setStatusBadCredentials();
-      return null;
+      return;
     }
-    return null;
   }
 }

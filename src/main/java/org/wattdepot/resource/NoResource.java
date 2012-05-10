@@ -1,10 +1,9 @@
 package org.wattdepot.resource;
 
 import org.restlet.data.MediaType;
-import org.restlet.resource.ServerResource;
-import org.restlet.representation.Representation;
-import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
+import org.restlet.resource.Get;
+import org.restlet.resource.ServerResource;
 
 /**
  * Represents the health of the WattDepot service. It is provided as a way to determine if the
@@ -18,7 +17,9 @@ public class NoResource extends ServerResource {
    * String to send as a response to the health request.
    */
   protected static final String MESSAGE_TEXT =
-      "There are no WattDepot resources that match your request.<br/><br/>"
+      "<img src=\"http://code.google.com/p/wattdepot/logo?cct=1332883388\"/><br/>"
+          + "Welcome to WattDepot!<br/><br/>"
+          + "There are no WattDepot resources that match your request.<br/><br/>"
           + "See <a href=\"http://code.google.com/p/wattdepot/wiki/RestApi\">the RestApi</a> for help.";
 
   /**
@@ -32,14 +33,14 @@ public class NoResource extends ServerResource {
   }
 
   /**
-   * Returns a full representation for a given variant.
+   * The GET method for HTML data.
    * 
-   * @param variant the requested variant of this representation
-   * @return the representation of this resource
+   * @return An HTML message.
    */
-  @Override
-  public Representation get(Variant variant) {
-    return new StringRepresentation(MESSAGE_TEXT, MediaType.TEXT_HTML);
+  @Get("html")
+  public String getTxt() {
+    return MESSAGE_TEXT;
+    // return new StringRepresentation(HEALTH_MESSAGE_TEXT, MediaType.TEXT_PLAIN);
   }
 
 }

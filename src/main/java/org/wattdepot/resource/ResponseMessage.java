@@ -1,6 +1,7 @@
 package org.wattdepot.resource;
 
 import java.util.logging.Logger;
+import org.restlet.resource.ServerResource;
 import org.wattdepot.util.StackTrace;
 
 /**
@@ -43,6 +44,20 @@ public class ResponseMessage {
   // }
 
   /**
+   * The error message for requests on a method that is not allowed.
+   * 
+   * @param resource The resource associated with this request.
+   * @param logger The logger.
+   * @return A string describing the problem.
+   */
+  public static String methodNotAllowed(ServerResource resource, Logger logger) {
+    String message =
+        String.format("Method Not Allowed %s:%n  Request: %s", resource.getRequest().getMethod()
+            .getName(), resource.getRequest().getResourceRef().toString());
+    return message;
+  }
+
+  /**
    * The error message for requests that generate an unspecified internal error.
    * 
    * @param resource The resource associated with this request.
@@ -52,8 +67,9 @@ public class ResponseMessage {
    */
   static String internalError(WattDepotResource resource, Logger logger, Exception e) {
     String message =
-        String.format("Internal error %s:%n  Request: %s %s", e.getMessage(), resource.getRequest()
-            .getMethod().getName(), resource.getRequest().getResourceRef().toString());
+        String
+            .format("Internal error %s:%n  Request: %s %s", e.getMessage(), resource.getRequest()
+                .getMethod().getName(), resource.getRequest().getResourceRef().toString());
     logger.info(String.format("%s\n%s", message, StackTrace.toString(e)));
     return message;
   }
@@ -123,8 +139,8 @@ public class ResponseMessage {
    */
   static String badRange(WattDepotResource resource, String startTime, String endTime) {
     return String.format(
-        "Range extends beyond sensor data, startTime %s, endTime %s:%n  Request: %s %s", startTime,
-        endTime, resource.getRequest().getMethod().getName(), resource.getRequest()
+        "Range extends beyond sensor data, startTime %s, endTime %s:%n  Request: %s %s",
+        startTime, endTime, resource.getRequest().getMethod().getName(), resource.getRequest()
             .getResourceRef().toString());
   }
 
@@ -189,8 +205,8 @@ public class ResponseMessage {
    */
   static String notSourceOwner(WattDepotResource resource, String user, String source) {
     return String.format("Authorized user %s is not owner of Source %s%n  Request: %s %s", user,
-        source, resource.getRequest().getMethod().getName(), resource.getRequest().getResourceRef()
-            .toString());
+        source, resource.getRequest().getMethod().getName(), resource.getRequest()
+            .getResourceRef().toString());
   }
 
   /**
