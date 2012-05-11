@@ -6,6 +6,7 @@ import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
 import static org.wattdepot.server.ServerProperties.PORT_KEY;
 import static org.wattdepot.server.ServerProperties.TEST_INSTALL_KEY;
 import static org.wattdepot.server.ServerProperties.DATAINPUT_FILE_KEY;
+import static org.wattdepot.server.ServerProperties.DATAINPUT_START_KEY;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -271,7 +272,8 @@ public class Server extends Application {
       server.component.start();
       server.logger.warning("WattDepot server (Version " + getVersion() + ") now running.");
 
-      if (!"true".equals(server.serverProperties.get(TEST_INSTALL_KEY))) {
+      if ("true".equals(server.serverProperties.get(DATAINPUT_START_KEY))
+          && !"true".equals(server.serverProperties.get(TEST_INSTALL_KEY))) {
         MultiThreadedSensor.start(server.serverProperties.get(DATAINPUT_FILE_KEY), null);
       }
       return server;
