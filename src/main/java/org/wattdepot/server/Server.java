@@ -270,7 +270,7 @@ public class Server extends Application {
       return null;
     }
     else {
-      // Only start server up for queries if when not compressing or reindexing
+      // Only start server up for queries if not compressing or reindexing
       // Now let's open for business.
       server.logger.info("Maximum Java heap size (MB): "
           + (Runtime.getRuntime().maxMemory() / 1000000.0));
@@ -279,7 +279,8 @@ public class Server extends Application {
 
       if ("true".equals(server.serverProperties.get(DATAINPUT_START_KEY))
           && !"true".equals(server.serverProperties.get(TEST_INSTALL_KEY))) {
-        MultiThreadedSensor.start(server.serverProperties.get(DATAINPUT_FILE_KEY), null);
+        // Note, always setting debug to false when running sensor in server for now
+        MultiThreadedSensor.start(server.serverProperties.get(DATAINPUT_FILE_KEY), false, null);
       }
       return server;
     }

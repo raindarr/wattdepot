@@ -249,7 +249,7 @@ public class Ted5000Sensor extends MultiThreadedSensor {
       System.out.println();
     }
 
-    if (!MultiThreadedSensor.start(propertyFilename, METER_TYPE.TED5000)) {
+    if (!MultiThreadedSensor.start(propertyFilename, debug, METER_TYPE.TED5000)) {
       System.exit(1);
     }
   }

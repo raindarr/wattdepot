@@ -108,41 +108,6 @@ public class SharkSensor extends MultiThreadedSensor {
       return;
     }
 
-    if (this.updateRate <= UPDATE_RATE_SENTINEL) {
-      // Need to pick a reasonable default pollingInterval
-      // Check the polling rate specified in the source
-      Source source = getSourceFromClient(client);
-      if (source == null) {
-        this.cancel();
-        return;
-      }
-      String updateIntervalString = source.getProperty(Source.UPDATE_INTERVAL);
-      if (updateIntervalString == null) {
-        // no update interval, so just use hard coded default
-        updateRate = DEFAULT_UPDATE_RATE;
-      }
-      else {
-        int possibleInterval;
-        try {
-          possibleInterval = Integer.valueOf(updateIntervalString);
-          if (possibleInterval > DEFAULT_UPDATE_RATE) {
-            // Sane interval, so use it
-            updateRate = possibleInterval;
-          }
-          else {
-            // Bogus interval, so use hard coded default
-            updateRate = DEFAULT_UPDATE_RATE;
-          }
-        }
-        catch (NumberFormatException e) {
-          System.err.format("Unable to parse updateInterval for %s, using default value: %d%n",
-              this.sourceKey, DEFAULT_UPDATE_RATE);
-          // Bogus interval, so use hard coded default
-          updateRate = DEFAULT_UPDATE_RATE;
-        }
-      }
-    }
-
     // Need to retrieve some configuration parameters from meter, but only want to do it once
     // per session.
     ModbusResponse response;
@@ -497,7 +462,7 @@ public class SharkSensor extends MultiThreadedSensor {
       System.out.println();
     }
 
-    if (!MultiThreadedSensor.start(propertyFilename, METER_TYPE.MODBUS)) {
+    if (!MultiThreadedSensor.start(propertyFilename, debug, METER_TYPE.MODBUS)) {
       System.exit(1);
     }
   }

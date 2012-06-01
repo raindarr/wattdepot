@@ -154,8 +154,8 @@ public class EGaugeSensor extends MultiThreadedSensor {
       }
     }
     catch (MalformedURLException e) {
-      System.err.format("Hostname %s for %s was invalid leading to malformed URL%n",
-          meterHostname, sourceKey);
+      System.err.format("Hostname %s for %s was invalid leading to malformed URL%n", meterHostname,
+          sourceKey);
     }
     catch (XPathExpressionException e) {
       System.err.println("Bad XPath expression, this should never happen.");
@@ -177,6 +177,10 @@ public class EGaugeSensor extends MultiThreadedSensor {
     try {
       if (data != null) {
         client.storeSensorData(data);
+
+        if (debug) {
+          System.out.println(data);
+        }
       }
     }
     catch (Exception e) {
@@ -233,7 +237,7 @@ public class EGaugeSensor extends MultiThreadedSensor {
       System.out.println();
     }
 
-    if (!MultiThreadedSensor.start(propertyFilename, METER_TYPE.EGAUGE)) {
+    if (!MultiThreadedSensor.start(propertyFilename, debug, METER_TYPE.EGAUGE)) {
       System.exit(1);
     }
   }

@@ -112,16 +112,24 @@ public abstract class MultiThreadedSensor extends TimerTask {
       return false;
     }
 
-    if (updateRate <= UPDATE_RATE_SENTINEL) {
+    if (this.updateRate <= UPDATE_RATE_SENTINEL) {
       // Need to pick a reasonable default pollingInterval
       // Check the polling rate specified in the source
-      int possibleInterval = source.getPropertyAsInt(Source.UPDATE_INTERVAL);
+      try {
+        int possibleInterval = source.getPropertyAsInt(Source.UPDATE_INTERVAL);
 
-      if (possibleInterval > DEFAULT_UPDATE_RATE) {
-        // Sane interval, so use it
-        this.updateRate = possibleInterval;
+        if (possibleInterval > DEFAULT_UPDATE_RATE) {
+          // Sane interval, so use it
+          this.updateRate = possibleInterval;
+        }
+        else {
+          // Bogus interval, so use hard coded default
+          this.updateRate = DEFAULT_UPDATE_RATE;
+        }
       }
-      else {
+      catch (NumberFormatException e) {
+        System.err.format("Unable to parse updateInterval for %s, using default value: %d%n",
+            this.sourceKey, DEFAULT_UPDATE_RATE);
         // Bogus interval, so use hard coded default
         this.updateRate = DEFAULT_UPDATE_RATE;
       }
@@ -165,12 +173,12 @@ public abstract class MultiThreadedSensor extends TimerTask {
   }
 
   /**
-   * Return the udpate rate in seconds.
+   * Return the update rate in seconds.
    * 
    * @return The update rate.
    */
   public int getUpdateRate() {
-    return updateRate;
+    return this.updateRate;
   }
 
   /**
@@ -179,11 +187,12 @@ public abstract class MultiThreadedSensor extends TimerTask {
    * 
    * @param propertyFilename The file to read data input properties from. If null, the default
    * property file is used.
+   * @param debug Debug flag passed to specific sensor type.
    * @param meterType When set, only SensorSources with this meter type will be started.
    * @return True if all sensors have been started successfully, or false if one or more sensors
    * could not be started.
    */
-  public static boolean start(String propertyFilename, METER_TYPE meterType) {
+  public static boolean start(String propertyFilename, boolean debug, METER_TYPE meterType) {
 
     DataInputClientProperties properties = null;
     try {
@@ -211,10 +220,9 @@ public abstract class MultiThreadedSensor extends TimerTask {
       if (SensorSource.METER_TYPE.MODBUS.equals(type)
           && (meterType == null || type.equals(meterType))) {
         SharkSensor sensor =
-            new SharkSensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, false);
+            new SharkSensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
         if (sensor.isValid()) {
-          System.out
-              .format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
+          System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
           t.scheduleAtFixedRate(sensor, 0, sensor.getUpdateRate() * 1000);
         }
         else {
@@ -225,10 +233,9 @@ public abstract class MultiThreadedSensor extends TimerTask {
       else if (SensorSource.METER_TYPE.EGAUGE.equals(type)
           && (meterType == null || type.equals(meterType))) {
         EGaugeSensor sensor =
-            new EGaugeSensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, false);
+            new EGaugeSensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
         if (sensor.isValid()) {
-          System.out
-              .format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
+          System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
           t.scheduleAtFixedRate(sensor, 0, sensor.getUpdateRate() * 1000);
         }
         else {
@@ -239,10 +246,9 @@ public abstract class MultiThreadedSensor extends TimerTask {
       else if (SensorSource.METER_TYPE.TED5000.equals(type)
           && (meterType == null || type.equals(meterType))) {
         Ted5000Sensor sensor =
-            new Ted5000Sensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, false);
+            new Ted5000Sensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
         if (sensor.isValid()) {
-          System.out
-              .format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
+          System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
           t.scheduleAtFixedRate(sensor, 0, sensor.getUpdateRate() * 1000);
         }
         else {
