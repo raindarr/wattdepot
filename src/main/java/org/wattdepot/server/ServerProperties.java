@@ -160,7 +160,7 @@ public class ServerProperties {
     properties.setProperty(DB_HOSTNAME_KEY, "localhost");
     properties.setProperty(DB_PORT_KEY, "5432");
     properties.setProperty(DB_DATABASE_NAME_KEY, "wattdepot");
-    properties.setProperty(DATAINPUT_FILE_KEY, wattDepotHome + "/client/datainput.properties");
+    properties.setProperty(DATAINPUT_FILE_KEY, wattDepotHome + "client/datainput.properties");
     properties.setProperty(DATAINPUT_START_KEY, FALSE);
     
     properties.setProperty(HOSTNAME_KEY, "localhost");
