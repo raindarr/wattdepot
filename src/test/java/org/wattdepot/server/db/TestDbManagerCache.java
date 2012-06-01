@@ -315,6 +315,7 @@ public class TestDbManagerCache extends DbManagerTestHelper {
    * @return The freshly created SensorData object.
    * @throws Exception If there are problems converting timestamp string to XMLGregorianCalendar
    */
+  @Override
   protected SensorData makeTestSensorData1() throws Exception {
     Properties p = new Properties();
     p.getProperty().add(new Property(SensorData.POWER_GENERATED, "10000.0"));
@@ -330,6 +331,7 @@ public class TestDbManagerCache extends DbManagerTestHelper {
    * @return The freshly created SensorData object.
    * @throws Exception If there are problems converting timestamp string to XMLGregorianCalendar
    */
+  @Override
   protected SensorData makeTestSensorData2() throws Exception {
     Properties p = new Properties();
     p.getProperty().add(new Property(SensorData.POWER_GENERATED, "8000.0"));
@@ -345,6 +347,7 @@ public class TestDbManagerCache extends DbManagerTestHelper {
    * @return The freshly created SensorData object.
    * @throws Exception If there are problems converting timestamp string to XMLGregorianCalendar
    */
+  @Override
   protected SensorData makeTestSensorData3() throws Exception {
     Properties p = new Properties();
     p.getProperty().add(new Property(SensorData.POWER_GENERATED, "9000.0"));

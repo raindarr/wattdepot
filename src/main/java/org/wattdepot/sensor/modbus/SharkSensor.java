@@ -96,6 +96,7 @@ public class SharkSensor extends MultiThreadedSensor {
   /**
    * Retrieves meter sensor data and sends it to a Source in a WattDepot server.
    */
+  @Override
   public void run() {
     WattDepotClient client =
         new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);

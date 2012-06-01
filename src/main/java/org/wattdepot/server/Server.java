@@ -1,12 +1,12 @@
 package org.wattdepot.server;
 
 import static org.wattdepot.server.ServerProperties.CONTEXT_ROOT_KEY;
-import static org.wattdepot.server.ServerProperties.SERVER_HOME_DIR;
-import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
-import static org.wattdepot.server.ServerProperties.PORT_KEY;
-import static org.wattdepot.server.ServerProperties.TEST_INSTALL_KEY;
 import static org.wattdepot.server.ServerProperties.DATAINPUT_FILE_KEY;
 import static org.wattdepot.server.ServerProperties.DATAINPUT_START_KEY;
+import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
+import static org.wattdepot.server.ServerProperties.PORT_KEY;
+import static org.wattdepot.server.ServerProperties.SERVER_HOME_DIR;
+import static org.wattdepot.server.ServerProperties.TEST_INSTALL_KEY;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -25,9 +25,9 @@ import org.restlet.Component;
 import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.Restlet;
+import org.restlet.data.Protocol;
 import org.restlet.routing.Router;
 import org.restlet.routing.Template;
-import org.restlet.data.Protocol;
 import org.wattdepot.resource.NoResource;
 import org.wattdepot.resource.carbon.CarbonResource;
 import org.wattdepot.resource.db.DatabaseResource;
@@ -228,6 +228,11 @@ public class Server extends Application {
     // Add the two known roles for users.
     server.getRoles().add(WattDepotEnroler.ADMINISTRATOR);
     server.getRoles().add(WattDepotEnroler.USER);
+
+    // Based on this mailing list thread, the following line will create more http listening
+    // threads, which was causing the server to spin with no threads available.
+    // http://restlet.tigris.org/ds/viewMessage.do?dsForumId=4447&viewType=browseAll&dsMessageId=2625612
+    server.getContext().getParameters().add("maxThreads", "128");
 
     Map<String, Object> attributes = server.getContext().getAttributes();
     // Put server and serverProperties in first, because dbManager() will look at serverProperties
