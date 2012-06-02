@@ -297,7 +297,7 @@ public class PropertyAdder {
       System.exit(1);
     }
 
-    skipVirtual = cmd.hasOption("s");
+    skipVirtual = cmd.hasOption("v");
 
     overwrite = cmd.hasOption("o");
 
@@ -322,7 +322,7 @@ public class PropertyAdder {
     }
     // Just do it
     if ((propertyAdder != null) && (propertyAdder.process())) {
-      System.out.println("Properties added successfully.");
+      System.out.println("Process ran without errors.");
       System.exit(0);
     }
     else {
