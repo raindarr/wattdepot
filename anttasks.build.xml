@@ -65,7 +65,7 @@
 	  </manifest>
 	</jar>
 
-	<jar destfile="${build.jar.dir}/wattdepot-bridge-client.jar" basedir="${tmp.dir}">
+	<jar destfile="${build.jar.dir}/wattdepot-client-bridge.jar" basedir="${tmp.dir}">
 	  <manifest>
 		<attribute name="Main-Class" value="org.wattdepot.client.bridge.BridgeClient" />
 		<attribute name="Implementation-Title" value="WattDepot Bridge Client" />
@@ -94,6 +94,16 @@
 				   value="Collaborative Software Development Laboratory, University of Hawaii" />
 	  </manifest>
 	</jar>
+
+  <jar destfile="${build.jar.dir}/wattdepot-client-propertyadder.jar" basedir="${tmp.dir}">
+    <manifest>
+    <attribute name="Main-Class" value="org.wattdepot.client.property.PropertyAdder" />
+    <attribute name="Implementation-Title" value="WattDepot SensorLogDataConverter" />
+    <attribute name="Implementation-Version" value="${build.version}" />
+    <attribute name="Implementation-Vendor"
+           value="Collaborative Software Development Laboratory, University of Hawaii" />
+    </manifest>
+  </jar>
 
 	<unjar src="${settings.localRepository}/net/sf/opencsv/opencsv/${opencsv.version}/opencsv-${opencsv.version}.jar" dest="${tmp.dir}" />
 
