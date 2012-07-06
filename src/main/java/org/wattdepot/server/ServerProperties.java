@@ -90,10 +90,17 @@ public class ServerProperties {
   public static final String HEROKU_HOSTNAME_KEY = "wattdepot-server.heroku.hostname";
   /** The heroku database URL. */
   public static final String HEROKU_DATABASE_URL_KEY = "wattdepot-server.heroku.db.url";
-  /** The file to use for sensor configuraiton. */
+  /** The file to use for sensor configuration. */
   public static final String DATAINPUT_FILE_KEY = "wattdepot-server.datainput.file";
   /** Should sensors be started automatically? */
   public static final String DATAINPUT_START_KEY = "wattdepot-server.datainput.start";
+  /**
+   * The maximum number of threads to use for the WattDepot server. See this mailing list thread for
+   * more info:
+   * http://restlet.tigris.org/ds/viewMessage.do?dsForumId=4447&viewType=browseAll&dsMessageId
+   * =2625612
+   */
+  public static final String MAX_THREADS = "wattdepot-server.maxthreads";
 
   /** Where we store the properties. */
   private Properties properties;
@@ -155,19 +162,19 @@ public class ServerProperties {
     properties.setProperty(DERBY_SNAPSHOT_KEY, serverHome + "/Derby-snapshot");
     properties.setProperty(BERKELEYDB_DIR_KEY, serverHome + "/BerkeleyDb");
     properties.setProperty(POSTGRES_SNAPSHOT_KEY, serverHome + "/Postgres-snapshot");
-    properties
-        .setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
+    properties.setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
     properties.setProperty(DB_HOSTNAME_KEY, "localhost");
     properties.setProperty(DB_PORT_KEY, "5432");
     properties.setProperty(DB_DATABASE_NAME_KEY, "wattdepot");
     properties.setProperty(DATAINPUT_FILE_KEY, wattDepotHome + "client/datainput.properties");
     properties.setProperty(DATAINPUT_START_KEY, FALSE);
-    
+
     properties.setProperty(HOSTNAME_KEY, "localhost");
     properties.setProperty(LOGGING_LEVEL_KEY, "INFO");
     properties.setProperty(RESTLET_LOGGING_KEY, FALSE);
     properties.setProperty(SMTP_HOST_KEY, "mail.hawaii.edu");
     properties.setProperty(PORT_KEY, "8182");
+    properties.setProperty(MAX_THREADS, "255");
     properties.setProperty(TEST_DOMAIN_KEY, "example.com");
     properties.setProperty(TEST_INSTALL_KEY, FALSE);
     properties.setProperty(TEST_ADMIN_EMAIL_KEY, defaultAdmin);
@@ -283,8 +290,7 @@ public class ServerProperties {
     properties.setProperty(BERKELEYDB_DIR_KEY, properties.getProperty(TEST_BERKELEYDB_DIR_KEY));
     properties.setProperty(PORT_KEY, properties.getProperty(TEST_PORT_KEY));
     properties.setProperty(DB_HOSTNAME_KEY, properties.getProperty(TEST_DB_HOSTNAME_KEY));
-    properties
-        .setProperty(DB_DATABASE_NAME_KEY, properties.getProperty(TEST_DB_DATABASE_NAME_KEY));
+    properties.setProperty(DB_DATABASE_NAME_KEY, properties.getProperty(TEST_DB_DATABASE_NAME_KEY));
     properties.setProperty(DB_PORT_KEY, properties.getProperty(TEST_DB_PORT_KEY));
     properties.setProperty(TEST_INSTALL_KEY, TRUE);
     // Change the db implementation class if DB_IMPL_KEY is in system properties.

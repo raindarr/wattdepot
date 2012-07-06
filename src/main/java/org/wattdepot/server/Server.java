@@ -7,6 +7,7 @@ import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
 import static org.wattdepot.server.ServerProperties.PORT_KEY;
 import static org.wattdepot.server.ServerProperties.SERVER_HOME_DIR;
 import static org.wattdepot.server.ServerProperties.TEST_INSTALL_KEY;
+import static org.wattdepot.server.ServerProperties.MAX_THREADS;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -214,7 +215,16 @@ public class Server extends Application {
     server.hostName = server.serverProperties.getFullHost();
     int port = Integer.valueOf(server.serverProperties.get(PORT_KEY));
     server.component = new Component();
-    server.component.getServers().add(Protocol.HTTP, port);
+    org.restlet.Server httpServer = new org.restlet.Server(Protocol.HTTP, port);
+    server.component.getServers().add(httpServer);
+    // Based on this mailing list thread, the following line will set the number of http listening
+    // threads. The value is set in ServerProperties. Setting maxThreads too low can cause the
+    // server to spin with no threads available under heavy (or buggy) client load. See this thread
+    // for more info:
+    // http://restlet.tigris.org/ds/viewMessage.do?dsForumId=4447&viewType=browseAll&dsMessageId=2625612
+    httpServer.getContext().getParameters()
+        .add("maxThreads", server.serverProperties.get(MAX_THREADS).toString());
+
     server.component.getDefaultHost().attach("/" + server.serverProperties.get(CONTEXT_ROOT_KEY),
         server);
 
@@ -229,11 +239,6 @@ public class Server extends Application {
     server.getRoles().add(WattDepotEnroler.ADMINISTRATOR);
     server.getRoles().add(WattDepotEnroler.USER);
 
-    // Based on this mailing list thread, the following line will create more http listening
-    // threads, which was causing the server to spin with no threads available.
-    // http://restlet.tigris.org/ds/viewMessage.do?dsForumId=4447&viewType=browseAll&dsMessageId=2625612
-    server.getContext().getParameters().add("maxThreads", "128");
-
     Map<String, Object> attributes = server.getContext().getAttributes();
     // Put server and serverProperties in first, because dbManager() will look at serverProperties
     attributes.put("WattDepotServer", server);
@@ -246,8 +251,7 @@ public class Server extends Application {
     else {
       server.dbManager = new DbManager(server);
       try {
-        server
-            .loadDefaultResources(server.dbManager, server.serverProperties.get(SERVER_HOME_DIR));
+        server.loadDefaultResources(server.dbManager, server.serverProperties.get(SERVER_HOME_DIR));
       }
       catch (Exception e) {
         server.logger.severe("Unable to load default resources: " + e.toString());
@@ -386,8 +390,8 @@ public class Server extends Application {
             }
           }
           else {
-            logger.warning("Found unknown XML type in sensordata file "
-                + sensorDataFile.toString());
+            logger
+                .warning("Found unknown XML type in sensordata file " + sensorDataFile.toString());
           }
         }
         logger.info("Loaded " + dataCount + " sensor data objects from defaults.");
@@ -484,8 +488,7 @@ public class Server extends Application {
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + SENSORDATA_URI + "/"
         + TIMESTAMP_PARAM, SensorDataResource.class);
 
-    router.attach(
-        "/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + POWER_URI + "/" + TIMESTAMP_PARAM,
+    router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + POWER_URI + "/" + TIMESTAMP_PARAM,
         PowerResource.class);
 
     router.attach("/" + SOURCES_URI + "/" + SOURCE_PARAM + "/" + ENERGY_URI + "/",
