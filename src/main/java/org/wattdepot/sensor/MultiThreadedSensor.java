@@ -17,6 +17,7 @@ import org.wattdepot.datainput.SensorSource;
 import org.wattdepot.datainput.SensorSource.METER_TYPE;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.sensor.egauge.EGaugeSensor;
+import org.wattdepot.sensor.hammer.HammerSensor;
 import org.wattdepot.sensor.modbus.SharkSensor;
 import org.wattdepot.sensor.ted.Ted5000Sensor;
 import org.wattdepot.util.tstamp.Tstamp;
@@ -247,6 +248,19 @@ public abstract class MultiThreadedSensor extends TimerTask {
           && (meterType == null || type.equals(meterType))) {
         Ted5000Sensor sensor =
             new Ted5000Sensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
+        if (sensor.isValid()) {
+          System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
+          t.scheduleAtFixedRate(sensor, 0, sensor.getUpdateRate() * 1000);
+        }
+        else {
+          System.err.format("Cannot poll %s meter%n", s.getKey());
+          return false;
+        }
+      }
+      else if (SensorSource.METER_TYPE.HAMMER.equals(type)
+          && (meterType == null || type.equals(meterType))) {
+        HammerSensor sensor =
+            new HammerSensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
         if (sensor.isValid()) {
           System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
           t.scheduleAtFixedRate(sensor, 0, sensor.getUpdateRate() * 1000);

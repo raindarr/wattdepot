@@ -21,7 +21,9 @@ public class SensorSource {
     /** Ted5000Sensor. */
     TED5000,
     /** EGaugeSensor. */
-    EGAUGE
+    EGAUGE,
+    /** HammerSensor. */
+    HAMMER
   };
 
   /**

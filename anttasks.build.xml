@@ -105,6 +105,16 @@
     </manifest>
   </jar>
 
+    <jar destfile="${build.jar.dir}/wattdepot-sensor-hammer.jar" basedir="${tmp.dir}">
+      <manifest>
+      <attribute name="Main-Class" value="org.wattdepot.sensor.hammer.HammerSensor" />
+      <attribute name="Implementation-Title" value="WattDepot HammerSensor" />
+      <attribute name="Implementation-Version" value="${build.version}" />
+      <attribute name="Implementation-Vendor"
+             value="Collaborative Software Development Laboratory, University of Hawaii" />
+      </manifest>
+    </jar>
+
 	<unjar src="${settings.localRepository}/net/sf/opencsv/opencsv/${opencsv.version}/opencsv-${opencsv.version}.jar" dest="${tmp.dir}" />
 
 	<jar destfile="${build.jar.dir}/wattdepot-sensor-tabular.jar" basedir="${tmp.dir}">
