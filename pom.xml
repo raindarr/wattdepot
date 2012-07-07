@@ -34,7 +34,7 @@
 	<opencsv.version>2.0</opencsv.version>
 	<pool.version>1.5.7</pool.version>
 	<postgres.version>8.3-603.jdbc3</postgres.version>
-	<restlet.version>2.0.11</restlet.version>
+	<restlet.version>2.0.14</restlet.version>
 	
 	<!-- Maven Plugin Versions -->
 	<antrun.plugin.version>1.7</antrun.plugin.version>
