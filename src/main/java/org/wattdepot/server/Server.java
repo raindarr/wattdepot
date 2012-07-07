@@ -224,6 +224,9 @@ public class Server extends Application {
     // http://restlet.tigris.org/ds/viewMessage.do?dsForumId=4447&viewType=browseAll&dsMessageId=2625612
     httpServer.getContext().getParameters()
         .add("maxThreads", server.serverProperties.get(MAX_THREADS).toString());
+    // Try turning off persistent connections to see if that helps thread exhaustion problems 
+//    httpServer.getContext().getParameters()
+//        .add("persistingConnections", "false");
 
     server.component.getDefaultHost().attach("/" + server.serverProperties.get(CONTEXT_ROOT_KEY),
         server);
