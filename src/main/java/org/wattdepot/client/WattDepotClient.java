@@ -101,7 +101,6 @@ public class WattDepotClient {
     this.password = password;
     // nuke the Restlet loggers
     RestletLoggerUtil.removeRestletLoggers();
-
   }
 
   /**
@@ -152,11 +151,24 @@ public class WattDepotClient {
    * @return true if the server is healthy, false if not healthy
    */
   public boolean isHealthy() {
-    ClientResource client = makeClient(Server.HEALTH_URI);
-    client.head();
-    boolean healthy = client.getStatus().isSuccess();
-    client.release();
-    return healthy;
+    ClientResource client = null;
+    try {
+      client = makeClient(Server.HEALTH_URI);
+      client.head();
+      boolean healthy = client.getStatus().isSuccess();
+      client.release();
+      return healthy;
+    }
+    catch (ResourceException e) {
+      // Unexpected ResourceException in getting HEAD, so server is not healthy
+      return false;
+    }
+    finally {
+      // Just making sure client is always released
+      if (client != null) {
+        client.release();
+      }
+    }
   }
 
   /**
@@ -187,11 +199,24 @@ public class WattDepotClient {
       return false;
     }
     else {
-      ClientResource client = makeClient(usersUri);
-      client.head();
-      boolean healthy = client.getStatus().isSuccess();
-      client.release();
-      return healthy;
+      ClientResource client = null;
+      try {
+        client = makeClient(usersUri);
+        client.head();
+        boolean healthy = client.getStatus().isSuccess();
+        client.release();
+        return healthy;
+      }
+      catch (ResourceException e) {
+        // Unexpected ResourceException in getting HEAD, so assume not authenticated
+        return false;
+      }
+      finally {
+        // Just making sure client is always released
+        if (client != null) {
+          client.release();
+        }
+      }
     }
   }
 
@@ -693,9 +718,8 @@ public class WattDepotClient {
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
    */
-  private double getLatestSensorDataValue(String source, String key)
-      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
-      MiscClientException {
+  private double getLatestSensorDataValue(String source, String key) throws NotAuthorizedException,
+      ResourceNotFoundException, BadXmlException, MiscClientException {
     SensorData data = getLatestSensorData(source);
     return data.getProperties().getPropertyAsDouble(key);
   }
@@ -1118,8 +1142,7 @@ public class WattDepotClient {
   public double getEnergyGenerated(String source, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime, int samplingInterval) throws NotAuthorizedException,
       ResourceNotFoundException, BadXmlException, MiscClientException {
-    return getEnergyValue(source, startTime, endTime, samplingInterval,
-        SensorData.ENERGY_GENERATED);
+    return getEnergyValue(source, startTime, endTime, samplingInterval, SensorData.ENERGY_GENERATED);
   }
 
   /**
@@ -1374,9 +1397,9 @@ public class WattDepotClient {
    * @throws MiscClientException If error is encountered retrieving the resource, or some unexpected
    * problem is encountered.
    */
-  public double getCarbonEmitted(String source, XMLGregorianCalendar startTime,
-      int samplingInterval) throws NotAuthorizedException, ResourceNotFoundException,
-      BadXmlException, MiscClientException {
+  public double getCarbonEmitted(String source, XMLGregorianCalendar startTime, int samplingInterval)
+      throws NotAuthorizedException, ResourceNotFoundException, BadXmlException,
+      MiscClientException {
     SensorData data = getCarbon(source, startTime, samplingInterval);
     return data.getProperties().getPropertyAsDouble(SensorData.CARBON_EMITTED);
   }
@@ -1427,41 +1450,45 @@ public class WattDepotClient {
     String uri =
         Server.SOURCES_URI + "/" + UriUtils.getUriSuffix(data.getSource()) + "/"
             + Server.SENSORDATA_URI + "/" + data.getTimestamp().toXMLFormat();
-    ClientResource client = makeClient(uri);
-    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    ClientResource client = null;
+    ResourceInterface resource;
+    Status status;
 
     try {
+      client = makeClient(uri);
+      resource = client.wrap(ResourceInterface.class);
       resource.store(writer.toString());
+      status = client.getStatus();
     }
     catch (ResourceException e) {
-      Status status = e.getStatus();
+      Status exceptionStatus = e.getStatus();
 
-      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      if (exceptionStatus.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
         // credentials were unacceptable to server
-        throw new NotAuthorizedException(status);
+        throw new NotAuthorizedException(exceptionStatus);
       }
-      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      if (exceptionStatus.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
         // an unknown source name was specified
-        throw new ResourceNotFoundException(status);
+        throw new ResourceNotFoundException(exceptionStatus);
       }
-      if (status.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
+      if (exceptionStatus.equals(Status.CLIENT_ERROR_BAD_REQUEST)) {
         // either bad timestamp provided in URI or bad XML in entity body
-        throw new BadXmlException(status);
+        throw new BadXmlException(exceptionStatus);
       }
-      if (status.equals(Status.CLIENT_ERROR_CONFLICT)) {
+      if (exceptionStatus.equals(Status.CLIENT_ERROR_CONFLICT)) {
         // client attempted to overwrite existing data
-        throw new OverwriteAttemptedException(status);
+        throw new OverwriteAttemptedException(exceptionStatus);
       }
       else {
         // Some totally unexpected non-success status code, just throw generic client exception
-        throw new MiscClientException(status);
+        throw new MiscClientException(exceptionStatus);
       }
     }
     finally {
-      client.release();
+      if (client != null) {
+        client.release();
+      }
     }
-    Status status = client.getStatus();
-    client.release();
 
     if (status.isSuccess()) {
       return true;
@@ -1662,8 +1689,7 @@ public class WattDepotClient {
       }
       catch (ResourceNotFoundException e) {
         // We got the SourceIndex already, so we know the source exists. this should never happen
-        throw new MiscClientException("SourceRef from Source index had non-existent source name",
-            e);
+        throw new MiscClientException("SourceRef from Source index had non-existent source name", e);
       }
     }
     return userList;
@@ -1982,33 +2008,37 @@ public class WattDepotClient {
   public Source getSource(String source) throws NotAuthorizedException, ResourceNotFoundException,
       BadXmlException, MiscClientException {
 
-    ClientResource client = makeClient(Server.SOURCES_URI + "/" + source);
-    ResourceInterface resource = client.wrap(ResourceInterface.class);
+    ClientResource client = null;
+    ResourceInterface resource;
     String xmlString = null;
+    Status status;
     try {
+      client = makeClient(Server.SOURCES_URI + "/" + source);
+      resource = client.wrap(ResourceInterface.class);
       xmlString = resource.getXml();
+      status = client.getStatus();
     }
     catch (ResourceException e) {
-      Status status = e.getStatus();
-      if (status.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
+      Status exceptionStatus = e.getStatus();
+      if (exceptionStatus.equals(Status.CLIENT_ERROR_UNAUTHORIZED)) {
         // credentials were unacceptable to server
-        throw new NotAuthorizedException(status);
+        throw new NotAuthorizedException(exceptionStatus);
       }
-      if (status.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
+      if (exceptionStatus.equals(Status.CLIENT_ERROR_NOT_FOUND)) {
         // an unknown source name was specified
-        throw new ResourceNotFoundException(status);
+        throw new ResourceNotFoundException(exceptionStatus);
       }
       else {
         // Some totally unexpected non-success status code, just throw generic client exception
-        throw new MiscClientException(status);
+        throw new MiscClientException(exceptionStatus);
       }
     }
     finally {
-      client.release();
+      if (client != null) {
+        client.release();
+      }
     }
 
-    Status status = client.getStatus();
-    client.release();
     if (status.isSuccess()) {
       try {
         Unmarshaller unmarshaller = sourceJAXB.createUnmarshaller();
@@ -2061,8 +2091,7 @@ public class WattDepotClient {
       overwriteFlag = "";
     }
 
-    ClientResource client =
-        makeClient(Server.SOURCES_URI + "/" + source.getName() + overwriteFlag);
+    ClientResource client = makeClient(Server.SOURCES_URI + "/" + source.getName() + overwriteFlag);
     ResourceInterface resource = client.wrap(ResourceInterface.class);
     try {
       resource.store(writer.toString());
