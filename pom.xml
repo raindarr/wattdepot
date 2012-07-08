@@ -117,8 +117,13 @@
 		<groupId>org.restlet.jse</groupId>  
 		<artifactId>org.restlet</artifactId>  
 		<version>${restlet.version}</version>  
-	</dependency> 
-	<dependency>
+	</dependency>
+  <dependency>
+    <groupId>org.restlet.jse</groupId>
+    <artifactId>org.restlet.ext.jetty</artifactId>
+    <version>${restlet.version}</version>
+  </dependency>
+  <dependency>
 		<groupId>net.wimpi.modbus</groupId>
 		<artifactId>jamod</artifactId>
 		<version>${modbus-jamod.version}</version>
