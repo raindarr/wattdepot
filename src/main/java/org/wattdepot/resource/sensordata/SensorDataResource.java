@@ -2,7 +2,6 @@ package org.wattdepot.resource.sensordata;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.wattdepot.util.tstamp.Tstamp;
 import org.restlet.data.Status;
 import org.wattdepot.resource.ResourceInterface;
 import org.wattdepot.resource.WattDepotResource;
@@ -10,6 +9,7 @@ import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.server.Server;
 import org.wattdepot.server.db.DbBadIntervalException;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Represents sensed data about the world. The primary purpose of WattDepot is to allow the storage

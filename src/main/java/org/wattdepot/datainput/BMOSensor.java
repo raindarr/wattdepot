@@ -346,13 +346,13 @@ public class BMOSensor {
     }
     else if (status.isError()) {
       System.err.format("Unable to retrieve data from BMO, status code: %d %s %s%n", status
-          .getCode(), status.getName(), status.getDescription());
+          .getCode(), status.getReasonPhrase(), status.getDescription());
       return null;
     }
     else {
       System.err.format(
           "Unexpected status from BMO (neither error nor success), status code: %d %s %s%n", status
-              .getCode(), status.getName(), status.getDescription());
+              .getCode(), status.getReasonPhrase(), status.getDescription());
       return null;
     }
   }

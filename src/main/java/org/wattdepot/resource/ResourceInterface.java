@@ -27,7 +27,7 @@ public interface ResourceInterface {
    * 
    * @param entity The entity to store
    */
-  @Put
+  @Put()
   public void store(String entity);
 
   /**

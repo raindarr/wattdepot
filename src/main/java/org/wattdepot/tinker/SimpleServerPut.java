@@ -44,7 +44,7 @@ public class SimpleServerPut extends Component implements Runnable {
     // Create an application
     Application application = new Application(simpleServer.getContext()) {
       @Override
-      public Restlet createRoot() {
+      public Restlet createInboundRoot() {
         return new Directory(getContext(), "C:");
       }
     };

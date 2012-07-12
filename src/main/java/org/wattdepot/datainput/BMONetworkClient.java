@@ -2,6 +2,8 @@ package org.wattdepot.datainput;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.restlet.Client;
+import org.restlet.Request;
+import org.restlet.Response;
 import org.restlet.data.ChallengeResponse;
 import org.restlet.data.ChallengeScheme;
 import org.restlet.data.MediaType;
@@ -9,19 +11,17 @@ import org.restlet.data.Method;
 import org.restlet.data.Preference;
 import org.restlet.data.Protocol;
 import org.restlet.data.Reference;
-import org.restlet.Request;
-import org.restlet.Response;
 
 /**
  * Provides a means to retrieve sensor data from a BMO server.
- *  
+ * 
  * @author Robert Brewer
  */
 public class BMONetworkClient {
 
   /** The URI to the BMO server. */
   protected String uri;
-  
+
   /** The username for the BMO server. */
   protected String username;
 
@@ -38,7 +38,7 @@ public class BMONetworkClient {
    * Creates a new BMONetworkClient with the parameters needed to communicate with BMO.
    * 
    * @param uri The URI of the BMO server.
-   * @param username The username for the BMO server. 
+   * @param username The username for the BMO server.
    * @param password The password for the BMO server.
    * @param dbValue The DB value for the BMO server.
    * @param asValue The AS value for the BMO server.
@@ -51,7 +51,7 @@ public class BMONetworkClient {
     this.dbValue = dbValue;
     this.asValue = asValue;
   }
-  
+
   /**
    * Makes an HTTP request to BMO server for meter data, returning the response from the server.
    * 
@@ -63,7 +63,9 @@ public class BMONetworkClient {
   public Response makeBMORequest(String meterNumber, XMLGregorianCalendar startTime,
       XMLGregorianCalendar endTime) {
     Client client = new Client(Protocol.HTTP);
-    client.setConnectTimeout(2000);
+    // The following line should set the connect timeout to 2 seconds. However, since the BMO
+    // sensor is no longer in production use, this hasn't been tested...
+    client.getContext().getParameters().add("socketConnectTimeoutMs", "2000");
 
     Reference reference = new Reference(this.uri);
     // Add query parameters needed by data download page
@@ -95,8 +97,8 @@ public class BMONetworkClient {
     reference.addQueryParameter("mnuEndTime", Integer.toString(endTime.getHour()) + ":"
         + minuteString);
     Request request = new Request(Method.GET, reference);
-    request.getClientInfo().getAcceptedMediaTypes().add(
-        new Preference<MediaType>(MediaType.APPLICATION_ALL));
+    request.getClientInfo().getAcceptedMediaTypes()
+        .add(new Preference<MediaType>(MediaType.APPLICATION_ALL));
     ChallengeResponse authentication =
         new ChallengeResponse(ChallengeScheme.HTTP_BASIC, this.username, this.password);
     request.setChallengeResponse(authentication);
