@@ -4,10 +4,10 @@ import static org.wattdepot.server.ServerProperties.CONTEXT_ROOT_KEY;
 import static org.wattdepot.server.ServerProperties.DATAINPUT_FILE_KEY;
 import static org.wattdepot.server.ServerProperties.DATAINPUT_START_KEY;
 import static org.wattdepot.server.ServerProperties.LOGGING_LEVEL_KEY;
+import static org.wattdepot.server.ServerProperties.MAX_THREADS;
 import static org.wattdepot.server.ServerProperties.PORT_KEY;
 import static org.wattdepot.server.ServerProperties.SERVER_HOME_DIR;
 import static org.wattdepot.server.ServerProperties.TEST_INSTALL_KEY;
-import static org.wattdepot.server.ServerProperties.MAX_THREADS;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -506,6 +506,7 @@ public class Server extends Application {
         + TIMESTAMP_PARAM, GVisualizationResource.class);
 
     router.attach("/" + DATABASE_URI + "/" + "{method}", DatabaseResource.class);
+    
     router.attachDefault(NoResource.class);
     router.attach("/", NoResource.class, Template.MODE_STARTS_WITH);
 

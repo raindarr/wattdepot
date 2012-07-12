@@ -25,14 +25,16 @@ public class WattDepotVerifier extends SecretVerifier {
   }
 
   @Override
-  public boolean verify(String identifier, char[] secret) throws IllegalArgumentException {
+  public int verify(String identifier, char[] secret) throws IllegalArgumentException {
     User user = dbManager.getUser(identifier);
     if (user == null) {
-      return false;
+      return RESULT_UNKNOWN;
+    }
+    else if (compare(user.getPassword().toCharArray(), secret)) {
+      return RESULT_VALID;
     }
     else {
-      return compare(user.getPassword().toCharArray(), secret);
+      return RESULT_INVALID;
     }
   }
-
 }

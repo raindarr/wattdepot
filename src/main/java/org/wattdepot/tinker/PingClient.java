@@ -26,7 +26,8 @@ public class PingClient {
     request.setResourceRef(registerUri);
     request.setMethod(Method.GET);
     Client client = new Client(Protocol.HTTP);
-    client.setConnectTimeout(2000);
+    // The following line should set the connect timeout to 2 seconds.
+    client.getContext().getParameters().add("socketConnectTimeoutMs", "2000");
     Response response = client.handle(request);
     if (response.getStatus().isSuccess()) {
       String pingText;
