@@ -18,7 +18,7 @@
 	<classpathentry kind="var" path="M2_REPO/org/apache/derby/derby/10.5.3.0_1/derby-10.5.3.0_1.jar"/>
 	<classpathentry kind="var" path="M2_REPO/com/sleepycat/je/4.0.92/je-4.0.92.jar"/>
 	<classpathentry kind="var" path="M2_REPO/com/google/visualization/visualization-datasource/1.0.2/visualization-datasource-1.0.2.jar"/>
-	<classpathentry kind="var" path="M2_REPO/org/restlet/jse/org.restlet/2.1-RC5/org.restlet-2.1-RC5.jar">
+	<classpathentry kind="var" path="M2_REPO/org/restlet/jse/org.restlet/2.1-RC5/org.restlet-2.1-RC5.jar" sourcepath="/M2_REPO/org/restlet/jse/org.restlet/2.1-RC5/src">
 		<attributes>
 			<attribute name="javadoc_location" value="http://www.restlet.org/documentation/2.0/jee/api/"/>
 		</attributes>

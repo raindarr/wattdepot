@@ -9,10 +9,12 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.datatype.XMLGregorianCalendar;
-import org.restlet.data.Form;
 import org.restlet.data.Method;
 import org.restlet.data.Status;
+import org.restlet.engine.header.Header;
+import org.restlet.engine.header.HeaderConstants;
 import org.restlet.resource.ServerResource;
+import org.restlet.util.Series;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
 import org.wattdepot.resource.sensordata.jaxb.SensorDataIndex;
 import org.wattdepot.resource.sensordata.jaxb.SensorDatas;
@@ -103,19 +105,22 @@ public class WattDepotResource extends ServerResource {
     this.uriSource = (String) this.getRequest().getAttributes().get("source");
 
     // This resource has only one type of representation.
-    // getVariants().add(new Variant(MediaType.TEXT_XML));
+//    getVariants().add(new Variant(MediaType.TEXT_XML));
 
     // Add Cross-Origin Resource Sharing header to all responses.
     // See https://developer.mozilla.org/En/HTTP_access_control for more details
     // TODO This should really be done at the individual resource level and should add the header
     // only for public resources, but this is a quick hack to support a JavaScript application.
-    // Code from here: http://blog.arc90.com/2008/09/15/custom-http-response-headers-with-restlet/
-    Form responseHeaders = (Form) getResponse().getAttributes().get("org.restlet.http.headers");
+    // Code from this thread:
+    // http://wiki.restlet.org/docs_2.1/13-restlet/21-restlet/171-restlet/155-restlet.html
+    @SuppressWarnings("unchecked")
+    Series<Header> responseHeaders =
+        (Series<Header>) getResponse().getAttributes().get(HeaderConstants.ATTRIBUTE_HEADERS);
     if (responseHeaders == null) {
-      responseHeaders = new Form();
-      getResponse().getAttributes().put("org.restlet.http.headers", responseHeaders);
+      responseHeaders = new Series<Header>(Header.class);
+      getResponse().getAttributes().put(HeaderConstants.ATTRIBUTE_HEADERS, responseHeaders);
     }
-    responseHeaders.add("Access-Control-Allow-Origin", "*");
+    responseHeaders.add(new Header("Access-Control-Allow-Origin", "*"));
 
     if (!isAnonymous() && !validateCredentials()) {
       this.server.guard.forbid(this.getResponse());
@@ -563,8 +568,8 @@ public class WattDepotResource extends ServerResource {
    * cannot be found/calculated.
    * @throws JAXBException If there are problems mashalling the SensorData.
    */
-  public String getEnergy(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime,
-      int interval) throws JAXBException {
+  public String getEnergy(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime, int interval)
+      throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorData energyData = null;
@@ -633,8 +638,8 @@ public class WattDepotResource extends ServerResource {
    * cannot be found/calculated.
    * @throws JAXBException If there are problems mashalling the SensorData.
    */
-  public String getCarbon(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime,
-      int interval) throws JAXBException {
+  public String getCarbon(XMLGregorianCalendar startTime, XMLGregorianCalendar endTime, int interval)
+      throws JAXBException {
     Marshaller marshaller = sensorDataJaxbContext.createMarshaller();
     StringWriter writer = new StringWriter();
     SensorData carbonData = null;
