@@ -111,7 +111,7 @@ public class WattDepotResource extends ServerResource {
     // See https://developer.mozilla.org/En/HTTP_access_control for more details
     // TODO This should really be done at the individual resource level and should add the header
     // only for public resources, but this is a quick hack to support a JavaScript application.
-    // Code from this thread:
+    // Code from this wiki page:
     // http://wiki.restlet.org/docs_2.1/13-restlet/21-restlet/171-restlet/155-restlet.html
     @SuppressWarnings("unchecked")
     Series<Header> responseHeaders =
