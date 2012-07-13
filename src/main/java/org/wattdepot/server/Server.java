@@ -218,15 +218,24 @@ public class Server extends Application {
     org.restlet.Server httpServer = new org.restlet.Server(Protocol.HTTP, port);
     server.component.getServers().add(httpServer);
     // Based on this mailing list thread, the following line will set the number of http listening
-    // threads. The value is set in ServerProperties. Setting maxThreads too low can cause the
-    // server to spin with no threads available under heavy (or buggy) client load. See this thread
-    // for more info:
+    // threads (when using the default server connector??). The value is set in ServerProperties.
+    // Setting maxThreads too low can cause the server to spin with no threads available under
+    // heavy (or buggy) client load. See this thread for more info:
     // http://restlet.tigris.org/ds/viewMessage.do?dsForumId=4447&viewType=browseAll&dsMessageId=2625612
     httpServer.getContext().getParameters()
         .add("maxThreads", server.serverProperties.get(MAX_THREADS).toString());
-    // Try turning off persistent connections to see if that helps thread exhaustion problems 
-//    httpServer.getContext().getParameters()
-//        .add("persistingConnections", "false");
+    // More thread tweaks, based on this message from Restlet mailing list:
+    // http://restlet.tigris.org/ds/viewMessage.do?dsForumId=4447&dsMessageId=2976752
+//    httpServer.getContext().getParameters().add("minThreads", "10");
+//    httpServer.getContext().getParameters().add("lowThreads", "145");
+//    httpServer.getContext().getParameters().add("maxQueued", "20");
+
+    // Only thread parameter for Simple server connector, so bump it up too: 
+//    httpServer.getContext().getParameters().add("defaultThreads", "50");
+    
+    // Try turning off persistent connections to see if that helps thread exhaustion problems
+    // httpServer.getContext().getParameters()
+    // .add("persistingConnections", "false");
 
     server.component.getDefaultHost().attach("/" + server.serverProperties.get(CONTEXT_ROOT_KEY),
         server);
@@ -506,7 +515,7 @@ public class Server extends Application {
         + TIMESTAMP_PARAM, GVisualizationResource.class);
 
     router.attach("/" + DATABASE_URI + "/" + "{method}", DatabaseResource.class);
-    
+
     router.attachDefault(NoResource.class);
     router.attach("/", NoResource.class, Template.MODE_STARTS_WITH);
 
