@@ -408,7 +408,7 @@ public class DataCache {
    * frequency and the last checkpoint time.
    * 
    * @param sourceName The name of the source we are considering checkpointing.
-   * @param timestamp The time of the senosr data we are considering checkpointing.
+   * @param timestamp The time of the sensor data we are considering checkpointing.
    * @param checkpointFrequency The number of minutes that should be between checkpoints.
    * @return True if there is no known last checkpoint time, if the given timestamp is before the
    * last checkpoint time, or if checkpointFrequency minutes have passed between the last checkpoint
