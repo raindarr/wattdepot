@@ -183,7 +183,7 @@ public class TestDbManagerCache extends DbManagerTestHelper {
     assertEquals("Cache retrieved incorrect latest sensor data", this.data5,
         this.manager.cache.getLatestSensorData(source1name));
     assertEquals("DbImpl retrieved incorrect latest sensor data", this.data5,
-        this.manager.dbImpl.getLatestSensorData(source1name));
+        this.manager.dbImpl.getLatestNonVirtualSensorData(source1name));
 
     assertTrue("Could not delete sensor data",
         this.manager.deleteSensorData(source1name, this.data5.getTimestamp()));
@@ -193,7 +193,7 @@ public class TestDbManagerCache extends DbManagerTestHelper {
     assertEquals("Cache retrieved incorrect latest sensor data", this.data4,
         this.manager.cache.getLatestSensorData(source1name));
     assertEquals("DbImpl retrieved incorrect latest sensor data", this.data3,
-        this.manager.dbImpl.getLatestSensorData(source1name));
+        this.manager.dbImpl.getLatestNonVirtualSensorData(source1name));
   }
 
   /**
@@ -301,12 +301,12 @@ public class TestDbManagerCache extends DbManagerTestHelper {
     assertEquals("Cache returned incorrect latest sensor data", data2,
         manager.cache.getLatestSensorData(source1name));
     assertEquals("Storage returned incorrect latest sensor data", data3,
-        manager.dbImpl.getLatestSensorData(source1name));
+        manager.dbImpl.getLatestNonVirtualSensorData(source1name));
     // When we go through dbManager, this doesn't actually return the latest data available.
     // It returns the latest data point in the cache, and since it found something it doesn't bother
     // checking storage. (Usually they'll be the same, but we fudge it here to prove a point.)
     assertEquals("DbManager returned incorrect latest sensor data", data2,
-        manager.cache.getLatestSensorData(source1name));
+        manager.getLatestSensorData(source1name));
   }
 
   /**

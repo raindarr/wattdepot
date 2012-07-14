@@ -3,8 +3,12 @@ package org.wattdepot.server.db;
 import static org.wattdepot.server.ServerProperties.DB_IMPL_KEY;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javax.xml.datatype.XMLGregorianCalendar;
+import org.wattdepot.resource.property.jaxb.Properties;
+import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.StraddleList;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
@@ -22,6 +26,7 @@ import org.wattdepot.server.ServerProperties;
 import org.wattdepot.server.cache.DataCache;
 import org.wattdepot.util.StackTrace;
 import org.wattdepot.util.UriUtils;
+import org.wattdepot.util.tstamp.Tstamp;
 
 /**
  * Provides an interface to storage for the resources managed by the WattDepot server. Portions of
@@ -446,11 +451,64 @@ public class DbManager {
    * @return The SensorData resource, or null.
    */
   public SensorData getLatestSensorData(String sourceName) {
-    SensorData cached = this.cache.getLatestSensorData(sourceName);
-    if (cached != null) {
-      return cached;
+    if (sourceName == null) {
+      return null;
     }
-    return this.dbImpl.getLatestSensorData(sourceName);
+    Source baseSource = getSource(sourceName);
+    if (baseSource == null) {
+      return null;
+    }
+    if (baseSource.isVirtual()) {
+      // Storing combined properties as Map while summing to make life easier
+      Map<String, Double> combinedMap = new LinkedHashMap<String, Double>();
+      XMLGregorianCalendar combinedTimestamp = null;
+      // Want to go through sensordata for base source, and all subsources recursively
+      List<Source> sourceList = getAllNonVirtualSubSources(baseSource);
+      for (Source subSource : sourceList) {
+        String subSourceName = subSource.getName();
+        SensorData data = this.cache.getLatestSensorData(subSourceName);
+        if (data == null) {
+          // Not in cache, try persistent store
+          data = this.dbImpl.getLatestNonVirtualSensorData(subSourceName); 
+        }
+        if (data != null) {
+          // record this timestamp if it is the first we've seen or is most recent so far
+          if ((combinedTimestamp == null)
+              || (Tstamp.lessThan(data.getTimestamp(), combinedTimestamp))) {
+            combinedTimestamp = data.getTimestamp();
+          }
+          // iterate over all properties found in data
+          for (Property prop : data.getProperties().getProperty()) {
+            Double combinedValue = combinedMap.get(prop.getKey());
+            if (combinedValue == null) {
+              // The combined property list does not have this property yet, so just add it verbatim
+              combinedMap.put(prop.getKey(), Double.valueOf(prop.getValue()));
+            }
+            else {
+              // Must add this property's value to existing sum. Assumes all sensor data properties
+              // are doubles, which is questionable
+              double newValue = combinedValue + Double.valueOf(prop.getValue());
+              combinedMap.put(prop.getKey(), newValue);
+            }
+          }
+        }
+      }
+      // Convert map to Properties
+      Properties combinedProps = new Properties();
+      for (Map.Entry<String, Double> entry : combinedMap.entrySet()) {
+        combinedProps.getProperty().add(new Property(entry.getKey(), entry.getValue().toString()));
+      }
+      return new SensorData(combinedTimestamp, SensorData.SERVER_TOOL, baseSource.toUri(server),
+          combinedProps);
+    }
+    else {
+      // Non-virtual source, just return latest sensor data
+      SensorData cached = this.cache.getLatestSensorData(sourceName);
+      if (cached != null) {
+        return cached;
+      }
+      return this.dbImpl.getLatestNonVirtualSensorData(sourceName);
+    }
   }
 
   /**
