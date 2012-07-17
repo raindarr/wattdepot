@@ -224,7 +224,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
             new SharkSensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
         if (sensor.isValid()) {
           System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
-          t.scheduleAtFixedRate(sensor, 0, sensor.getUpdateRate() * 1000);
+          t.schedule(sensor, 0, sensor.getUpdateRate() * 1000);
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
@@ -237,7 +237,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
             new EGaugeSensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
         if (sensor.isValid()) {
           System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
-          t.scheduleAtFixedRate(sensor, 0, sensor.getUpdateRate() * 1000);
+          t.schedule(sensor, 0, sensor.getUpdateRate() * 1000);
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
@@ -250,7 +250,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
             new Ted5000Sensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
         if (sensor.isValid()) {
           System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
-          t.scheduleAtFixedRate(sensor, 0, sensor.getUpdateRate() * 1000);
+          t.schedule(sensor, 0, sensor.getUpdateRate() * 1000);
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
@@ -263,7 +263,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
             new HammerSensor(wattDepotUri, wattDepotUsername, wattDepotPassword, s, debug);
         if (sensor.isValid()) {
           System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
-          t.scheduleAtFixedRate(sensor, 0, sensor.getUpdateRate() * 1000);
+          t.schedule(sensor, 0, sensor.getUpdateRate() * 1000);
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
