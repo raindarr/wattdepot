@@ -20,12 +20,10 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.w3c.dom.Document;
-import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.datainput.SensorSource;
 import org.wattdepot.datainput.SensorSource.METER_TYPE;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.sensor.MultiThreadedSensor;
 import org.wattdepot.util.tstamp.Tstamp;
 import org.xml.sax.SAXException;
@@ -41,15 +39,11 @@ public class Ted5000Sensor extends MultiThreadedSensor {
 
   /** Name of this tool. */
   private static final String toolName = "Ted5000Sensor";
-  /** The default polling rate, in seconds. */
-  private static final int DEFAULT_UPDATE_RATE = 10;
-  /** The polling rate that indicates that it needs to be set to a default. */
-  private static final int UPDATE_RATE_SENTINEL = 0;
 
   /**
    * Initializes an Ted5000 sensor by calling the constructor for MultiThreadedSensor.
    * 
-   * @param wattDepotUri Uri of the WattDepot server to send this sensor data to.
+   * @param wattDepotUri URI of the WattDepot server to send this sensor data to.
    * @param wattDepotUsername Username to connect to the WattDepot server with.
    * @param wattDepotPassword Password to connect to the WattDepot server with.
    * @param sensorSource The SensorSource containing configuration settings for this sensor.
@@ -62,50 +56,11 @@ public class Ted5000Sensor extends MultiThreadedSensor {
 
   @Override
   public void run() {
-    String sourceURI = Source.sourceToUri(this.sourceName, wattDepotUri);
-
-    WattDepotClient client =
-        new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);
-
-    if (this.updateRate == UPDATE_RATE_SENTINEL) {
-      // Need to pick a reasonable default pollingInterval
-      // Check the polling rate specified in the source
-      Source source = getSourceFromClient(client);
-      if (source == null) {
-        this.cancel();
-        return;
-      }
-      String updateIntervalString = source.getProperty(Source.UPDATE_INTERVAL);
-      if (updateIntervalString == null) {
-        // no update interval, so just use hard coded default
-        this.updateRate = DEFAULT_UPDATE_RATE;
-      }
-      else {
-        int possibleInterval;
-        try {
-          possibleInterval = Integer.valueOf(updateIntervalString);
-          if (possibleInterval > DEFAULT_UPDATE_RATE) {
-            // Sane interval, so use it
-            this.updateRate = possibleInterval;
-          }
-          else {
-            // Bogus interval, so use hard coded default
-            this.updateRate = DEFAULT_UPDATE_RATE;
-          }
-        }
-        catch (NumberFormatException e) {
-          System.err.println("Unable to parse updateInterval, using default value: "
-              + DEFAULT_UPDATE_RATE);
-          // Bogus interval, so use hard coded default
-          this.updateRate = DEFAULT_UPDATE_RATE;
-        }
-      }
-    }
 
     SensorData data = null;
     // Get data from TED
     try {
-      data = pollTed(this.meterHostname, toolName, sourceURI);
+      data = pollTed(this.meterHostname, toolName, this.sourceUri);
     }
     catch (XPathExpressionException e) {
       System.err.println("Bad XPath expression, this should never happen.");
@@ -159,10 +114,6 @@ public class Ted5000Sensor extends MultiThreadedSensor {
     DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
     domFactory.setNamespaceAware(true);
     DocumentBuilder builder = domFactory.newDocumentBuilder();
-
-    if ((hostname == null) || (hostname.length() == 0)) {
-      throw new IllegalArgumentException("No hostname was provided");
-    }
 
     // Have to make HTTP connection manually so we can set proper timeouts
     URL url;

@@ -4,6 +4,8 @@ import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_PASSWO
 import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_URI_KEY;
 import static org.wattdepot.datainput.DataInputClientProperties.WATTDEPOT_USERNAME_KEY;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -23,11 +25,9 @@ import org.wattdepot.sensor.ted.Ted5000Sensor;
 import org.wattdepot.util.tstamp.Tstamp;
 
 /**
- * 
  * Common functionality for all Multi-Threaded Sensors.
  * 
  * @author Andrea Connell
- * 
  */
 public abstract class MultiThreadedSensor extends TimerTask {
 
@@ -45,6 +45,11 @@ public abstract class MultiThreadedSensor extends TimerTask {
   /** The hostname of the Shark meter to be monitored. */
   protected String meterHostname;
 
+  /** The client used to communicate with the WattDepot server. */
+  protected WattDepotClient client;
+  /** URI of Source where data will be stored. Needed to create SensorData object. */
+  protected String sourceUri;
+
   /** The default polling rate, in seconds. */
   protected static final int DEFAULT_UPDATE_RATE = 10;
   /** The polling rate that indicates that it needs to be set to a default. */
@@ -59,7 +64,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
   /**
    * Creates the new streaming sensor.
    * 
-   * @param wattDepotUri Uri of the WattDepot server to send this sensor data to.
+   * @param wattDepotUri URI of the WattDepot server to send this sensor data to.
    * @param wattDepotUsername Username to connect to the WattDepot server with.
    * @param wattDepotPassword Password to connect to the WattDepot server with.
    * @param sensorSource The SensorSource containing configuration settings for this sensor.
@@ -70,46 +75,35 @@ public abstract class MultiThreadedSensor extends TimerTask {
     this.wattDepotUri = wattDepotUri;
     this.wattDepotUsername = wattDepotUsername;
     this.wattDepotPassword = wattDepotPassword;
+    this.client = new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);
     this.sourceKey = sensorSource.getKey();
     this.sourceName = sensorSource.getName();
     this.meterHostname = sensorSource.getMeterHostname();
     this.updateRate = sensorSource.getUpdateRate();
     this.debug = debug;
+    this.sourceUri = Source.sourceToUri(this.sourceName, this.wattDepotUri);
   }
 
   /**
-   * Checks that all required parameters are set, that the WattDepotClient can connect, that the
-   * source exists, and that the meterHostname is valid.
+   * Checks that all required parameters are set, that the source exists, determines the update rate
+   * for the sensor, and checks that the meterHostname is valid (either a resolvable domain name or
+   * an IP address in a valid format).
    * 
    * @return true if everything is good to go.
    */
   public boolean isValid() {
-    if (wattDepotUri == null) {
-      System.err.format(REQUIRED_PARAMETER_ERROR_MSG, WATTDEPOT_URI_KEY);
-      return false;
-    }
-
-    if (wattDepotUsername == null) {
-      System.err.format(REQUIRED_PARAMETER_ERROR_MSG, WATTDEPOT_USERNAME_KEY);
-      return false;
-    }
-    if (wattDepotPassword == null) {
-      System.err.format(REQUIRED_PARAMETER_ERROR_MSG, WATTDEPOT_PASSWORD_KEY);
-      return false;
-    }
     if (sourceName == null) {
       System.err.format(REQUIRED_SOURCE_PARAMETER_ERROR_MSG, "Source name", sourceKey);
       return false;
     }
-    if (meterHostname == null) {
+    if ((this.meterHostname == null) || (this.meterHostname.length() == 0)) {
       System.err.format(REQUIRED_SOURCE_PARAMETER_ERROR_MSG, "Meter hostname", sourceKey);
       return false;
     }
 
-    WattDepotClient client =
-        new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);
-    Source source = getSourceFromClient(client);
+    Source source = getSourceFromClient();
     if (source == null) {
+      System.err.format("Source %s does not exist on server.%n", sourceName);
       return false;
     }
 
@@ -135,28 +129,27 @@ public abstract class MultiThreadedSensor extends TimerTask {
         this.updateRate = DEFAULT_UPDATE_RATE;
       }
     }
+
+    // Check validity of meterHostname
+    try {
+      InetAddress.getByName(this.meterHostname);
+    }
+    catch (UnknownHostException e) {
+      System.err.format("Unable to resolve meter hostname %s, aborting.%n", meterHostname);
+      return false;
+    }
+
     return true;
   }
 
   /**
-   * Given a WattDepotClient, ensure authentication has succeeded and that the desired source is
-   * accessible.
+   * Ensure authentication has succeeded and that the desired source is accessible.
    * 
-   * @param client The client to attempt to retrieve the source from.
    * @return The source object with the source name provided in the constructor.
    */
-  protected Source getSourceFromClient(WattDepotClient client) {
-    if (!client.isHealthy()) {
-      System.err.format("Could not connect to server %s. Aborting.%n", this.wattDepotUri);
-      return null;
-    }
-    if (!client.isAuthenticated()) {
-      System.err.format("Invalid credentials for server %s. Aborting.%n", this.wattDepotUri);
-      return null;
-    }
-
+  protected Source getSourceFromClient() {
     try {
-      return client.getSource(sourceName);
+      return this.client.getSource(sourceName);
     }
     catch (NotAuthorizedException e) {
       System.err.format("You do not have access to the source %s. Aborting.%n", sourceName);
@@ -168,7 +161,8 @@ public abstract class MultiThreadedSensor extends TimerTask {
       System.err.println("Received bad XML from server, which is weird. Aborting.");
     }
     catch (MiscClientException e) {
-      System.err.println("Had problems retrieving source from server, which is weird. Aborting.");
+      System.err.format("Had problems retrieving source %s from server, which is weird. Aborting.",
+          sourceName);
     }
     return null;
   }
@@ -192,8 +186,10 @@ public abstract class MultiThreadedSensor extends TimerTask {
    * @param meterType When set, only SensorSources with this meter type will be started.
    * @return True if all sensors have been started successfully, or false if one or more sensors
    * could not be started.
+   * @throws InterruptedException If sleep is interrupted for some reason.
    */
-  public static boolean start(String propertyFilename, boolean debug, METER_TYPE meterType) {
+  public static boolean start(String propertyFilename, boolean debug, METER_TYPE meterType)
+      throws InterruptedException {
 
     DataInputClientProperties properties = null;
     try {
@@ -208,6 +204,41 @@ public abstract class MultiThreadedSensor extends TimerTask {
     String wattDepotUsername = properties.get(WATTDEPOT_USERNAME_KEY);
     String wattDepotPassword = properties.get(WATTDEPOT_PASSWORD_KEY);
     Collection<SensorSource> sources = properties.getSources().values();
+
+    // Check that server parameters exist
+    if (wattDepotUri == null) {
+      System.err.format(REQUIRED_PARAMETER_ERROR_MSG, WATTDEPOT_URI_KEY);
+      return false;
+    }
+    if (wattDepotUsername == null) {
+      System.err.format(REQUIRED_PARAMETER_ERROR_MSG, WATTDEPOT_USERNAME_KEY);
+      return false;
+    }
+    if (wattDepotPassword == null) {
+      System.err.format(REQUIRED_PARAMETER_ERROR_MSG, WATTDEPOT_PASSWORD_KEY);
+      return false;
+    }
+
+    // Before starting any sensors, confirm that we can connect to the WattDepot server. We do
+    // this here because if the server and sensors are running on the same system, at boot time the
+    // sensor might start before the server, causing client calls to fail. If this happens, we
+    // want to catch it at the top level, where it will result in the sensor process terminating.
+    // If we wait to catch it at the per-sensor level, it might cause a sensor to abort for what
+    // might be a short-lived problem. The sensor process should be managed by some other process
+    // (such as launchd), so it is OK to terminate because it should get restarted if the server
+    // isn't up quite yet.
+    WattDepotClient staticClient =
+        new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);
+    if (!staticClient.isHealthy()) {
+      System.err.format("Could not connect to server %s. Aborting.%n", wattDepotUri);
+      // Pause briefly to rate limit restarts if server doesn't come up for a long time
+      Thread.sleep(2000);
+      return false;
+    }
+    if (!staticClient.isAuthenticated()) {
+      System.err.format("Invalid credentials for server %s. Aborting.%n", wattDepotUri);
+      return false;
+    }
 
     for (SensorSource s : sources) {
       // Create a separate Timer for each source. Otherwise they interfere with each other and the
@@ -228,7 +259,6 @@ public abstract class MultiThreadedSensor extends TimerTask {
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
-          return false;
         }
       }
       else if (SensorSource.METER_TYPE.EGAUGE.equals(type)
@@ -241,7 +271,6 @@ public abstract class MultiThreadedSensor extends TimerTask {
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
-          return false;
         }
       }
       else if (SensorSource.METER_TYPE.TED5000.equals(type)
@@ -254,7 +283,6 @@ public abstract class MultiThreadedSensor extends TimerTask {
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
-          return false;
         }
       }
       else if (SensorSource.METER_TYPE.HAMMER.equals(type)
@@ -267,7 +295,6 @@ public abstract class MultiThreadedSensor extends TimerTask {
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
-          return false;
         }
       }
       else {
@@ -275,6 +302,8 @@ public abstract class MultiThreadedSensor extends TimerTask {
             s.getKey());
         return false;
       }
+      // Prevent thundering herd by sleeping for 1.1 seconds between sensor instantiations
+      Thread.sleep(1100);
     }
     return true;
   }

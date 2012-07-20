@@ -20,12 +20,10 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.w3c.dom.Document;
-import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.datainput.SensorSource;
 import org.wattdepot.datainput.SensorSource.METER_TYPE;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.sensor.MultiThreadedSensor;
 import org.wattdepot.util.tstamp.Tstamp;
 import org.xml.sax.SAXException;
@@ -46,7 +44,7 @@ public class EGaugeSensor extends MultiThreadedSensor {
   /**
    * Initializes an eGauge sensor by calling the constructor for MultiThreadedSensor.
    * 
-   * @param wattDepotUri Uri of the WattDepot server to send this sensor data to.
+   * @param wattDepotUri URI of the WattDepot server to send this sensor data to.
    * @param wattDepotUsername Username to connect to the WattDepot server with.
    * @param wattDepotPassword Password to connect to the WattDepot server with.
    * @param sensorSource The SensorSource containing configuration settings for this sensor.
@@ -60,46 +58,6 @@ public class EGaugeSensor extends MultiThreadedSensor {
   @Override
   public void run() {
     SensorData data = null;
-
-    WattDepotClient client =
-        new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);
-
-    if (this.updateRate <= UPDATE_RATE_SENTINEL) {
-      // Need to pick a reasonable default pollingInterval
-      // Check the polling rate specified in the source
-      Source source = getSourceFromClient(client);
-      if (source == null) {
-        this.cancel();
-        return;
-      }
-      String updateIntervalString = source.getProperty(Source.UPDATE_INTERVAL);
-      if (updateIntervalString == null) {
-        // no update interval, so just use hard coded default
-        updateRate = DEFAULT_UPDATE_RATE;
-      }
-      else {
-        int possibleInterval;
-        try {
-          possibleInterval = Integer.valueOf(updateIntervalString);
-          if (possibleInterval > DEFAULT_UPDATE_RATE) {
-            // Sane interval, so use it
-            updateRate = possibleInterval;
-          }
-          else {
-            // Bogus interval, so use hard coded default
-            updateRate = DEFAULT_UPDATE_RATE;
-          }
-        }
-        catch (NumberFormatException e) {
-          System.err.format("Unable to parse updateInterval for %s, using default value: %d%n",
-              this.sourceKey, DEFAULT_UPDATE_RATE);
-          // Bogus interval, so use hard coded default
-          updateRate = DEFAULT_UPDATE_RATE;
-        }
-      }
-    }
-
-    String sourceUri = Source.sourceToUri(this.sourceName, wattDepotUri);
 
     String eGaugeUri = "http://" + meterHostname + "/cgi-bin/egauge?tot";
 
@@ -139,7 +97,7 @@ public class EGaugeSensor extends MultiThreadedSensor {
       Double currentPower = (Double) powerResult;
       // energy is given in kWh
       Double energyToDate = ((Double) energyResult) * 1000;
-      data = new SensorData(timestamp, toolName, sourceUri);
+      data = new SensorData(timestamp, toolName, this.sourceUri);
       if (currentPower <= 0) {
         data.addProperty(new Property(SensorData.POWER_CONSUMED, currentPower * -1));
       }
@@ -174,20 +132,19 @@ public class EGaugeSensor extends MultiThreadedSensor {
           Tstamp.makeTimestamp(), sourceKey, e);
     }
 
-    try {
-      if (data != null) {
-        client.storeSensorData(data);
-
-        if (debug) {
-          System.out.println(data);
-        }
+    if (data != null) {
+      try {
+        this.client.storeSensorData(data);
       }
-    }
-    catch (Exception e) {
-      System.err
-          .format(
-              "%s: Unable to store sensor data from %s due to exception (%s), hopefully this is temporary.%n",
-              Tstamp.makeTimestamp(), this.sourceKey, e);
+      catch (Exception e) {
+        System.err
+            .format(
+                "%s: Unable to store sensor data from %s due to exception (%s), hopefully this is temporary.%n",
+                Tstamp.makeTimestamp(), this.sourceKey, e);
+      }
+      if (debug) {
+        System.out.println(data);
+      }
     }
   }
 

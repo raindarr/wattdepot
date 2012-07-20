@@ -18,12 +18,10 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.datainput.SensorSource;
 import org.wattdepot.datainput.SensorSource.METER_TYPE;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.sensor.MultiThreadedSensor;
 import org.wattdepot.util.tstamp.Tstamp;
 
@@ -53,14 +51,32 @@ public class SharkSensor extends MultiThreadedSensor {
   private static final int POWER_REGISTER = 1018 - 1;
   /** Number of words (registers) that make up "Watts, 3-Ph total". */
   private static final int POWER_LENGTH = 2;
-
+  /** InetAddress of the meter to be polled. */
+  private InetAddress meterAddress;
   /** Name of this tool. */
   private static final String toolName = "Shark200SSensor";
 
   /**
+   * Stores the energy multiplier configured on the meter, which really means whether the energy
+   * value returned is in Wh, kWh, or MWh.
+   */
+  private double energyMultiplier = 0;
+  /**
+   * Stores the configured number of energy digits after the decimal point. For example, if the
+   * retrieved energy value is "12345678" and the decimals value is 2, then the actual energy value
+   * is "123456.78".
+   */
+  private int energyDecimals = 0;
+  /**
+   * Whether all required parameters (such as energy format parameters from the meter) have been
+   * successfully retrieved.
+   */
+  private boolean initialized = false;
+
+  /**
    * Initializes a shark sensor by calling the constructor for MultiThreadedSensor.
    * 
-   * @param wattDepotUri Uri of the WattDepot server to send this sensor data to.
+   * @param wattDepotUri URI of the WattDepot server to send this sensor data to.
    * @param wattDepotUsername Username to connect to the WattDepot server with.
    * @param wattDepotPassword Password to connect to the WattDepot server with.
    * @param sensorSource The SensorSource containing configuration settings for this sensor.
@@ -71,9 +87,18 @@ public class SharkSensor extends MultiThreadedSensor {
     super(wattDepotUri, wattDepotUsername, wattDepotPassword, sensorSource, debug);
   }
 
+  /**
+   * Checks that all required parameters are set, that the WattDepotClient can connect, that the
+   * source exists, that the meterHostname is valid, and that the energy format parameters were
+   * retrieved from the meter successfully.
+   * 
+   * @return True if everything is good to go.
+   */
   @Override
   public boolean isValid() {
-    return super.isValid() && (getMeterAddress() != null);
+    this.meterAddress = getMeterAddress();
+
+    return (super.isValid() && (this.meterAddress != null));
   }
 
   /**
@@ -94,33 +119,24 @@ public class SharkSensor extends MultiThreadedSensor {
   }
 
   /**
-   * Retrieves meter sensor data and sends it to a Source in a WattDepot server.
+   * Need to retrieve some configuration parameters from meter, but only want to do it once per
+   * session. Note that all failures to retrieve the parameters are considered temporary for
+   * caution's sake, so a misconfigured meter might continue to be polled indefinitely until the
+   * problem is resolved.
+   * 
+   * @return True if configuration parameters could be retrieved from meter, false otherwise.
    */
-  @Override
-  public void run() {
-    WattDepotClient client =
-        new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);
-
-    // Resolve provided meter hostname
-    InetAddress meterAddress = getMeterAddress();
-    if (meterAddress == null) {
-      this.cancel();
-      return;
-    }
-
-    // Need to retrieve some configuration parameters from meter, but only want to do it once
-    // per session.
+  private boolean initialize() {
     ModbusResponse response;
     ReadMultipleRegistersResponse goodResponse = null;
     try {
-      response = readRegisters(meterAddress, ENERGY_FORMAT_REGISTER, ENERGY_FORMAT_LENGTH);
+      response = readRegisters(this.meterAddress, ENERGY_FORMAT_REGISTER, ENERGY_FORMAT_LENGTH);
     }
     catch (Exception e) {
       System.err.format(
-          "Unable to retrieve energy format parameters from meter %s: %s, aborting.%n",
+          "Unable to retrieve energy format parameters from meter %s: %s, retrying.%n",
           this.sourceKey, e.getMessage());
-      this.cancel();
-      return;
+      return false;
     }
     if (response instanceof ReadMultipleRegistersResponse) {
       goodResponse = (ReadMultipleRegistersResponse) response;
@@ -130,49 +146,65 @@ public class SharkSensor extends MultiThreadedSensor {
           .format(
               "Got Modbus exception response while retrieving energy format parameters from meter %s, code: %s%n",
               this.sourceKey, ((ExceptionResponse) response).getExceptionCode());
-      this.cancel();
+      return false;
     }
     else {
       System.err
           .format(
               "Got strange Modbus reply while retrieving energy format parameters from meter %s, aborting.%n",
               this.sourceKey);
-      this.cancel();
-      return;
+      return false;
     }
 
     double energyMultiplier = decodeEnergyMultiplier(goodResponse);
     if (energyMultiplier == 0) {
       System.err.format("Got bad energy multiplier from meter %s energy format, aborting.%n",
           this.sourceKey);
-      this.cancel();
-      return;
+      return false;
     }
 
     int energyDecimals = decodeEnergyDecimals(goodResponse);
     if (energyDecimals == 0) {
       System.err.format("Got bad energy decimal format from meter %s energy format, aborting.%n",
           this.sourceKey);
-      this.cancel();
-      return;
+      return false;
     }
+    // Able to retrieve all the energy format parameters, so set the class fields for future use
+    this.energyMultiplier = energyMultiplier;
+    this.energyDecimals = energyDecimals;
+    return true;
 
-    // Get data from meter
-    String sourceURI = Source.sourceToUri(this.sourceName, wattDepotUri);
-    SensorData data =
-        pollMeter(meterAddress, toolName, sourceURI, energyMultiplier, energyDecimals);
-    if (data != null) {
-      try {
-        client.storeSensorData(data);
+  }
+
+  /**
+   * Retrieves meter sensor data and sends it to a Source in a WattDepot server.
+   */
+  @Override
+  public void run() {
+    if (!this.initialized) {
+      this.initialized = initialize();
+    }
+    if (initialized) {
+      SensorData data =
+          pollMeter(this.meterAddress, toolName, this.sourceUri, this.energyMultiplier,
+              this.energyDecimals);
+      if (data != null) {
+        try {
+          this.client.storeSensorData(data);
+        }
+        catch (Exception e) {
+          System.err
+              .format(
+                  "%s: Unable to store sensor data from %s due to exception (%s), hopefully this is temporary.%n",
+                  Tstamp.makeTimestamp(), this.sourceKey, e);
+        }
+        if (debug) {
+          System.out.println(data);
+        }
       }
-      catch (Exception e) {
-        System.err
-            .format(
-                "%s: Unable to store sensor data from %s due to exception (%s), hopefully this is temporary.%n",
-                Tstamp.makeTimestamp(), this.sourceKey, e);
-      }
-      if (debug) {
-        System.out.println(data);
+      else {
+        // No data from meter
+        System.err.format("%s: Unable to get sensor data from meter.%n", Tstamp.makeTimestamp());
       }
     }
   }

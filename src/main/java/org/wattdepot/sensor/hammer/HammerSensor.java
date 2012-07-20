@@ -7,12 +7,10 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.wattdepot.client.WattDepotClient;
 import org.wattdepot.datainput.SensorSource;
 import org.wattdepot.datainput.SensorSource.METER_TYPE;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
-import org.wattdepot.resource.source.jaxb.Source;
 import org.wattdepot.sensor.MultiThreadedSensor;
 import org.wattdepot.util.tstamp.Tstamp;
 
@@ -25,10 +23,6 @@ public class HammerSensor extends MultiThreadedSensor {
 
   /** Name of this tool. */
   private static final String toolName = "HammerSensor";
-
-  /** Stores the fake SensorData that will be updated each time it is sent to the server. */
-  private String sourceUri;
-
   /** Stores the fake wattHours value that will be incremented each time it is sent to the server. */
   private double wattHours = 0;
 
@@ -44,7 +38,6 @@ public class HammerSensor extends MultiThreadedSensor {
   public HammerSensor(String wattDepotUri, String wattDepotUsername, String wattDepotPassword,
       SensorSource sensorSource, boolean debug) {
     super(wattDepotUri, wattDepotUsername, wattDepotPassword, sensorSource, debug);
-    sourceUri = Source.sourceToUri(this.sourceName, wattDepotUri);
   }
 
   /**
@@ -52,14 +45,10 @@ public class HammerSensor extends MultiThreadedSensor {
    */
   @Override
   public void run() {
-    WattDepotClient client =
-        new WattDepotClient(wattDepotUri, wattDepotUsername, wattDepotPassword);
-
-    // Get data from meter
     SensorData data = generateFakeSensorData();
     if (data != null) {
       try {
-        client.storeSensorData(data);
+        this.client.storeSensorData(data);
       }
       catch (Exception e) {
         System.err
@@ -75,7 +64,7 @@ public class HammerSensor extends MultiThreadedSensor {
 
   /**
    * Generates fake sensor data with current time, powerConsumed set to the milliseconds of current
-   * time, and energyConsumedToDate incremeted by 1.
+   * time, and energyConsumedToDate incremented by 1.
    * 
    * @return The new fake SensorData.
    */
