@@ -123,12 +123,12 @@ public class EGaugeSensor extends MultiThreadedSensor {
     }
     catch (SAXException e) {
       System.err.format(
-          "%s: Got bad XML from TED meter for %s (%s), hopefully this is temporary.%n",
+          "%s: Got bad XML from eGauge meter for %s (%s), hopefully this is temporary.%n",
           Tstamp.makeTimestamp(), sourceKey, e);
     }
     catch (IOException e) {
       System.err.format(
-          "%s: Unable to retrieve data from TED for %s (%s), hopefully this is temporary.%n",
+          "%s: Unable to retrieve data from eGauge for %s (%s), hopefully this is temporary.%n",
           Tstamp.makeTimestamp(), sourceKey, e);
     }
 

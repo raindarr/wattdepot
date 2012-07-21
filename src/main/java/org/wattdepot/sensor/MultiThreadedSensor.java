@@ -101,9 +101,25 @@ public abstract class MultiThreadedSensor extends TimerTask {
       return false;
     }
 
-    Source source = getSourceFromClient();
-    if (source == null) {
-      System.err.format("Source %s does not exist on server.%n", sourceName);
+    Source source = null;
+    try {
+      source = this.client.getSource(sourceName);
+    }
+    catch (NotAuthorizedException e) {
+      System.err.format("You do not have access to the source %s. Aborting.%n", sourceName);
+      return false;
+    }
+    catch (ResourceNotFoundException e) {
+      System.err.format("Source %s does not exist on server. Aborting.%n", sourceName);
+      return false;
+    }
+    catch (BadXmlException e) {
+      System.err.println("Received bad XML from server, which is weird. Aborting.");
+      return false;
+    }
+    catch (MiscClientException e) {
+      System.err.format("Had problems retrieving source %s from server, which is weird. Aborting.",
+          sourceName);
       return false;
     }
 
@@ -140,31 +156,6 @@ public abstract class MultiThreadedSensor extends TimerTask {
     }
 
     return true;
-  }
-
-  /**
-   * Ensure authentication has succeeded and that the desired source is accessible.
-   * 
-   * @return The source object with the source name provided in the constructor.
-   */
-  protected Source getSourceFromClient() {
-    try {
-      return this.client.getSource(sourceName);
-    }
-    catch (NotAuthorizedException e) {
-      System.err.format("You do not have access to the source %s. Aborting.%n", sourceName);
-    }
-    catch (ResourceNotFoundException e) {
-      System.err.format("Source %s does not exist on server. Aborting.%n", sourceName);
-    }
-    catch (BadXmlException e) {
-      System.err.println("Received bad XML from server, which is weird. Aborting.");
-    }
-    catch (MiscClientException e) {
-      System.err.format("Had problems retrieving source %s from server, which is weird. Aborting.",
-          sourceName);
-    }
-    return null;
   }
 
   /**
