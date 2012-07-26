@@ -6,8 +6,16 @@
 	<classpathentry kind="var" path="M2_REPO/javax/comm/comm/3.0-u1/comm-3.0-u1.jar"/>
 	<classpathentry kind="var" path="M2_REPO/javax/servlet/servlet-api/2.3/servlet-api-2.3.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="var" path="M2_REPO/commons-pool/commons-pool/1.5.7/commons-pool-1.5.7.jar"/>
-	<classpathentry kind="var" path="M2_REPO/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"/>
+	<classpathentry kind="var" path="M2_REPO/commons-pool/commons-pool/1.5.7/commons-pool-1.5.7.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://commons.apache.org/pool/api-1.5.7/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="var" path="M2_REPO/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://commons.apache.org/dbcp/api-1.4/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="var" path="M2_REPO/junit/junit/4.8.2/junit-4.8.2.jar">
 		<attributes>
 			<attribute name="javadoc_location" value="http://kentbeck.github.com/junit/javadoc/latest/"/>
