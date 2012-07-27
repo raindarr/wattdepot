@@ -294,7 +294,10 @@ public abstract class MultiThreadedSensor extends TimerTask {
         return false;
       }
       // Prevent thundering herd by sleeping for 1.1 seconds between sensor instantiations
-      Thread.sleep(1100);
+      // but skip sleep for HammerSensor
+      if (!SensorSource.METER_TYPE.HAMMER.equals(type)) {
+        Thread.sleep(1100);
+      }
     }
     return true;
   }
