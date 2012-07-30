@@ -42,7 +42,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
   protected int updateRate;
   /** Whether to display debugging data. */
   protected boolean debug;
-  /** The hostname of the Shark meter to be monitored. */
+  /** The hostname of the meter to be monitored. */
   protected String meterHostname;
 
   /** The client used to communicate with the WattDepot server. */
@@ -231,6 +231,9 @@ public abstract class MultiThreadedSensor extends TimerTask {
       return false;
     }
 
+    // Record whether any meters have been able to be configured
+    boolean aSensorPolling = false;
+    
     for (SensorSource s : sources) {
       // Create a separate Timer for each source. Otherwise they interfere with each other and the
       // timing becomes unreliable.
@@ -247,6 +250,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
         if (sensor.isValid()) {
           System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
           t.schedule(sensor, 0, sensor.getUpdateRate() * 1000);
+          aSensorPolling = true;
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
@@ -259,6 +263,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
         if (sensor.isValid()) {
           System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
           t.schedule(sensor, 0, sensor.getUpdateRate() * 1000);
+          aSensorPolling = true;
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
@@ -271,6 +276,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
         if (sensor.isValid()) {
           System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
           t.schedule(sensor, 0, sensor.getUpdateRate() * 1000);
+          aSensorPolling = true;
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
@@ -283,6 +289,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
         if (sensor.isValid()) {
           System.out.format("Started polling %s meter at %s%n", s.getKey(), Tstamp.makeTimestamp());
           t.schedule(sensor, 0, sensor.getUpdateRate() * 1000);
+          aSensorPolling = true;
         }
         else {
           System.err.format("Cannot poll %s meter%n", s.getKey());
@@ -299,6 +306,7 @@ public abstract class MultiThreadedSensor extends TimerTask {
         Thread.sleep(1100);
       }
     }
-    return true;
+    // Return true if at least 1 sensor is polling, or false otherwise.
+    return aSensorPolling;
   }
 }

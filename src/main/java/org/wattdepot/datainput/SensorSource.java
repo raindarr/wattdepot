@@ -12,6 +12,7 @@ public class SensorSource {
   private String name;
   private int updateRate;
   private String meterHostname;
+  private String registerName;
   private METER_TYPE meterType;
 
   /** Enumerations for various meter types. */
@@ -123,5 +124,25 @@ public class SensorSource {
    */
   public void setMeterType(METER_TYPE meterType) {
     this.meterType = meterType;
+  }
+
+  /**
+   * Gets the register name, which is used by the EGaugeSensor to determine which register to read
+   * from the eGauge meter.
+   * 
+   * @return the register name
+   */
+  public String getRegisterName() {
+    return registerName;
+  }
+
+  /**
+   * Sets the register name, which is used by the EGaugeSensor to determine which register to read
+   * from the eGauge meter.
+   * 
+   * @param registerName the register name to set
+   */
+  public void setRegisterName(String registerName) {
+    this.registerName = registerName;
   }
 }

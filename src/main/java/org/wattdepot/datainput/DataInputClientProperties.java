@@ -230,6 +230,9 @@ public class DataInputClientProperties {
         if ("meterType".equals(suffix)) {
           source.setMeterType(SensorSource.METER_TYPE.valueOf(entry.getValue().toString()));
         }
+        if ("registerName".equals(suffix)) {
+          source.setRegisterName(entry.getValue().toString());
+        }
       }
     }
     return sources;

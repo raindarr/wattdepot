@@ -40,6 +40,8 @@ public class EGaugeSensor extends MultiThreadedSensor {
 
   /** Name of this tool. */
   private static final String toolName = "eGaugeSensor";
+  /** The name of the register to be polled by the sensor. */
+  private String registerName;
 
   /**
    * Initializes an eGauge sensor by calling the constructor for MultiThreadedSensor.
@@ -53,6 +55,23 @@ public class EGaugeSensor extends MultiThreadedSensor {
   public EGaugeSensor(String wattDepotUri, String wattDepotUsername, String wattDepotPassword,
       SensorSource sensorSource, boolean debug) {
     super(wattDepotUri, wattDepotUsername, wattDepotPassword, sensorSource, debug);
+    this.registerName = sensorSource.getRegisterName();
+  }
+
+  /**
+   * Does all checks from superclass, and ensures that some registerName has been supplied.
+   * 
+   * @return True if everything is good to go.
+   */
+  @Override
+  public boolean isValid() {
+    if ((this.registerName == null) || (this.registerName.length() == 0)) {
+      System.err.format("No register name configured for meter %s, aborting.%n", this.sourceKey);
+      return false;
+    }
+    else {
+      return super.isValid();
+    }
   }
 
   @Override
@@ -85,11 +104,13 @@ public class EGaugeSensor extends MultiThreadedSensor {
       XPath powerXpath = factory.newXPath();
       XPath energyXpath = factory.newXPath();
       // Path to get the current power consumed measured by the meter in watts
-      XPathExpression exprPower =
-          powerXpath.compile("//meter[@type='total' and @title='Student Usage V']/power/text()");
+      String exprPowerString =
+          "//meter[@type='total' and @title='" + this.registerName + "']/power/text()";
+      XPathExpression exprPower = powerXpath.compile(exprPowerString);
       // Path to get the energy consumed month to date in watt hours
-      XPathExpression exprEnergy =
-          energyXpath.compile("//meter[@type='total' and @title='Student Usage V']/energy/text()");
+      String exprEnergyString =
+          "//meter[@type='total' and @title='" + this.registerName + "']/energy/text()";
+      XPathExpression exprEnergy = energyXpath.compile(exprEnergyString);
       Object powerResult = exprPower.evaluate(doc, XPathConstants.NUMBER);
       Object energyResult = exprEnergy.evaluate(doc, XPathConstants.NUMBER);
 
