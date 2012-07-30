@@ -200,9 +200,9 @@
            dest="${tmp.dir}" />
     <unjar src="${settings.localRepository}/com/sleepycat/je/${berkeleydb.version}/je-${berkeleydb.version}.jar"
            dest="${tmp.dir}" />
-    <unjar src="${settings.localRepository}/commons-dbcp/commons-dbcp/${dbcp.version}/commons-dbcp-${dbcp.version}.jar"
+    <unjar src="${settings.localRepository}/org/apache/tomcat/tomcat-jdbc/${tomcat.jdbc.version}/tomcat-jdbc-${tomcat.jdbc.version}.jar"
            dest="${tmp.dir}" />
-    <unjar src="${settings.localRepository}/commons-pool/commons-pool/${pool.version}/commons-pool-${pool.version}.jar"
+    <unjar src="${settings.localRepository}/org/apache/tomcat/tomcat-juli/${tomcat.jdbc.version}/tomcat-juli-${tomcat.jdbc.version}.jar"
            dest="${tmp.dir}" />
     <unjar src="${settings.localRepository}/org/apache/jcs/jcs/${jcs.version}/jcs-${jcs.version}.jar"
            dest="${tmp.dir}" />

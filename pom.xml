@@ -22,6 +22,7 @@
 	<commons-logging.version>1.1.1</commons-logging.version>
 	<concurrent.version>1.0</concurrent.version>
 	<dbcp.version>1.4</dbcp.version>
+	<tomcat.jdbc.version>7.0.29</tomcat.jdbc.version>
 	<derby.version>10.5.3.0_1</derby.version>
 	<google-collections.version>1.0-rc2</google-collections.version>
 	<google-visualization-java.version>1.0.2</google-visualization-java.version>
@@ -62,6 +63,11 @@
 		<artifactId>commons-dbcp</artifactId>
 		<version>${dbcp.version}</version>
 	</dependency>
+	<dependency>
+    <groupId>org.apache.tomcat</groupId>
+    <artifactId>tomcat-jdbc</artifactId>
+    <version>${tomcat.jdbc.version}</version>
+  </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
