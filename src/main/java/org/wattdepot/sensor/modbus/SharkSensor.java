@@ -85,20 +85,7 @@ public class SharkSensor extends MultiThreadedSensor {
   public SharkSensor(String wattDepotUri, String wattDepotUsername, String wattDepotPassword,
       SensorSource sensorSource, boolean debug) {
     super(wattDepotUri, wattDepotUsername, wattDepotPassword, sensorSource, debug);
-  }
-
-  /**
-   * Checks that all required parameters are set, that the WattDepotClient can connect, that the
-   * source exists, that the meterHostname is valid, and that the energy format parameters were
-   * retrieved from the meter successfully.
-   * 
-   * @return True if everything is good to go.
-   */
-  @Override
-  public boolean isValid() {
     this.meterAddress = getMeterAddress();
-
-    return (super.isValid() && (this.meterAddress != null));
   }
 
   /**
