@@ -1,5 +1,11 @@
 package org.wattdepot.server.db.postgres;
 
+import static org.wattdepot.server.ServerProperties.DATABASE_URL_KEY;
+import static org.wattdepot.server.ServerProperties.DB_DATABASE_NAME_KEY;
+import static org.wattdepot.server.ServerProperties.DB_HOSTNAME_KEY;
+import static org.wattdepot.server.ServerProperties.DB_PASSWORD_KEY;
+import static org.wattdepot.server.ServerProperties.DB_PORT_KEY;
+import static org.wattdepot.server.ServerProperties.DB_USERNAME_KEY;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -21,6 +27,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.XMLGregorianCalendar;
+import org.apache.tomcat.jdbc.pool.DataSource;
+import org.apache.tomcat.jdbc.pool.PoolProperties;
 import org.wattdepot.resource.property.jaxb.Property;
 import org.wattdepot.resource.sensordata.SensorDataStraddle;
 import org.wattdepot.resource.sensordata.jaxb.SensorData;
@@ -44,17 +52,6 @@ import org.wattdepot.server.db.DbManager;
 import org.wattdepot.util.StackTrace;
 import org.wattdepot.util.UriUtils;
 import org.wattdepot.util.tstamp.Tstamp;
-import org.apache.commons.dbcp.DriverManagerConnectionFactory;
-import org.apache.commons.dbcp.PoolableConnectionFactory;
-import org.apache.commons.dbcp.PoolingDataSource;
-import org.apache.commons.pool.ObjectPool;
-import org.apache.commons.pool.impl.GenericObjectPool;
-import static org.wattdepot.server.ServerProperties.DATABASE_URL_KEY;
-import static org.wattdepot.server.ServerProperties.DB_DATABASE_NAME_KEY;
-import static org.wattdepot.server.ServerProperties.DB_PORT_KEY;
-import static org.wattdepot.server.ServerProperties.DB_USERNAME_KEY;
-import static org.wattdepot.server.ServerProperties.DB_PASSWORD_KEY;
-import static org.wattdepot.server.ServerProperties.DB_HOSTNAME_KEY;
 
 /**
  * Provides a implementation of DbImplementation using PostgreSQL.
@@ -82,16 +79,12 @@ public class PostgresStorageImplementation extends DbImplementation {
    * The connection pool, which manages database connections so we don't have to open and close them
    * each time. This avoids any overhead of repeatedly opening and closing connections, and allows a
    * large number of clients to share a small number of database connections.
-   * 
-   * The pooling data-source implementation provided here is not the most feature-rich, but it will
-   * work on any system.
    */
-  private PoolingDataSource connectionPool;
-  private ObjectPool objectPool;
+  private DataSource connectionPool;
 
   /** The SQL state indicating that INSERT tried to add data to a table with a preexisting key. */
   private static final String DUPLICATE_KEY = "23505";
-  /** The SQL state indicatign that INSERT tried to violate a foreign key constraint. */
+  /** The SQL state indication that INSERT tried to violate a foreign key constraint. */
   private static final String FOREIGN_KEY_VIOLATION = "23503";
 
   /**
@@ -104,21 +97,9 @@ public class PostgresStorageImplementation extends DbImplementation {
   public PostgresStorageImplementation(Server server, DbManager dbManager) {
     super(server, dbManager);
 
-    // Try to load the driver.
-    try {
-      Class.forName(driver);
-    }
-    catch (java.lang.ClassNotFoundException e) {
-      String msg =
-          "Postgres: Exception during DbManager initialization: " + "Postgres not on CLASSPATH.";
-      this.logger.warning(msg + "\n" + StackTrace.toString(e));
-      throw new RuntimeException(msg, e);
-    }
-
     ServerProperties props = server.getServerProperties();
 
     if (props.get(DATABASE_URL_KEY) == null || props.get(DATABASE_URL_KEY).length() == 0) {
-
       connectionUrl =
           "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "/"
               + props.get(DB_DATABASE_NAME_KEY) + "?user=" + props.get(DB_USERNAME_KEY)
@@ -143,7 +124,6 @@ public class PostgresStorageImplementation extends DbImplementation {
       if (connectionUrl.contains("?")) {
         params = "&" + connectionUrl.substring(connectionUrl.indexOf("?") + 1);
       }
-
       connectionUrl =
           "jdbc:postgresql://" + hostName + "/" + dbName + "?user=" + user + "&password="
               + password + params;
@@ -156,17 +136,24 @@ public class PostgresStorageImplementation extends DbImplementation {
 
     Connection conn = null;
     try {
-      DriverManagerConnectionFactory connectionFactory =
-          new DriverManagerConnectionFactory(connectionUrl, null);
-      objectPool = new GenericObjectPool();
-      // TODO: This setup is pretty stupid. Apparently the PoolableConnectionFactory below sets
-      // itself to be the objectPool's factory, but we don't use the factory for anything else.
-      // Version 2.0 of apache commons dbcp should fix this.
-      // http://apache-commons.680414.n4.nabble.com/dbcp-PoolingDataSource-setup-problem-td3735271.html
-
-      // PoolableConnectionFactory poolableConnectionFactory =
-      new PoolableConnectionFactory(connectionFactory, objectPool, null, null, false, true);
-      connectionPool = new PoolingDataSource(objectPool);
+      PoolProperties poolProps = new PoolProperties();
+      poolProps.setUrl(this.connectionUrl);
+      poolProps.setDriverClassName(driver);
+      poolProps.setTestWhileIdle(false);
+      // poolProps.setTestOnBorrow(true);
+      // poolProps.setValidationQuery("SELECT 1");
+      poolProps.setTestOnReturn(false);
+      // poolProps.setValidationInterval(30000);
+      // poolProps.setTimeBetweenEvictionRunsMillis(30000);
+      poolProps.setMaxActive(100);
+      poolProps.setInitialSize(10);
+      poolProps.setMaxWait(10000);
+      poolProps.setRemoveAbandoned(true);
+      poolProps.setLogAbandoned(true);
+      poolProps.setRemoveAbandonedTimeout(15);
+      // poolProps.setMinEvictableIdleTimeMillis(30000);
+      // poolProps.setMinIdle(10);
+      this.connectionPool = new DataSource(poolProps);
       conn = this.connectionPool.getConnection();
     }
     catch (SQLException e) {
@@ -230,8 +217,7 @@ public class PostgresStorageImplementation extends DbImplementation {
     }
     catch (SQLException e) {
       String msg =
-          "Failure attempting to create database catalog " + props.get(DB_DATABASE_NAME_KEY)
-              + ". ";
+          "Failure attempting to create database catalog " + props.get(DB_DATABASE_NAME_KEY) + ". ";
       this.logger.warning(msg + StackTrace.toString(e));
       throw new RuntimeException(msg, e);
     }
@@ -258,7 +244,7 @@ public class PostgresStorageImplementation extends DbImplementation {
       @Override
       public void run() {
         try {
-          objectPool.close();
+          connectionPool.close();
         }
         catch (Exception e) {
           System.out.println("Postgres shutdown hook results: " + e.getMessage());
@@ -506,8 +492,7 @@ public class PostgresStorageImplementation extends DbImplementation {
 
   /** The SQL string for creating the SourceHierarchy table. */
   private static final String createSourceHierarchyTableStatement = "create table SourceHierarchy"
-      + "(" + "ParentSourceName VARCHAR(128) NOT NULL, "
-      + " SubSourceName VARCHAR(128) NOT NULL, "
+      + "(" + "ParentSourceName VARCHAR(128) NOT NULL, " + " SubSourceName VARCHAR(128) NOT NULL, "
       + " PRIMARY KEY (ParentSourceName, SubSourceName), "
       + " FOREIGN KEY (ParentSourceName) REFERENCES Source(Name), "
       + " FOREIGN KEY (SubSourceName) REFERENCES Source(Name)" + ")";
@@ -1082,8 +1067,7 @@ public class PostgresStorageImplementation extends DbImplementation {
         }
         if (source.isSetProperties()) {
           for (Property p : source.getProperties().getProperty()) {
-            if (!p.getKey().equals(Source.CARBON_INTENSITY)
-                && !p.getKey().equals(Source.FUEL_TYPE)
+            if (!p.getKey().equals(Source.CARBON_INTENSITY) && !p.getKey().equals(Source.FUEL_TYPE)
                 && !p.getKey().equals(Source.UPDATE_INTERVAL)
                 && !p.getKey().equals(Source.ENERGY_DIRECTION)
                 && !p.getKey().equals(Source.SUPPORTS_ENERGY_COUNTERS)
@@ -1275,8 +1259,7 @@ public class PostgresStorageImplementation extends DbImplementation {
    */
   private boolean deleteSourceProperties(String sourceName, Connection conn) {
     return deleteResource(
-        "DELETE FROM SourceProperty WHERE SourceName='" + sourceName.replace("'", "''") + "'",
-        conn);
+        "DELETE FROM SourceProperty WHERE SourceName='" + sourceName.replace("'", "''") + "'", conn);
   }
 
   /** The SQL string for creating the SensorData table. */
@@ -1302,16 +1285,14 @@ public class PostgresStorageImplementation extends DbImplementation {
   private static final String createSensorDataPropertyTableStatement =
       "create table SensorDataProperty " + "(" + " Tstamp TIMESTAMP NOT NULL, "
           + " Source VARCHAR(128) NOT NULL, " + " PropertyKey VARCHAR(128) NOT NULL, "
-          + " PropertyValue VARCHAR(128) NOT NULL, "
-          + "PRIMARY KEY(Tstamp, Source, PropertyKey), "
+          + " PropertyValue VARCHAR(128) NOT NULL, " + "PRIMARY KEY(Tstamp, Source, PropertyKey), "
           + " FOREIGN KEY (Source, Tstamp) REFERENCES SensorData" + ")";
 
   /** An SQL string to test whether the SensorDataProperty table exists and has the correct schema. */
   private static final String testSensorDataPropertyTableStatement =
       " UPDATE SensorDataProperty SET " + " Tstamp = '"
-          + new Timestamp(new Date().getTime()).toString() + "', "
-          + " Source = 'test-db-source', " + " PropertyKey = 'powerGenerated', "
-          + " PropertyValue = '4.6E7' " + " WHERE 1=3";
+          + new Timestamp(new Date().getTime()).toString() + "', " + " Source = 'test-db-source', "
+          + " PropertyKey = 'powerGenerated', " + " PropertyValue = '4.6E7' " + " WHERE 1=3";
 
   /** An SQL string to drop the SensorDataProperty table. */
   private static final String dropSensorDataPropertyTableStatement =
@@ -1939,8 +1920,7 @@ public class PostgresStorageImplementation extends DbImplementation {
    */
   private boolean deleteSensorDataProperties(String sourceName, Connection conn) {
     return deleteResource(
-        "DELETE FROM SensorDataProperty WHERE Source='" + sourceName.replace("'", "''") + "'",
-        conn);
+        "DELETE FROM SensorDataProperty WHERE Source='" + sourceName.replace("'", "''") + "'", conn);
   }
 
   /**
@@ -2075,9 +2055,9 @@ public class PostgresStorageImplementation extends DbImplementation {
           + " FOREIGN KEY (Username) REFERENCES WattDepotUser" + ")";
 
   /** An SQL string to test whether the UserProperty table exists and has the correct schema. */
-  private static final String testUserPropertyTableStatement =
-      " UPDATE WattDepotUserProperty SET " + " Username = 'TestEmail@foo.com', "
-          + " PropertyKey = 'awesomeness', " + " PropertyValue = 'total'" + " WHERE 1=3";
+  private static final String testUserPropertyTableStatement = " UPDATE WattDepotUserProperty SET "
+      + " Username = 'TestEmail@foo.com', " + " PropertyKey = 'awesomeness', "
+      + " PropertyValue = 'total'" + " WHERE 1=3";
 
   /** An SQL string to drop the UserProperty table. */
   private static final String dropUserPropertyTableStatement = "DROP TABLE WattDepotUserProperty";
@@ -2633,8 +2613,7 @@ public class PostgresStorageImplementation extends DbImplementation {
       }
     }
     else {
-      this.logger
-          .info("PostgreSQL: makeSnapshot() tried to zip null file " + fileSource.getName());
+      this.logger.info("PostgreSQL: makeSnapshot() tried to zip null file " + fileSource.getName());
     }
 
   }
@@ -2645,7 +2624,7 @@ public class PostgresStorageImplementation extends DbImplementation {
   @Override
   public void stop() {
     try {
-      this.objectPool.close();
+      this.connectionPool.close();
     }
     catch (Exception e) {
       // TODO Auto-generated catch block
