@@ -145,8 +145,8 @@ public class PostgresStorageImplementation extends DbImplementation {
       poolProps.setTestOnReturn(false);
       // poolProps.setValidationInterval(30000);
       // poolProps.setTimeBetweenEvictionRunsMillis(30000);
-      poolProps.setMaxActive(10);
-//      poolProps.setInitialSize(10);
+      poolProps.setMaxActive(100);
+      poolProps.setInitialSize(10);
       poolProps.setMaxWait(10000);
       poolProps.setRemoveAbandoned(true);
       poolProps.setLogAbandoned(true);
