@@ -6,6 +6,7 @@ import static org.wattdepot.server.ServerProperties.DB_HOSTNAME_KEY;
 import static org.wattdepot.server.ServerProperties.DB_PASSWORD_KEY;
 import static org.wattdepot.server.ServerProperties.DB_PORT_KEY;
 import static org.wattdepot.server.ServerProperties.DB_USERNAME_KEY;
+import static org.wattdepot.server.ServerProperties.POSTGRES_SCHEMA_KEY;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -98,6 +99,10 @@ public class PostgresStorageImplementation extends DbImplementation {
     super(server, dbManager);
 
     ServerProperties props = server.getServerProperties();
+    // Used for connections that don't connect to a particular database
+    String baseConnectionUrl =
+        "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "?user="
+            + props.get(DB_USERNAME_KEY) + "&password=" + props.get(DB_PASSWORD_KEY);
 
     if (props.get(DATABASE_URL_KEY) == null || props.get(DATABASE_URL_KEY).length() == 0) {
       connectionUrl =
@@ -134,25 +139,59 @@ public class PostgresStorageImplementation extends DbImplementation {
       connectionUrl = "jdbc:" + props.get(DATABASE_URL_KEY);
     }
 
+    // Test if database catalog exists
     Connection conn = null;
+    String databaseName = props.get(DB_DATABASE_NAME_KEY);
+    String schemaName = props.get(POSTGRES_SCHEMA_KEY);
+    String errorPrefix = "Error during initialization: ";
+    PoolProperties poolProps = new PoolProperties();
+
     try {
-      PoolProperties poolProps = new PoolProperties();
-      poolProps.setUrl(this.connectionUrl);
-      poolProps.setDriverClassName(driver);
-      poolProps.setTestWhileIdle(false);
-      // poolProps.setTestOnBorrow(true);
-      // poolProps.setValidationQuery("SELECT 1");
-      poolProps.setTestOnReturn(false);
-      // poolProps.setValidationInterval(30000);
-      // poolProps.setTimeBetweenEvictionRunsMillis(30000);
-      poolProps.setMaxActive(100);
-      poolProps.setInitialSize(10);
-      poolProps.setMaxWait(10000);
-      poolProps.setRemoveAbandoned(true);
-      poolProps.setLogAbandoned(true);
-      poolProps.setRemoveAbandonedTimeout(15);
-      // poolProps.setMinEvictableIdleTimeMillis(30000);
-      // poolProps.setMinIdle(10);
+      // Note we cannot use connection from connection pool, because we need to query the database
+      // to find out what parameters to use in creating the pool.
+      conn = DriverManager.getConnection(baseConnectionUrl);
+      configureDatabaseCatalog(conn, databaseName);
+      conn.close();
+      // Must check if configured to use schemas and set that up if needed
+      if ((schemaName != null) && (schemaName.length() != 0)) {
+        conn = DriverManager.getConnection(this.connectionUrl);
+        configureSchema(conn, schemaName);
+        // Now make every pooled connection set search path to the configured schema
+        poolProps.setInitSQL("SET search_path TO " + schemaName + ";");
+      }
+    }
+    catch (SQLException e) {
+      this.logger.info(errorPrefix + StackTrace.toString(e));
+    }
+    finally {
+      try {
+        if (conn != null) {
+          conn.close();
+        }
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+      }
+    }
+
+    // Set appropriate pool parameters
+    poolProps.setUrl(this.connectionUrl);
+    poolProps.setDriverClassName(driver);
+    poolProps.setTestWhileIdle(false);
+    // poolProps.setTestOnBorrow(true);
+    // poolProps.setValidationQuery("SELECT 1");
+    poolProps.setTestOnReturn(false);
+    // poolProps.setValidationInterval(30000);
+    // poolProps.setTimeBetweenEvictionRunsMillis(30000);
+    poolProps.setMaxActive(100);
+    poolProps.setInitialSize(10);
+    poolProps.setMaxWait(10000);
+    poolProps.setRemoveAbandoned(true);
+    poolProps.setLogAbandoned(true);
+    poolProps.setRemoveAbandonedTimeout(15);
+    // poolProps.setMinEvictableIdleTimeMillis(30000);
+    // poolProps.setMinIdle(10);
+    try {
       this.connectionPool = new DataSource(poolProps);
       conn = this.connectionPool.getConnection();
     }
@@ -160,7 +199,8 @@ public class PostgresStorageImplementation extends DbImplementation {
       String theError = (e).getSQLState();
       if ("3D000".equals(theError)) {
         // the database catalog doesn't exist
-        createDatabaseCatalog();
+        String msg = "Postgres: unable to connect to database catalog requested. ";
+        this.logger.warning(msg + StackTrace.toString(e));
       }
       else {
         String msg = "Postgres: failed to open connection. ";
@@ -168,7 +208,6 @@ public class PostgresStorageImplementation extends DbImplementation {
         throw new RuntimeException(msg, e);
       }
     }
-
     finally {
       try {
         if (conn != null) {
@@ -183,41 +222,39 @@ public class PostgresStorageImplementation extends DbImplementation {
   }
 
   /**
-   * Creates and tests the database catalog as specified in dbName.
+   * Checks if the given database catalog exists, and if not, creates it.
+   * 
+   * @param conn The connection to use to connect to the database. Closing the connection is the
+   * responsibility of the caller.
+   * @param databaseName The name of the database.
    */
-  public void createDatabaseCatalog() {
-    Connection conn = null;
+  private void configureDatabaseCatalog(Connection conn, String databaseName) {
     PreparedStatement s = null;
-    ServerProperties props = server.getServerProperties();
+    ResultSet rs = null;
+    String databaseExistsP = "SELECT 1 AS result FROM pg_database WHERE datname=?";
 
     try {
-      String baseConnectionUrl =
-          "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY)
-              + "?user=" + props.get(DB_USERNAME_KEY) + "&password=" + props.get(DB_PASSWORD_KEY);
+      s = conn.prepareStatement(databaseExistsP);
+      s.setString(1, databaseName);
+      rs = s.executeQuery();
+      if (!rs.next()) {
+        // Database does not exist, so we must create it
+        this.logger.info("Creating database catalog " + databaseName);
 
-      this.logger.info("Created database catalog " + props.get(DB_DATABASE_NAME_KEY));
+        String statement = "CREATE DATABASE ?";
 
-      String statement = "CREATE DATABASE ?";
-
-      conn = DriverManager.getConnection(baseConnectionUrl);
-      s = conn.prepareStatement(statement);
-      s.setString(1, props.get(DB_DATABASE_NAME_KEY));
-      s.close();
-      // Prepared Statements are somewhat picky about where you can put parameters,
-      // and it doesn't like this one. Since the value is user-defined, I want to use them anyway.
-      // The following statement works around the issue.
-      s = conn.prepareStatement(s.toString());
-      s.execute();
-
-      s.close();
-      conn.close();
-
-      conn = DriverManager.getConnection(this.connectionUrl);
-      conn.close();
+        s = conn.prepareStatement(statement);
+        s.setString(1, databaseName);
+        s.close();
+        // Prepared Statements are somewhat picky about where you can put parameters,
+        // and it doesn't like this one. Since the value is user-defined, I want to use them anyway.
+        // The following statement works around the issue.
+        s = conn.prepareStatement(s.toString());
+        s.execute();
+      }
     }
     catch (SQLException e) {
-      String msg =
-          "Failure attempting to create database catalog " + props.get(DB_DATABASE_NAME_KEY) + ". ";
+      String msg = "Failure attempting to create database catalog " + databaseName + ". ";
       this.logger.warning(msg + StackTrace.toString(e));
       throw new RuntimeException(msg, e);
     }
@@ -226,8 +263,57 @@ public class PostgresStorageImplementation extends DbImplementation {
         if (s != null) {
           s.close();
         }
-        if (conn != null) {
-          conn.close();
+      }
+      catch (SQLException e) {
+        this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+      }
+    }
+  }
+
+  /**
+   * Checks if the given schema exists, and if not, creates it.
+   * 
+   * @param conn The connection to use to connect to the database. Closing the connection is the
+   * responsibility of the caller.
+   * @param schemaName Name of the schema to create.
+   */
+  private void configureSchema(Connection conn, String schemaName) {
+    PreparedStatement s = null;
+    ResultSet rs = null;
+    String schemaExistsP =
+        "SELECT schema_name FROM information_schema.schemata WHERE schema_name =?";
+
+    try {
+      s = conn.prepareStatement(schemaExistsP);
+      s.setString(1, schemaName);
+      rs = s.executeQuery();
+      if (!rs.next()) {
+        // Schema does not exist, so we must create it
+        this.logger.info("Creating schema " + schemaName);
+
+        String createSchema = "CREATE SCHEMA ?";
+        s = conn.prepareStatement(createSchema);
+        s.setString(1, schemaName);
+        s.close();
+        // Prepared Statements are somewhat picky about where you can put parameters,
+        // and it doesn't like this one. Since the value is user-defined, I want to use them anyway.
+        // The following statement works around the issue.
+        s = conn.prepareStatement(s.toString());
+        s.execute();
+      }
+    }
+    catch (SQLException e) {
+      String msg = "Failure attempting to create schema " + schemaName + ". ";
+      this.logger.warning(msg + StackTrace.toString(e));
+      throw new RuntimeException(msg, e);
+    }
+    finally {
+      try {
+        if (rs != null) {
+          rs.close();
+        }
+        if (s != null) {
+          s.close();
         }
       }
       catch (SQLException e) {
@@ -252,6 +338,7 @@ public class PostgresStorageImplementation extends DbImplementation {
       }
     });
     String errorPrefix = "Error during initialization: ";
+
     try {
       try {
         this.isFreshlyCreated = !isPreExisting();
@@ -262,7 +349,7 @@ public class PostgresStorageImplementation extends DbImplementation {
       }
       catch (SQLException e) {
         if (wipe) {
-          // An exception is isPreExisting most likely means the table schemas are incorrect.
+          // An exception in isPreExisting most likely means the table schemas are incorrect.
           // If the user wants to wipe all data AND the current tables have the wrong schema, just
           // delete all tables and start from scratch.
           this.logger.warning("Recreating Postgres schema");
@@ -274,7 +361,7 @@ public class PostgresStorageImplementation extends DbImplementation {
         }
       }
       if (this.isFreshlyCreated) {
-        this.logger.warning("Postgres schema doesn't exist.  Creating...");
+        this.logger.warning("Postgres tables don't exist. Creating...");
         createTables();
       }
       // Only need to wipe tables if database has already been created and wiping was requested

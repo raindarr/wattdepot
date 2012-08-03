@@ -43,6 +43,8 @@ public class ServerProperties {
   public static final String DERBY_SNAPSHOT_KEY = "wattdepot-server.db.derby.snapshot";
   /** The postgres database snapshot file key. */
   public static final String POSTGRES_SNAPSHOT_KEY = "wattdepot-server.db.postgres.snapshot";
+  /** The postgres schema (namespace prefix) key. */
+  public static final String POSTGRES_SCHEMA_KEY = "wattdepot-server.db.postgres.schema";
   /** The database implementation class. */
   public static final String DB_IMPL_KEY = "wattdepot-server.db.impl";
   /** The hostname key. */
