@@ -105,14 +105,14 @@ public class PostgresStorageImplementation extends DbImplementation {
             + props.get(DB_USERNAME_KEY) + "&password=" + props.get(DB_PASSWORD_KEY);
 
     if (props.get(DATABASE_URL_KEY) == null || props.get(DATABASE_URL_KEY).length() == 0) {
-      connectionUrl =
+      this.connectionUrl =
           "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "/"
               + props.get(DB_DATABASE_NAME_KEY) + "?user=" + props.get(DB_USERNAME_KEY)
               + "&password=" + props.get(DB_PASSWORD_KEY);
     }
     // make sure URL is JDBC compliant (default from Heroku isn't)
     else if (!props.get(DATABASE_URL_KEY).contains("postgresql:")) {
-      connectionUrl = props.get(DATABASE_URL_KEY);
+      this.connectionUrl = props.get(DATABASE_URL_KEY);
       // assume connectionUrl is in the form postgres://username:password@host/dbName
       String userInfo =
           connectionUrl.substring(connectionUrl.indexOf("//") + 2, connectionUrl.indexOf("@"));
@@ -129,14 +129,22 @@ public class PostgresStorageImplementation extends DbImplementation {
       if (connectionUrl.contains("?")) {
         params = "&" + connectionUrl.substring(connectionUrl.indexOf("?") + 1);
       }
-      connectionUrl =
+      this.connectionUrl =
           "jdbc:postgresql://" + hostName + "/" + dbName + "?user=" + user + "&password="
               + password + params;
+      // baseConnectionUrl needs string without database name
+      baseConnectionUrl =
+          "jdbc:postgresql://" + hostName + "?user=" + user + "&password=" + password + params;
     }
     else {
       // assume we have a valid jdbc connectionUrl in the form
       // postgresql://hostName/dbName?user=user&password=password
-      connectionUrl = "jdbc:" + props.get(DATABASE_URL_KEY);
+      this.connectionUrl = "jdbc:" + props.get(DATABASE_URL_KEY);
+      // baseConnectionUrl needs string without database name
+      baseConnectionUrl =
+          this.connectionUrl.substring(0, this.connectionUrl.lastIndexOf("/") - 1)
+              + this.connectionUrl.substring(this.connectionUrl.lastIndexOf("?") + 1,
+                  this.connectionUrl.length());
     }
 
     // Test if database catalog exists
