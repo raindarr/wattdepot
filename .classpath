@@ -37,7 +37,11 @@
 	</classpathentry>
 	<classpathentry kind="var" path="M2_REPO/org/osgi/org.osgi.core/4.0.0/org.osgi.core-4.0.0.jar"/>
 	<classpathentry kind="var" path="M2_REPO/net/wimpi/modbus/jamod/1.2/jamod-1.2.jar"/>
-	<classpathentry kind="var" path="M2_REPO/postgresql/postgresql/8.3-603.jdbc3/postgresql-8.3-603.jdbc3.jar"/>
+	<classpathentry kind="var" path="M2_REPO/postgresql/postgresql/9.1-901.jdbc4/postgresql-9.1-901.jdbc4.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://jdbc.postgresql.org/documentation/publicapi/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="var" path="M2_REPO/httpunit/httpunit/1.7/httpunit-1.7.jar"/>
 	<classpathentry kind="var" path="M2_REPO/jtidy/jtidy/4aug2000r7-dev/jtidy-4aug2000r7-dev.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/json/json/20090211/json-20090211.jar"/>
