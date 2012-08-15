@@ -34,7 +34,7 @@
 	<modbus-jamod.version>1.2</modbus-jamod.version>
 	<opencsv.version>2.0</opencsv.version>
 	<pool.version>1.5.7</pool.version>
-	<postgres.version>8.3-603.jdbc3</postgres.version>
+	<postgres.version>9.1-901.jdbc4</postgres.version>
 	<restlet.version>2.1-RC5</restlet.version>
 	
 	<!-- Maven Plugin Versions -->
