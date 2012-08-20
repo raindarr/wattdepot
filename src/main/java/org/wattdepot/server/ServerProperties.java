@@ -169,7 +169,7 @@ public class ServerProperties {
     properties.setProperty(BERKELEYDB_DIR_KEY, serverHome + "/BerkeleyDb");
     properties.setProperty(POSTGRES_SNAPSHOT_KEY, serverHome + "/Postgres-snapshot");
     properties.setProperty(POSTGRES_MAX_ACTIVE_KEY, "19");
-    properties.setProperty(POSTGRES_INITIAL_SIZE_KEY, "10");  
+    properties.setProperty(POSTGRES_INITIAL_SIZE_KEY, "10");
     properties.setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
     properties.setProperty(DB_HOSTNAME_KEY, "localhost");
     properties.setProperty(DB_PORT_KEY, "5432");
@@ -376,18 +376,22 @@ public class ServerProperties {
    * @return The fully qualified host name.
    */
   public String getFullHost() {
-    // Commented out the special casing of Heroku here, as leaves out the port number, which
-    // causes the URI vs payload URI check to always fail. I don't see any reason for leaving out
-    // the port # on Heroku, since it is grabbed from the environment variable PORT during
-    // initialization, so should be valid before this method is ever called. 
-//    if (properties.getProperty(USE_HEROKU_KEY).equals(TRUE)
-//        || properties.getProperty(TEST_HEROKU_KEY).equals(TRUE)) {
-//      return "http://" + get(HOSTNAME_KEY) + "/" + get(CONTEXT_ROOT_KEY) + "/";
-//    }
-//    else {
+    // We have a special case for Heroku here, which leaves out the port number. This is needed
+    // because Heroku apps listen on a private port on localhost, but remote connections into
+    // the server always come on port 80. This causes problems because the port number is used
+    // in at least 3 places: by the Server to decide what port number to bind to (on Heroku this
+    // is the private port # given by the $PORT environment variable), the announced URL of the
+    // server to the public (always 80 on Heroku, though usually left out of URI to default to
+    // 80), and the URI of parent resources such as a Source in a SensorData resource (should be
+    // the public port on Heroku).
+    if (properties.getProperty(USE_HEROKU_KEY).equals(TRUE)
+        || properties.getProperty(TEST_HEROKU_KEY).equals(TRUE)) {
+      return "http://" + get(HOSTNAME_KEY) + ":80/" + get(CONTEXT_ROOT_KEY) + "/";
+    }
+    else {
       return "http://" + get(HOSTNAME_KEY) + ":" + get(PORT_KEY) + "/" + get(CONTEXT_ROOT_KEY)
           + "/";
-//    }
+    }
   }
 
 }
