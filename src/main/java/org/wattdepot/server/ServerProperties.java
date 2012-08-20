@@ -41,10 +41,14 @@ public class ServerProperties {
   public static final String DERBY_DIR_KEY = "wattdepot-server.db.derby.dir";
   /** The derby database snapshot directory key. */
   public static final String DERBY_SNAPSHOT_KEY = "wattdepot-server.db.derby.snapshot";
-  /** The postgres database snapshot file key. */
+  /** The Postgres database snapshot file key. */
   public static final String POSTGRES_SNAPSHOT_KEY = "wattdepot-server.db.postgres.snapshot";
-  /** The postgres schema (namespace prefix) key. */
+  /** The Postgres schema (namespace prefix) key. */
   public static final String POSTGRES_SCHEMA_KEY = "wattdepot-server.db.postgres.schema";
+  /** The maximum Postgres connection pool size key. */
+  public static final String POSTGRES_MAX_ACTIVE_KEY = "wattdepot-server.db.postgres.maxActive";
+  /** The initial Postgres connection pool size key. */
+  public static final String POSTGRES_INITIAL_SIZE_KEY = "wattdepot-server.db.postgres.initialSize";
   /** The database implementation class. */
   public static final String DB_IMPL_KEY = "wattdepot-server.db.impl";
   /** The hostname key. */
@@ -164,6 +168,8 @@ public class ServerProperties {
     properties.setProperty(DERBY_SNAPSHOT_KEY, serverHome + "/Derby-snapshot");
     properties.setProperty(BERKELEYDB_DIR_KEY, serverHome + "/BerkeleyDb");
     properties.setProperty(POSTGRES_SNAPSHOT_KEY, serverHome + "/Postgres-snapshot");
+    properties.setProperty(POSTGRES_MAX_ACTIVE_KEY, "19");
+    properties.setProperty(POSTGRES_INITIAL_SIZE_KEY, "10");  
     properties.setProperty(DB_IMPL_KEY, "org.wattdepot.server.db.derby.DerbyStorageImplementation");
     properties.setProperty(DB_HOSTNAME_KEY, "localhost");
     properties.setProperty(DB_PORT_KEY, "5432");
@@ -370,14 +376,18 @@ public class ServerProperties {
    * @return The fully qualified host name.
    */
   public String getFullHost() {
-    if (properties.getProperty(USE_HEROKU_KEY).equals(TRUE)
-        || properties.getProperty(TEST_HEROKU_KEY).equals(TRUE)) {
-      return "http://" + get(HOSTNAME_KEY) + "/" + get(CONTEXT_ROOT_KEY) + "/";
-    }
-    else {
+    // Commented out the special casing of Heroku here, as leaves out the port number, which
+    // causes the URI vs payload URI check to always fail. I don't see any reason for leaving out
+    // the port # on Heroku, since it is grabbed from the environment variable PORT during
+    // initialization, so should be valid before this method is ever called. 
+//    if (properties.getProperty(USE_HEROKU_KEY).equals(TRUE)
+//        || properties.getProperty(TEST_HEROKU_KEY).equals(TRUE)) {
+//      return "http://" + get(HOSTNAME_KEY) + "/" + get(CONTEXT_ROOT_KEY) + "/";
+//    }
+//    else {
       return "http://" + get(HOSTNAME_KEY) + ":" + get(PORT_KEY) + "/" + get(CONTEXT_ROOT_KEY)
           + "/";
-    }
+//    }
   }
 
 }

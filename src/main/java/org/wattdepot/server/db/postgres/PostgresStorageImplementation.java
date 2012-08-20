@@ -7,6 +7,8 @@ import static org.wattdepot.server.ServerProperties.DB_PASSWORD_KEY;
 import static org.wattdepot.server.ServerProperties.DB_PORT_KEY;
 import static org.wattdepot.server.ServerProperties.DB_USERNAME_KEY;
 import static org.wattdepot.server.ServerProperties.POSTGRES_SCHEMA_KEY;
+import static org.wattdepot.server.ServerProperties.POSTGRES_MAX_ACTIVE_KEY;
+import static org.wattdepot.server.ServerProperties.POSTGRES_INITIAL_SIZE_KEY;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -87,6 +89,8 @@ public class PostgresStorageImplementation extends DbImplementation {
   private static final String DUPLICATE_KEY = "23505";
   /** The SQL state indication that INSERT tried to violate a foreign key constraint. */
   private static final String FOREIGN_KEY_VIOLATION = "23503";
+  /** The SQL state indication that a connection was made to an invalid catalog name. */
+  private static final String INVALID_CATALOG_NAME = "3D000";
 
   /**
    * Instantiates the PostgreSQL implementation. Throws a Runtime exception if the PostgeSQL jar
@@ -99,17 +103,31 @@ public class PostgresStorageImplementation extends DbImplementation {
     super(server, dbManager);
 
     ServerProperties props = server.getServerProperties();
-    // Used for connections that don't connect to a particular database
+    String propDbName = props.get(DB_DATABASE_NAME_KEY), propHostname = props.get(DB_HOSTNAME_KEY), propPort =
+        props.get(DB_PORT_KEY), propUser = props.get(DB_USERNAME_KEY), propPassword =
+        props.get(DB_PASSWORD_KEY), jdbcPrefix = "jdbc:postgresql://";
+
+    // Connection URL lacking database name, which will cause Postgres to default to a database
+    // named after the username
     String baseConnectionUrl =
-        "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "?user="
-            + props.get(DB_USERNAME_KEY) + "&password=" + props.get(DB_PASSWORD_KEY);
+        jdbcPrefix + propHostname + ":" + propPort + "?user=" + propUser + "&password="
+            + propPassword;
 
     if (props.get(DATABASE_URL_KEY) == null || props.get(DATABASE_URL_KEY).length() == 0) {
-      this.connectionUrl =
-          "jdbc:postgresql://" + props.get(DB_HOSTNAME_KEY) + ":" + props.get(DB_PORT_KEY) + "/"
-              + props.get(DB_DATABASE_NAME_KEY) + "?user=" + props.get(DB_USERNAME_KEY)
-              + "&password=" + props.get(DB_PASSWORD_KEY);
+      if (isIdentifierSafe(propDbName)) {
+        this.connectionUrl =
+            jdbcPrefix + propHostname + ":" + propPort + "/" + propDbName + "?user=" + propUser
+                + "&password=" + propPassword;
+      }
+      else {
+        String msg =
+            "Postgres: Database catalog name \"" + propDbName
+                + "\" is not a valid identifier [a-zA-Z_0-9]. Aborting.";
+        this.logger.severe(msg);
+        throw new RuntimeException(msg);
+      }
     }
+
     // make sure URL is JDBC compliant (default from Heroku isn't)
     else if (!props.get(DATABASE_URL_KEY).contains("postgresql:")) {
       this.connectionUrl = props.get(DATABASE_URL_KEY);
@@ -149,27 +167,51 @@ public class PostgresStorageImplementation extends DbImplementation {
 
     // Test if database catalog exists
     Connection conn = null;
-    String databaseName = props.get(DB_DATABASE_NAME_KEY);
     String schemaName = props.get(POSTGRES_SCHEMA_KEY);
-    String errorPrefix = "Error during initialization: ";
     PoolProperties poolProps = new PoolProperties();
 
     try {
-      // Note we cannot use connection from connection pool, because we need to query the database
-      // to find out what parameters to use in creating the pool.
-      conn = DriverManager.getConnection(baseConnectionUrl);
-      configureDatabaseCatalog(conn, databaseName);
-      conn.close();
-      // Must check if configured to use schemas and set that up if needed
-      if ((schemaName != null) && (schemaName.length() != 0)) {
-        conn = DriverManager.getConnection(this.connectionUrl);
-        configureSchema(conn, schemaName);
-        // Now make every pooled connection set search path to the configured schema
-        poolProps.setInitSQL("SET search_path TO " + schemaName + ";");
-      }
+      // First try connection to configured database name
+      conn = DriverManager.getConnection(this.connectionUrl);
     }
     catch (SQLException e) {
-      this.logger.info(errorPrefix + StackTrace.toString(e));
+      String theError = e.getSQLState();
+      if (INVALID_CATALOG_NAME.equals(theError)) {
+        // the specified database catalog doesn't exist
+        this.logger.warning("Postgres: configured database catalog " + propDbName
+            + " does not exist, attempting to create.");
+        // so try connecting without database name, which will default to a database equal to
+        // the username.
+        try {
+          conn = DriverManager.getConnection(baseConnectionUrl);
+          createDatabaseCatalog(conn, propDbName);
+        }
+        catch (SQLException exception) {
+          String error = exception.getSQLState();
+          String msg;
+          if (INVALID_CATALOG_NAME.equals(error)) {
+            // Can't connect to any database catalog, so give up.
+            msg =
+                "Postgres: unable to connect to default database catalog also. "
+                    + "Please create database catalog \"" + propDbName
+                    + "\" and try again. Aborting.";
+          }
+          else {
+            // Must be a problem creating the database catalog
+            msg =
+                "Postgres: unable to create database catalog. "
+                    + "Please create database catalog \"" + propDbName
+                    + "\" and try again. Aborting.";
+          }
+          this.logger.severe(msg);
+          throw new RuntimeException(msg, exception);
+        }
+      }
+      else {
+        String msg = "Postgres: failed to open connection to configured datbase catalog. Aborting.";
+        this.logger.severe(msg + StackTrace.toString(e));
+        throw new RuntimeException(msg, e);
+      }
     }
     finally {
       try {
@@ -182,6 +224,42 @@ public class PostgresStorageImplementation extends DbImplementation {
       }
     }
 
+    // Check if configured to use schemas and set that up if needed
+    if ((schemaName != null) && (schemaName.length() != 0)) {
+      if (isIdentifierSafe(schemaName)) {
+        try {
+          // Note we cannot use connection from connection pool, because we need to query the
+          // database to find out what parameters to use in creating the pool.
+          conn = DriverManager.getConnection(this.connectionUrl);
+          configureSchema(conn, schemaName);
+          // Now make every pooled connection set search path to the configured schema
+          poolProps.setInitSQL("SET search_path TO " + schemaName + ";");
+        }
+        catch (SQLException e) {
+          String msg = "Failure attempting to create schema " + schemaName + ". ";
+          this.logger.warning(msg + StackTrace.toString(e));
+          throw new RuntimeException(msg, e);
+        }
+        finally {
+          try {
+            if (conn != null) {
+              conn.close();
+            }
+          }
+          catch (SQLException e) {
+            this.logger.warning(errorClosingMsg + StackTrace.toString(e));
+          }
+        }
+      }
+      else {
+        String msg =
+            "Postgres: Schema name \"" + schemaName
+                + "\" is not a valid identifier [a-zA-Z_0-9]. Aborting.";
+        this.logger.severe(msg);
+        throw new RuntimeException(msg);
+      }
+    }
+
     // Set appropriate pool parameters
     poolProps.setUrl(this.connectionUrl);
     poolProps.setDriverClassName(driver);
@@ -191,8 +269,8 @@ public class PostgresStorageImplementation extends DbImplementation {
     poolProps.setTestOnReturn(false);
     // poolProps.setValidationInterval(30000);
     // poolProps.setTimeBetweenEvictionRunsMillis(30000);
-    poolProps.setMaxActive(100);
-    poolProps.setInitialSize(10);
+    poolProps.setMaxActive(Integer.parseInt(props.get(POSTGRES_MAX_ACTIVE_KEY)));
+    poolProps.setInitialSize(Integer.parseInt(props.get(POSTGRES_INITIAL_SIZE_KEY)));
     poolProps.setMaxWait(10000);
     poolProps.setRemoveAbandoned(true);
     poolProps.setLogAbandoned(true);
@@ -204,17 +282,9 @@ public class PostgresStorageImplementation extends DbImplementation {
       conn = this.connectionPool.getConnection();
     }
     catch (SQLException e) {
-      String theError = (e).getSQLState();
-      if ("3D000".equals(theError)) {
-        // the database catalog doesn't exist
-        String msg = "Postgres: unable to connect to database catalog requested. ";
-        this.logger.warning(msg + StackTrace.toString(e));
-      }
-      else {
-        String msg = "Postgres: failed to open connection. ";
-        this.logger.warning(msg + StackTrace.toString(e));
-        throw new RuntimeException(msg, e);
-      }
+      String msg = "Postgres: failed to open connection. ";
+      this.logger.severe(msg + StackTrace.toString(e));
+      throw new RuntimeException(msg, e);
     }
     finally {
       try {
@@ -230,41 +300,41 @@ public class PostgresStorageImplementation extends DbImplementation {
   }
 
   /**
-   * Checks if the given database catalog exists, and if not, creates it.
+   * Indicates whether a given string is safe as an SQL identifier (database, schema, or table
+   * names). Currently using regex "[a-zA-Z_0-9]+", i.e. alphanumeric plus "_". This might be a
+   * subset of all valid identifiers, but better safe than sorry.
+   * 
+   * @param id The possibly valid SQL identifier.
+   * @return true if the identifier is safe, and false if it is not.
+   */
+  public boolean isIdentifierSafe(String id) {
+    return id.matches("\\w+");
+  }
+
+  /**
+   * Creates the given database catalog.
    * 
    * @param conn The connection to use to connect to the database. Closing the connection is the
    * responsibility of the caller.
-   * @param databaseName The name of the database.
+   * @param databaseName The name of the database. This string should be checked by
+   * isIdentifierSafe() before passing in.
+   * @throws SQLException if there is a problem creating the database.
+   * @see #isIdentifierSafe
    */
-  private void configureDatabaseCatalog(Connection conn, String databaseName) {
-    PreparedStatement s = null;
-    ResultSet rs = null;
-    String databaseExistsP = "SELECT 1 AS result FROM pg_database WHERE datname=?";
+  private void createDatabaseCatalog(Connection conn, String databaseName) throws SQLException {
+    // Using Statement rather than PreparedStatement because database catalog names are not
+    // SQL Data statements. See
+    // http://www.applettalk.com/limitations-of-preparedstatement-with-postgresql-vt96926.html
+
+    Statement s = null;
+
+    this.logger.info("Creating database catalog " + databaseName);
+
+    String createDb = "CREATE DATABASE " + databaseName;
 
     try {
-      s = conn.prepareStatement(databaseExistsP);
-      s.setString(1, databaseName);
-      rs = s.executeQuery();
-      if (!rs.next()) {
-        // Database does not exist, so we must create it
-        this.logger.info("Creating database catalog " + databaseName);
-
-        String statement = "CREATE DATABASE ?";
-
-        s = conn.prepareStatement(statement);
-        s.setString(1, databaseName);
-        s.close();
-        // Prepared Statements are somewhat picky about where you can put parameters,
-        // and it doesn't like this one. Since the value is user-defined, I want to use them anyway.
-        // The following statement works around the issue.
-        s = conn.prepareStatement(s.toString());
-        s.execute();
-      }
-    }
-    catch (SQLException e) {
-      String msg = "Failure attempting to create database catalog " + databaseName + ". ";
-      this.logger.warning(msg + StackTrace.toString(e));
-      throw new RuntimeException(msg, e);
+      s = conn.createStatement();
+      s.executeUpdate(createDb);
     }
     finally {
       try {
@@ -284,9 +354,12 @@ public class PostgresStorageImplementation extends DbImplementation {
    * @param conn The connection to use to connect to the database. Closing the connection is the
    * responsibility of the caller.
    * @param schemaName Name of the schema to create.
+   * @throws SQLException if there is a problem creating the schema.
+   * 
    */
-  private void configureSchema(Connection conn, String schemaName) {
+  private void configureSchema(Connection conn, String schemaName) throws SQLException {
     PreparedStatement s = null;
+    Statement execStatement = null;
     ResultSet rs = null;
     String schemaExistsP =
         "SELECT schema_name FROM information_schema.schemata WHERE schema_name =?";
@@ -299,21 +372,10 @@ public class PostgresStorageImplementation extends DbImplementation {
         // Schema does not exist, so we must create it
         this.logger.info("Creating schema " + schemaName);
 
-        String createSchema = "CREATE SCHEMA ?";
-        s = conn.prepareStatement(createSchema);
-        s.setString(1, schemaName);
-        s.close();
-        // Prepared Statements are somewhat picky about where you can put parameters,
-        // and it doesn't like this one. Since the value is user-defined, I want to use them anyway.
-        // The following statement works around the issue.
-        s = conn.prepareStatement(s.toString());
-        s.execute();
+        execStatement = conn.createStatement();
+        String createSchema = "CREATE SCHEMA " + schemaName;
+        execStatement.executeUpdate(createSchema);
       }
-    }
-    catch (SQLException e) {
-      String msg = "Failure attempting to create schema " + schemaName + ". ";
-      this.logger.warning(msg + StackTrace.toString(e));
-      throw new RuntimeException(msg, e);
     }
     finally {
       try {
@@ -322,6 +384,9 @@ public class PostgresStorageImplementation extends DbImplementation {
         }
         if (s != null) {
           s.close();
+        }
+        if (execStatement != null) {
+          execStatement.close();
         }
       }
       catch (SQLException e) {
