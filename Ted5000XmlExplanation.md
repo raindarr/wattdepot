@@ -1,0 +1,364 @@
+# Introduction #
+
+**Update 4/14/2010:** They now have a [PDF that describes the API](http://www.theenergydetective.com/media/TED5000-API-R330.pdf). Haven't read it yet. There is also a [forum thread about the API](http://server17.hosting24.com/~sherlock/techforum/index.php/topic,640.0.html)
+
+The [TED 5000 home energy meter](http://www.theenergydetective.com/ted-5000-overview.html) provides an ["API"](http://www.theenergydetective.com/ted-5000-developer-and-api.html) which is just a series of URIs that you can query that return XML documents with power data.
+
+There is a [demo TED unit](http://www.theenergydetective.com/ted-5000-live-Demo.html) that runs at the Energy, Inc headquarters. This provides a live version of the [standard TED web interface](http://demo.theenergydetective.com/Footprints.html), and also live [access to the XML](http://demo.theenergydetective.com/api/LiveData.xml). Unfortunately, the XML isn't 100% obvious just from the name of the tags, so this page is my attempt to document the stuff we're interested in. By bringing up the XML and the web interface at the same time, you can match data from the web interface to the XML tags.
+
+# XML tag definitions #
+
+We're mostly interested in the power data, which looks like this:
+
+```
+        <Total>
+            <PowerNow>2995</PowerNow>
+            <PowerHour>4343</PowerHour>
+            <PowerTDY>96201</PowerTDY>
+            <PowerMTD>515227</PowerMTD>
+            <PowerProj>3093584</PowerProj>
+            <KVA>3121</KVA>
+            <PeakTdy>18513</PeakTdy>
+            <PeakMTD>25454</PeakMTD>
+            <PeakTdyHour>11</PeakTdyHour>
+            <PeakTdyMin>36</PeakTdyMin>
+            <PeakMTDMonth>2</PeakMTDMonth>
+            <PeakMTDDay>24</PeakMTDDay>
+            <MinTdy>1993</MinTdy>
+            <MinMTD>1993</MinMTD>
+            <MinTdyHour>17</MinTdyHour>
+            <MinTdyMin>40</MinTdyMin>
+            <MinMTDMonth>2</MinMTDMonth>
+            <MinMTDDay>25</MinMTDDay>
+        </Total>
+```
+
+  * `<PowerNow>` appears to be the current power in watts.
+  * `<PowerHour>`, not sure, maybe peak power in watts for this hour? But I've seen PowerNow values higher than this. Perhaps energy consumed in this hour in watt hours?
+  * `<PowerTDY>` appears to be energy used since midnight in watt hours.
+  * `<PowerMTD>`appears to be energy used month to date in watt hours.
+
+# Example TED XML #
+
+```
+<LiveData>
+    <GatewayTime>
+        <Hour>19</Hour>
+        <Minute>55</Minute>
+        <Month>2</Month>
+        <Day>25</Day>
+        <Year>10</Year>
+        <maxsecond>1</maxsecond>
+        <accusecond>0</accusecond>
+    </GatewayTime>
+
+    <Voltage>
+        <Total>
+            <VoltageNow>1205</VoltageNow>
+            <LowVoltageHour>1195</LowVoltageHour>
+            <LowVoltageToday>1190</LowVoltageToday>
+            <LowVoltageTodayTimeHour>17</LowVoltageTodayTimeHour>
+            <LowVoltageTodayTimeMin>51</LowVoltageTodayTimeMin>
+            <HighVoltageHour>1208</HighVoltageHour>
+            <HighVoltageToday>1227</HighVoltageToday>
+            <HighVoltageTodayTimeHour>12</HighVoltageTodayTimeHour>
+            <HighVoltageTodayTimeMin>1</HighVoltageTodayTimeMin>
+            <LowVoltageMTD>1177</LowVoltageMTD>
+            <LowVoltageMTDDateMonth>2</LowVoltageMTDDateMonth>
+            <LowVoltageMTDDateDay>24</LowVoltageMTDDateDay>
+            <HighVoltageMTD>1227</HighVoltageMTD>
+            <HighVoltageMTDDateMonth>2</HighVoltageMTDDateMonth>
+            <HighVoltageMTDDateDay>25</HighVoltageMTDDateDay>
+        </Total>
+        <MTU1>
+            <VoltageNow>1205</VoltageNow>
+            <LowVoltageHour>1195</LowVoltageHour>
+            <LowVoltageToday>1190</LowVoltageToday>
+            <LowVoltageTodayTimeHour>17</LowVoltageTodayTimeHour>
+            <LowVoltageTodayTimeMin>51</LowVoltageTodayTimeMin>
+            <HighVoltageHour>1208</HighVoltageHour>
+            <HighVoltageToday>1227</HighVoltageToday>
+            <HighVoltageTodayTimeHour>12</HighVoltageTodayTimeHour>
+            <HighVoltageTodayTimeMin>1</HighVoltageTodayTimeMin>
+            <LowVoltageMTD>1177</LowVoltageMTD>
+            <LowVoltageMTDDateMonth>2</LowVoltageMTDDateMonth>
+            <LowVoltageMTDDateDay>24</LowVoltageMTDDateDay>
+            <HighVoltageMTD>1227</HighVoltageMTD>
+            <HighVoltageMTDDateMonth>2</HighVoltageMTDDateMonth>
+            <HighVoltageMTDDateDay>25</HighVoltageMTDDateDay>
+        </MTU1>
+        <MTU2>
+            <VoltageNow>0</VoltageNow>
+            <LowVoltageHour>0</LowVoltageHour>
+            <LowVoltageToday>0</LowVoltageToday>
+            <LowVoltageTodayTimeHour>0</LowVoltageTodayTimeHour>
+            <LowVoltageTodayTimeMin>0</LowVoltageTodayTimeMin>
+            <HighVoltageHour>0</HighVoltageHour>
+            <HighVoltageToday>0</HighVoltageToday>
+            <HighVoltageTodayTimeHour>0</HighVoltageTodayTimeHour>
+            <HighVoltageTodayTimeMin>0</HighVoltageTodayTimeMin>
+            <LowVoltageMTD>0</LowVoltageMTD>
+            <LowVoltageMTDDateMonth>0</LowVoltageMTDDateMonth>
+            <LowVoltageMTDDateDay>0</LowVoltageMTDDateDay>
+            <HighVoltageMTD>0</HighVoltageMTD>
+            <HighVoltageMTDDateMonth>0</HighVoltageMTDDateMonth>
+            <HighVoltageMTDDateDay>0</HighVoltageMTDDateDay>
+        </MTU2>
+        <MTU3>
+            <VoltageNow>0</VoltageNow>
+            <LowVoltageHour>0</LowVoltageHour>
+            <LowVoltageToday>0</LowVoltageToday>
+            <LowVoltageTodayTimeHour>0</LowVoltageTodayTimeHour>
+            <LowVoltageTodayTimeMin>0</LowVoltageTodayTimeMin>
+            <HighVoltageHour>0</HighVoltageHour>
+            <HighVoltageToday>0</HighVoltageToday>
+            <HighVoltageTodayTimeHour>0</HighVoltageTodayTimeHour>
+            <HighVoltageTodayTimeMin>0</HighVoltageTodayTimeMin>
+            <LowVoltageMTD>0</LowVoltageMTD>
+            <LowVoltageMTDDateMonth>0</LowVoltageMTDDateMonth>
+            <LowVoltageMTDDateDay>0</LowVoltageMTDDateDay>
+            <HighVoltageMTD>0</HighVoltageMTD>
+            <HighVoltageMTDDateMonth>0</HighVoltageMTDDateMonth>
+            <HighVoltageMTDDateDay>0</HighVoltageMTDDateDay>
+        </MTU3>
+        <MTU4>
+            <VoltageNow>0</VoltageNow>
+            <LowVoltageHour>0</LowVoltageHour>
+            <LowVoltageToday>0</LowVoltageToday>
+            <LowVoltageTodayTimeHour>0</LowVoltageTodayTimeHour>
+            <LowVoltageTodayTimeMin>0</LowVoltageTodayTimeMin>
+            <HighVoltageHour>0</HighVoltageHour>
+            <HighVoltageToday>0</HighVoltageToday>
+            <HighVoltageTodayTimeHour>0</HighVoltageTodayTimeHour>
+            <HighVoltageTodayTimeMin>0</HighVoltageTodayTimeMin>
+            <LowVoltageMTD>0</LowVoltageMTD>
+            <LowVoltageMTDDateMonth>0</LowVoltageMTDDateMonth>
+            <LowVoltageMTDDateDay>0</LowVoltageMTDDateDay>
+            <HighVoltageMTD>0</HighVoltageMTD>
+            <HighVoltageMTDDateMonth>0</HighVoltageMTDDateMonth>
+            <HighVoltageMTDDateDay>0</HighVoltageMTDDateDay>
+        </MTU4>
+    </Voltage>
+
+    <Power>
+        <Total>
+            <PowerNow>2995</PowerNow>
+            <PowerHour>4343</PowerHour>
+            <PowerTDY>96201</PowerTDY>
+            <PowerMTD>515227</PowerMTD>
+            <PowerProj>3093584</PowerProj>
+            <KVA>3121</KVA>
+            <PeakTdy>18513</PeakTdy>
+            <PeakMTD>25454</PeakMTD>
+            <PeakTdyHour>11</PeakTdyHour>
+            <PeakTdyMin>36</PeakTdyMin>
+            <PeakMTDMonth>2</PeakMTDMonth>
+            <PeakMTDDay>24</PeakMTDDay>
+            <MinTdy>1993</MinTdy>
+            <MinMTD>1993</MinMTD>
+            <MinTdyHour>17</MinTdyHour>
+            <MinTdyMin>40</MinTdyMin>
+            <MinMTDMonth>2</MinMTDMonth>
+            <MinMTDDay>25</MinMTDDay>
+        </Total>
+        <MTU1>
+            <PowerNow>2990</PowerNow>
+            <PowerHour>4343</PowerHour>
+            <PowerTDY>96201</PowerTDY>
+            <PowerMTD>515227</PowerMTD>
+            <PowerProj>3093584</PowerProj>
+            <KVA>3115</KVA>
+            <PeakTdy>18513</PeakTdy>
+            <PeakMTD>25454</PeakMTD>
+            <PeakTdyHour>11</PeakTdyHour>
+            <PeakTdyMin>36</PeakTdyMin>
+            <PeakMTDMonth>2</PeakMTDMonth>
+            <PeakMTDDay>24</PeakMTDDay>
+            <MinTdy>1993</MinTdy>
+            <MinMTD>1993</MinMTD>
+            <MinTdyHour>17</MinTdyHour>
+            <MinTdyMin>40</MinTdyMin>
+            <MinMTDMonth>2</MinMTDMonth>
+            <MinMTDDay>25</MinMTDDay>
+
+
+        </MTU1>
+        <MTU2>
+            <PowerNow>0</PowerNow>
+            <PowerHour>-1</PowerHour>
+            <PowerTDY>0</PowerTDY>
+            <PowerMTD>0</PowerMTD>
+            <PowerProj>0</PowerProj>
+            <KVA>0</KVA>
+            <PeakTdy>0</PeakTdy>
+            <PeakMTD>0</PeakMTD>
+            <MinTdy>0</MinTdy>
+            <MinMTD>0</MinMTD>
+            <MinTdyHour>0</MinTdyHour>
+            <MinTdyMin>0</MinTdyMin>
+            <MinMTDMonth>0</MinMTDMonth>
+            <MinMTDDay>0</MinMTDDay>
+
+
+        </MTU2>
+
+        <MTU3>
+            <PowerNow>0</PowerNow>
+            <PowerHour>-1</PowerHour>
+            <PowerTDY>0</PowerTDY>
+            <PowerMTD>0</PowerMTD>
+            <PowerProj>0</PowerProj>
+            <KVA>0</KVA>
+            <PeakTdy>0</PeakTdy>
+            <PeakMTD>0</PeakMTD>
+            <PeakTdyHour>0</PeakTdyHour>
+            <PeakTdyMin>0</PeakTdyMin>
+            <PeakMTDMonth>0</PeakMTDMonth>
+            <PeakMTDDay>0</PeakMTDDay>
+            <MinTdy>0</MinTdy>
+            <MinMTD>0</MinMTD>
+            <MinTdyHour>0</MinTdyHour>
+            <MinTdyMin>0</MinTdyMin>
+            <MinMTDMonth>0</MinMTDMonth>
+            <MinMTDDay>0</MinMTDDay>
+        </MTU3>
+        <MTU4>
+            <PowerNow>0</PowerNow>
+            <PowerHour>-1</PowerHour>
+            <PowerTDY>0</PowerTDY>
+            <PowerMTD>0</PowerMTD>
+            <PowerProj>0</PowerProj>
+            <KVA>0</KVA>
+            <PeakTdy>0</PeakTdy>
+            <PeakMTD>0</PeakMTD>
+            <PeakTdyHour>0</PeakTdyHour>
+            <PeakTdyMin>0</PeakTdyMin>
+            <PeakMTDMonth>0</PeakMTDMonth>
+            <PeakMTDDay>0</PeakMTDDay>
+            <MinTdy>0</MinTdy>
+            <MinMTD>0</MinMTD>
+            <MinTdyHour>0</MinTdyHour>
+            <MinTdyMin>0</MinTdyMin>
+            <MinMTDMonth>0</MinMTDMonth>
+            <MinMTDDay>0</MinMTDDay>
+        </MTU4>
+    </Power>
+
+    <Cost>
+        <Total>
+            <CostNow>50</CostNow>
+            <CostHour>73</CostHour>
+            <CostTDY>1607</CostTDY>
+            <CostMTD>8702</CostMTD>
+            <CostProj>51749</CostProj>
+            <PeakTdy>310</PeakTdy>
+            <PeakMTD>425</PeakMTD>
+            <PeakTdyHour>12</PeakTdyHour>
+            <PeakTdyMin>1</PeakTdyMin>
+            <PeakMTDMonth>2</PeakMTDMonth>
+            <PeakMTDDay>24</PeakMTDDay>
+
+            <MinTdy>34</MinTdy>
+            <MinMTD>34</MinMTD>
+            <MinTdyHour>17</MinTdyHour>
+            <MinTdyMin>40</MinTdyMin>
+            <MinMTDMonth>2</MinMTDMonth>
+            <MinMTDDay>25</MinMTDDay>
+        </Total>
+        <MTU1>
+            <CostNow>50</CostNow>
+            <CostHour>73</CostHour>
+            <CostTDY>1607</CostTDY>
+            <CostMTD>8602</CostMTD>
+            <CostProj>51649</CostProj>
+            <PeakTdy>310</PeakTdy>
+            <PeakMTD>425</PeakMTD>
+            <PeakTdyHour>12</PeakTdyHour>
+            <PeakTdyMin>1</PeakTdyMin>
+            <PeakMTDMonth>2</PeakMTDMonth>
+            <PeakMTDDay>24</PeakMTDDay>
+
+            <MinTdy>34</MinTdy>
+            <MinMTD>34</MinMTD>
+            <MinTdyHour>17</MinTdyHour>
+            <MinTdyMin>40</MinTdyMin>
+            <MinMTDMonth>2</MinMTDMonth>
+            <MinMTDDay>25</MinMTDDay>
+        </MTU1>
+        <MTU2>
+            <CostNow>0</CostNow>
+            <CostHour>-1</CostHour>
+            <CostTDY>0</CostTDY>
+            <CostMTD>0</CostMTD>
+            <CostProj>0</CostProj>
+            <PeakTdy>0</PeakTdy>
+            <PeakMTD>0</PeakMTD>
+            <PeakTdyHour>0</PeakTdyHour>
+            <PeakTdyMin>0</PeakTdyMin>
+            <PeakMTDMonth>0</PeakMTDMonth>
+            <PeakMTDDay>0</PeakMTDDay>
+            <MinTdy>0</MinTdy>
+            <MinMTD>0</MinMTD>
+            <MinTdyHour>0</MinTdyHour>
+            <MinTdyMin>0</MinTdyMin>
+            <MinMTDMonth>0</MinMTDMonth>
+            <MinMTDDay>0</MinMTDDay>
+        </MTU2>
+        <MTU3>
+            <CostNow>0</CostNow>
+            <CostHour>-1</CostHour>
+            <CostTDY>0</CostTDY>
+            <CostMTD>0</CostMTD>
+            <CostProj>0</CostProj>
+            <PeakTdy>0</PeakTdy>
+            <PeakMTD>0</PeakMTD>
+            <PeakTdyHour>0</PeakTdyHour>
+            <PeakTdyMin>0</PeakTdyMin>
+            <PeakMTDMonth>0</PeakMTDMonth>
+            <PeakMTDDay>0</PeakMTDDay>
+            <MinTdy>0</MinTdy>
+            <MinMTD>0</MinMTD>
+            <MinTdyHour>0</MinTdyHour>
+            <MinTdyMin>0</MinTdyMin>
+            <MinMTDMonth>0</MinMTDMonth>
+            <MinMTDDay>0</MinMTDDay>
+        </MTU3>
+        <MTU4>
+            <CostNow>0</CostNow>
+            <CostHour>-1</CostHour>
+            <CostTDY>0</CostTDY>
+            <CostMTD>0</CostMTD>
+            <CostProj>0</CostProj>
+            <PeakTdy>0</PeakTdy>
+            <PeakMTD>0</PeakMTD>
+            <PeakTdyHour>0</PeakTdyHour>
+            <PeakTdyMin>0</PeakTdyMin>
+            <PeakMTDMonth>0</PeakMTDMonth>
+            <PeakMTDDay>0</PeakMTDDay>
+            <MinTdy>0</MinTdy>
+            <MinMTD>0</MinMTD>
+            <MinTdyHour>0</MinTdyHour>
+            <MinTdyMin>0</MinTdyMin>
+            <MinMTDMonth>0</MinMTDMonth>
+            <MinMTDDay>0</MinMTDDay>
+        </MTU4>
+    </Cost>
+
+    <System>
+        <NumberMTU>1</NumberMTU>
+    </System>
+
+    <subwat></subwat>
+    <subcost></subcost>
+    <Utility>
+        <CarbonRate>155</CarbonRate>
+        <CurrentRate>16207</CurrentRate>
+        <MeterReadDate>21</MeterReadDate>
+        <DaysLeftInBillingCycle>24</DaysLeftInBillingCycle>
+        <PlanType>1</PlanType>
+        <CurrentTier>0</CurrentTier>
+        <CurrentTOU>0</CurrentTOU>
+        <CurrentTOUDescription></CurrentTOUDescription>
+    </Utility>
+</LiveData>
+```
